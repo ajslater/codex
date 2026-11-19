@@ -7,11 +7,21 @@
       :pull-down-threshold="64"
       @load="load"
     >
-      <BrowserCard
-        v-for="item in cards"
-        :key="`${item.collection}${item.ids}`"
-        :item="item"
-      />
+      <template v-for="item in cards" :key="cardKey(item)">
+        <MissingRunCard
+          v-if="item.missingRun"
+          :count="item.count"
+          :run-key="item.key"
+          @expand="expandRun"
+        />
+        <MissingCard
+          v-else-if="item.missing"
+          :entry="item"
+          :reading-list-pk="readingListPk"
+          :editable="missingEditable"
+        />
+        <BrowserCard v-else :item="item" />
+      </template>
     </v-pull-to-refresh>
     <template v-else-if="showPlaceHolder">
       <PlaceholderLoading class="placeholder" />
@@ -40,6 +50,9 @@ import { mapActions, mapState } from "pinia";
 
 import BrowserCard from "@/components/browser/card/card.vue";
 import BrowserEmptyState from "@/components/browser/empty.vue";
+import { interleaveMissing } from "@/components/browser/missing/interleave";
+import MissingCard from "@/components/browser/missing/missing-card.vue";
+import MissingRunCard from "@/components/browser/missing/missing-run-card.vue";
 import BrowserTable from "@/components/browser/table/browser-table.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -54,6 +67,8 @@ export default {
     BrowserCard,
     BrowserEmptyState,
     BrowserTable,
+    MissingCard,
+    MissingRunCard,
     PlaceholderLoading,
   },
   data() {
@@ -66,6 +81,8 @@ export default {
        */
       cancelButtonTimerHandle: null,
       cancelButtonReady: false,
+      // The long runs of missing issues the viewer opened, by first pk.
+      expandedRuns: new Set(),
     };
   },
   computed: {
@@ -96,7 +113,7 @@ export default {
           this.cancelButtonReady && this.showPlaceHolder && state.page.mtime > 0
         );
       },
-      cards(state) {
+      pageCards(state) {
         /*
          * Skip the spread when one of the lists is empty. The
          * typical browser page is either all collections (publishers,
@@ -114,6 +131,9 @@ export default {
         if (!books || books.length === 0) return collections;
         return [...collections, ...books];
       },
+      missingEntries: (state) => state.page.missingEntries,
+      missingEditable: (state) => Boolean(state.page.missingEditable),
+      orderReverse: (state) => Boolean(state.settings.orderReverse),
       tableModeRequested: (state) => state.settings.viewMode === "table",
       tableRowCount: (state) =>
         Array.isArray(state.page.rows) ? state.page.rows.length : 0,
@@ -125,6 +145,18 @@ export default {
     ...mapState(useBrowserSelectManyStore, {
       selectManyActive: (state) => state.active,
     }),
+    cards() {
+      // A reading list's missing issues, at their places among its comics.
+      return interleaveMissing(this.pageCards, this.missingEntries, {
+        reverse: this.orderReverse,
+        expanded: this.expandedRuns,
+      });
+    },
+    readingListPk() {
+      const { collection, pks } = this.$route.params;
+      if (collection !== "arcs") return 0;
+      return Number.parseInt(String(pks).split(",")[0], 10) || 0;
+    },
     browsePaneClasses() {
       // Three orthogonal modifiers, each contributing one custom
       // property that #browsePane sums; no combinatorial class names.
@@ -209,6 +241,14 @@ export default {
   },
   methods: {
     ...mapActions(useBrowserStore, ["cancelBrowserPage", "loadMtimes"]),
+    cardKey(item) {
+      if (item.missingRun) return `missingRun${item.key}`;
+      if (item.missing) return `missing${item.pk}`;
+      return `${item.collection}${item.ids}`;
+    },
+    expandRun(key) {
+      this.expandedRuns = new Set([...this.expandedRuns, key]);
+    },
     async load({ done }) {
       await this.loadMtimes().then(done);
     },

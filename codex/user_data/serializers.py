@@ -238,6 +238,7 @@ def serialize_settings_browser(
             "search": browser.search,
             "twenty_four_hour_time": int(browser.twenty_four_hour_time),
             "always_show_filename": int(browser.always_show_filename),
+            "show_missing_issues": int(browser.show_missing_issues),
             "view_mode": browser.view_mode,
             "table_columns": json.dumps(browser.table_columns, separators=(",", ":")),
             "table_cover_size": browser.table_cover_size,

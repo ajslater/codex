@@ -152,7 +152,7 @@ import {
 } from "@mdi/js";
 
 import * as API from "@/api/v4/reading-lists";
-import CandidatePicker from "@/components/admin/tabs/reading-lists/candidate-picker.vue";
+import CandidatePicker from "@/components/reading-list-candidate-picker.vue";
 import { useCommonStore } from "@/stores/common";
 
 const TIERS = Object.freeze({

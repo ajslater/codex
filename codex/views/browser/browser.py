@@ -3,7 +3,7 @@
 from functools import cached_property
 from math import ceil, floor, log10
 from types import MappingProxyType
-from typing import override
+from typing import Any, override
 
 from django.core.cache import cache as _django_cache
 from django.db.models import Max
@@ -35,6 +35,12 @@ from codex.views.browser.columns import (
     m2m_sort_annotations_for,
 )
 from codex.views.browser.intersections import compute_collection_intersections
+from codex.views.browser.missing_entries import (
+    READING_ORDER,
+    comic_positions,
+    page_bounds,
+    page_missing_entries,
+)
 from codex.views.browser.reading_list_sources import attach_list_sources
 from codex.views.browser.shelf_membership import annotate_shelved, page_row_shelves
 from codex.views.browser.title import BrowserTitleView
@@ -44,6 +50,7 @@ from codex.views.const import (
     FOLDER_COLLECTION,
     STORY_ARC_COLLECTION,
 )
+from codex.views.readinglists.access import can_edit
 
 _LIBRARIES_EXIST_CACHE_KEY = "codex:libraries_exist"
 _LIBRARIES_EXIST_TTL_SECONDS = 60
@@ -407,12 +414,63 @@ class BrowserView(BrowserTitleView):
             full_count,
         )
 
+    def _is_reading_order_in_a_list(self) -> bool:
+        """Whether the page is one reading list's comics, in Reading Order."""
+        pks = self.kwargs.get("pks") or ()
+        return (
+            self.kwargs.get("collection") == STORY_ARC_COLLECTION
+            and len(pks) == 1
+            and bool(pks[0])
+            and self.order_key == READING_ORDER
+        )
+
+    def _wants_missing_entries(self, *, reading_order: bool) -> bool:
+        """
+        Whether the page shows the list's missing issues.
+
+        Only in Reading Order with no search or filter: a missing issue has
+        nothing else to sort or filter by.
+        """
+        filters = self.params.get("filters") or {}
+        return (
+            reading_order
+            and not self.params.get("search")
+            and not any(filters.values())
+            and bool(self.params.get("show_missing_issues", True))
+        )
+
+    def _missing_entries(self, *, reading_order: bool) -> dict[str, Any]:
+        """Return the page's missing issues and the list's count, or nothing."""
+        if not self._wants_missing_entries(reading_order=reading_order):
+            return {}
+        list_pk = self.kwargs["pks"][0]
+        reverse = bool(self.params.get("order_reverse"))
+        user = self.request.user
+        per_page = get_browser_max_obj_per_page()
+        bounds = page_bounds(
+            comic_positions(self, user, list_pk, reverse=reverse),
+            self.kwargs.get("page", 1),
+            per_page,
+            self.page_orphans(per_page),
+        )
+        entries, count = page_missing_entries(
+            self, user, list_pk, bounds, reverse=reverse
+        )
+        reading_list = ReadingList.objects.filter(pk=list_pk).first()
+        return {
+            "missing_entries": entries,
+            "missing_count": count,
+            # Its editors may find a missing issue's comic or hide it.
+            "missing_editable": bool(reading_list and can_edit(user, reading_list)),
+        }
+
     @override
     def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
         collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count = (
             self._get_collection_and_books()
         )
+        reading_order = self._is_reading_order_in_a_list()
 
         # get additional context
         breadcrumbs = self.get_breadcrumbs()
@@ -437,6 +495,8 @@ class BrowserView(BrowserTitleView):
                 "mtime": mtime,
                 "search_error": self.search_error,
                 "fts": self.fts_mode,
+                "reading_order": reading_order,
+                **self._missing_entries(reading_order=reading_order),
             }
         )
 

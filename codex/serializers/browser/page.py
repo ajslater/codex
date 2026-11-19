@@ -8,7 +8,9 @@ from rest_framework.fields import (
     BooleanField,
     CharField,
     DecimalField,
+    DictField,
     IntegerField,
+    ListField,
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
@@ -294,6 +296,20 @@ class BrowserPageSerializer(Serializer):
     fts = BooleanField(read_only=True)
     search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)
+    # Inside a reading list in Reading Order: the list's missing issues
+    # that fall on this page, and how many the list is missing.
+    missing_entries = ListField(child=DictField(), read_only=True, required=False)
+    missing_count = IntegerField(read_only=True, required=False)
+    missing_editable = BooleanField(read_only=True, required=False)
+
+    @staticmethod
+    def _book_row(item, columns, book_shelves, *, reading_order: bool) -> dict:
+        row = _row_repr(item, columns, row_shelves=book_shelves)
+        if reading_order:
+            # Where the comic sits in the list, to place missing issues by.
+            order_value = getattr(item, "order_value", None)
+            row["position"] = None if order_value is None else int(order_value)
+        return row
 
     def get_rows(self, obj) -> list:
         """Project collections + books through ``columns`` if requested."""
@@ -318,7 +334,15 @@ class BrowserPageSerializer(Serializer):
                 )
                 for item in collections
             ),
-            *(_row_repr(item, columns, row_shelves=book_shelves) for item in books),
+            *(
+                self._book_row(
+                    item,
+                    columns,
+                    book_shelves,
+                    reading_order=bool(obj.get("reading_order")),
+                )
+                for item in books
+            ),
         ]
 
     @override

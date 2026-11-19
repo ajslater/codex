@@ -798,6 +798,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "top_collection": "publishers",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
+        "show_missing_issues": True,
         # Frontend export now speaks the v4 route dialect end to end —
         # the publishers collection (root resolves there) + no parent ids.
         "last_route": MappingProxyType(

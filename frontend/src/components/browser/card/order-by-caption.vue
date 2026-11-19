@@ -53,11 +53,11 @@ export default {
       if (HIDE_ORDER_VALUES.has(ov)) return "";
       if (this.orderBy === "filename" && this.item.collection !== "comics")
         return "";
-      if (
-        this.orderBy === "story_arc_number" &&
-        this.item.collection === "arcs"
-      ) {
-        return "";
+      if (this.orderBy === "story_arc_number") {
+        // A comic's place in the list, counting from 1.
+        if (this.item.collection !== "comics") return "";
+        const place = Number.parseInt(ov, 10);
+        return Number.isNaN(place) ? "" : String(place + 1);
       }
       try {
         if (DATE_SORT_BY.has(this.orderBy)) {

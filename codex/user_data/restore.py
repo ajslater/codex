@@ -809,6 +809,9 @@ def _build_browser_defaults(row, show) -> dict[str, Any]:
     }
     defaults.update({column: row[column] or "" for column in _BROWSER_STR_COLUMNS})
     defaults.update({column: bool(row[column]) for column in _BROWSER_BOOL_COLUMNS})
+    # Newer than some backups; on unless the backup says otherwise.
+    show_missing = _row_column(row, "show_missing_issues")
+    defaults["show_missing_issues"] = show_missing is None or bool(show_missing)
     return defaults
 
 

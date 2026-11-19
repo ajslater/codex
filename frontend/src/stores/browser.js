@@ -287,6 +287,7 @@ export const useBrowserStore = defineStore("browser", {
       show: BROWSER_DEFAULTS.show,
       topCollection: BROWSER_DEFAULTS.topCollection,
       twentyFourHourTime: BROWSER_DEFAULTS.twentyFourHourTime,
+      showMissingIssues: BROWSER_DEFAULTS.showMissingIssues,
       viewMode: BROWSER_DEFAULTS.viewMode,
       tableColumns: BROWSER_DEFAULTS.tableColumns,
       tableCoverSize: BROWSER_DEFAULTS.tableCoverSize,

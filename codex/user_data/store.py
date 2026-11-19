@@ -32,7 +32,8 @@ if TYPE_CHECKING:
 # 4: an ``arcs`` identifier names a reading list, ``[name, uuid]``;
 # settings_filters.reading_lists, as uuids.
 # 5: reading_lists, reading_list_sources, reading_list_entries and
-# reading_list_series_mappings.
+# reading_list_series_mappings; settings_browser.show_missing_issues;
+# settings_filters.story_arcs folds into reading_lists.
 SCHEMA_VERSION: Final[int] = 5
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 

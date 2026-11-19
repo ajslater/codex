@@ -12,6 +12,18 @@
     @update:model-value="setSetting('alwaysShowFilename', $event)"
   />
   <v-checkbox
+    v-tooltip="{
+      openDelay: 1000,
+      text: 'Show a reading list\'s missing issues at their places, in Reading Order',
+    }"
+    class="browserCollectionCheckbox"
+    density="compact"
+    label="Show Missing Issues"
+    hide-details="auto"
+    :model-value="showMissingIssues"
+    @update:model-value="setSetting('showMissingIssues', $event)"
+  />
+  <v-checkbox
     class="browserCollectionCheckbox"
     density="compact"
     hide-details="auto"
@@ -36,6 +48,8 @@ export default {
         state.settings?.twentyFourHourTime || false,
       alwaysShowFilename: (state) =>
         state.settings?.alwaysShowFilename || false,
+      // On unless turned off.
+      showMissingIssues: (state) => state.settings?.showMissingIssues !== false,
     }),
   },
   methods: {

@@ -382,6 +382,8 @@ class SettingsBrowser(SettingsBase):
     # Display preferences
     twenty_four_hour_time = BooleanField(default=False)
     always_show_filename = BooleanField(default=False)
+    # A reading list's missing issues as placeholders among its comics.
+    show_missing_issues = BooleanField(default=True)
 
     # Table view
     view_mode = CharField(
@@ -416,6 +418,7 @@ class SettingsBrowser(SettingsBase):
             "search",
             "twenty_four_hour_time",
             "always_show_filename",
+            "show_missing_issues",
             "view_mode",
             "table_columns",
             "table_cover_size",

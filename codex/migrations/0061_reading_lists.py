@@ -15,7 +15,9 @@ story-arc tag tables, which stay the importer's. In order:
    instead: shelf items, saved routes and reader settings. Rows that
    collapse onto one list keep the newest.
 5. ``SettingsReader.story_arc`` becomes ``reading_list``.
-6. The reading lists browser filter, ``SettingsBrowserFilters.reading_lists``.
+6. The reading lists browser filter, ``SettingsBrowserFilters.reading_lists``,
+   and ``SettingsBrowser.show_missing_issues``, a list's missing issues as
+   placeholders in the grid.
    Story arcs and reading lists are one concept, so a saved story-arc
    filter becomes a filter on the arc's list, its None choice ("no arc")
    becoming "in no list", and ``story_arcs`` is dropped. The ``story_arcs``
@@ -904,6 +906,11 @@ class Migration(migrations.Migration):
                 db_index=True,
                 max_length=3,
             ),
+        ),
+        migrations.AddField(
+            model_name="settingsbrowser",
+            name="show_missing_issues",
+            field=models.BooleanField(default=True),
         ),
         migrations.AddField(
             model_name="settingsbrowserfilters",

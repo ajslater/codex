@@ -23,11 +23,11 @@ from codex.user_data.restore import (
 )
 from codex.user_data.serializers import serialize_settings_filters
 from codex.views.auth import ComicACL
+from codex.views.browser.filters.search.parse import _preparse_search_query_cached
 from codex.views.browser.intersections import (
     compute_collection_intersections,
     m2m_intersection_sort_expr,
 )
-from codex.views.browser.filters.search.parse import _preparse_search_query_cached
 from codex.views.browser.saved_settings import _validate_filter_pks
 from tests.test_reading_list_filter import _SHOW_ALL, _ListsFixture
 
@@ -163,12 +163,16 @@ class SearchFieldTests(_ListsFixture):
     def test_the_field_and_its_old_names_search_the_arc_column(self) -> None:
         """Every spelling reaches the arc names in the search index."""
         for field in ("reading_lists", "reading-lists", "story_arcs", "arc", "arcs"):
-            _, fts_text, _ = _preparse_search_query_cached(f"{field}:civil", False)
+            _, fts_text, _ = _preparse_search_query_cached(
+                f"{field}:civil", path_allowed=False
+            )
             assert fts_text == "story_arcs:civil", field
 
     def test_a_prefix_search_stays_in_the_index(self) -> None:
         """A trailing wildcard is an index prefix query on the arc names."""
-        _, fts_text, _ = _preparse_search_query_cached("reading_lists:Civ*", False)
+        _, fts_text, _ = _preparse_search_query_cached(
+            "reading_lists:Civ*", path_allowed=False
+        )
         assert fts_text == "story_arcs:Civ*"
 
 
@@ -176,7 +180,7 @@ class ListTypeLabelTests(_ListsFixture):
     """A list shows its type as people read it."""
 
     def test_lists_from_tags_are_story_arcs(self) -> None:
-        """comicbox's ``story`` is a Story Arc; unknown types show as given."""
+        """The type ``story`` is a Story Arc; unknown types show as given."""
         assert list_type_label("story") == "Story Arc"
         assert list_type_label("event") == "Event"
         assert list_type_label("tie-in-order") == "Tie In Order"

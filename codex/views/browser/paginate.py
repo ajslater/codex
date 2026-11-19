@@ -14,6 +14,17 @@ from codex.views.const import FOLDER_COLLECTION
 class BrowserPaginateView(BrowserPageInBoundsView):
     """Paginate Collections and Books."""
 
+    def page_orphans(self, per_page: int) -> int:
+        """Return how many leftover rows the last page takes in."""
+        orphans = (
+            0
+            if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
+            else 5
+        )
+        # Django 7.0 raises ValueError when orphans >= per_page; keep it below.
+        # A small admin-configured page size would otherwise trip this.
+        return min(orphans, per_page - 1)
+
     def _paginate_section(
         self, qs: QuerySet, page: int, total_count: int
     ) -> tuple[QuerySet, int]:
@@ -29,15 +40,7 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         if not total_count:
             return qs.model.objects.none(), 0
         per_page = get_browser_max_obj_per_page()
-        orphans = (
-            0
-            if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
-            else 5
-        )
-        # Django 7.0 raises ValueError when orphans >= per_page; keep it below.
-        # A small admin-configured page size would otherwise trip this.
-        orphans = min(orphans, per_page - 1)
-        paginator = Paginator(qs, per_page, orphans=orphans)
+        paginator = Paginator(qs, per_page, orphans=self.page_orphans(per_page))
         # Shadow the @cached_property with the pre-computed total so
         # Paginator.num_pages doesn't issue its own COUNT query.
         paginator.count = total_count  # pyright: ignore[reportAttributeAccessIssue], #ty: ignore[invalid-assignment]

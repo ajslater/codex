@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS settings_browser (
     search TEXT NOT NULL DEFAULT '',
     twenty_four_hour_time INTEGER NOT NULL DEFAULT 0,
     always_show_filename INTEGER NOT NULL DEFAULT 0,
+    show_missing_issues INTEGER NOT NULL DEFAULT 1,
     view_mode TEXT NOT NULL DEFAULT '',
     table_columns TEXT NOT NULL DEFAULT '{}',
     table_cover_size TEXT NOT NULL DEFAULT '',
