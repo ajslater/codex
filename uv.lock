@@ -3843,14 +3843,14 @@ wheels = [
 
 [[package]]
 name = "rnc2rng"
-version = "2.7.0"
+version = "2.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rply" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/af/c0/03a30185eea227e37cde54ced8ee9e3ad023de113bd9bc932ffe8cf49b17/rnc2rng-2.7.0.tar.gz", hash = "sha256:dd9ffbbd69d09cb07e6e7a8cf80fd28703fdc6d3b9026f8756b49cbe3314676b", size = 19000, upload-time = "2024-03-29T12:18:05.747Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/99/f4/41f2f113d56e0eec547cfd8d09d4f1270de339bf74ff6d72f29ec8658c16/rnc2rng-2.8.0.tar.gz", hash = "sha256:e6213f96dc88f0b499b281f038a53ed6dc1f21dae8bf822b9fdee9406468a2a6", size = 24596, upload-time = "2026-11-19T04:23:34.174Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/8e/1cb1ce28c5aee1eeaf37d5180b1c28be075415c54888239ce4a5179b073d/rnc2rng-2.7.0-py3-none-any.whl", hash = "sha256:bd044b77b80f4a77d4e5736d0088d9b71bdbb08ecff13aa200d99e14cde2215c", size = 12501, upload-time = "2024-03-29T12:18:04.437Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/40/0c223f8632cac14fe39851011916806e3837e17941196e19d1130279c248/rnc2rng-2.8.0-py3-none-any.whl", hash = "sha256:265804d9e69c47d0b88730aeef1ba1726563b82f51bf6400e182cae9d03c0f5c", size = 14468, upload-time = "2026-11-19T04:23:33.012Z" },
 ]
 
 [[package]]
@@ -4474,14 +4474,14 @@ wheels = [
 
 [[package]]
 name = "url-normalize"
-version = "3.1.0"
+version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "idna" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/84/d3/af36d36d189cb33237732a7fe6bba2df08189ac8c5975dab0510d5c6a5f2/url_normalize-3.1.0.tar.gz", hash = "sha256:138912833c0005ec77e756ec220590f8971ff046227280790ceb00f5ab9d56b6", size = 30464, upload-time = "2026-10-29T15:44:39.183Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/1b/0651cd4dc1a2c0b81151a7f0a06ff171e324a2bce47b092121d75fbeb27c/url_normalize-4.0.0.tar.gz", hash = "sha256:52ad9004d6278ea4b581f1cf2f4d016c4873bf3d81fd749b7472ac0206355d05", size = 90053, upload-time = "2026-11-19T01:20:00.829Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/3d/ae9ba568240002f25d676df745208aec077767cd63e68cbb93bd2650c4ec/url_normalize-3.1.0-py3-none-any.whl", hash = "sha256:34c386c6b2dbde760eaaaa8542dc29995c75f2baf94acceee18e5b6b29579469", size = 18692, upload-time = "2026-10-29T15:44:37.875Z" },
+    { url = "https://files.pythonhosted.org/packages/90/69/b99d4032fd4a2984e7ec0756ef84c031f3cb7b909c2d3b592aa7b0bb7d57/url_normalize-4.0.0-py3-none-any.whl", hash = "sha256:dea616fc9c3d4c8bcd46fcaa783bb4e402b4f272789650919e473c5a86a7b3eb", size = 35372, upload-time = "2026-11-19T01:19:59.747Z" },
 ]
 
 [[package]]
