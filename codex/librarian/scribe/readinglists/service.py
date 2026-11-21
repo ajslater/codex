@@ -38,6 +38,7 @@ from codex.librarian.scribe.readinglists.documents import (
 )
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.overlay import Overlay
+from codex.librarian.scribe.readinglists.sync import is_disposable
 from codex.models.readinglist import (
     MAX_REF_LEN,
     MAX_REVISION_LEN,
@@ -135,16 +136,22 @@ def copy_list(
 
     ``user`` owns the copy; None makes it global. ``entries_q`` narrows the
     entries to what the copier sees. The copy's order is locked, since it
-    has no sources to follow.
+    has no sources to follow. The header it copies counts as edited, so a
+    source added to the copy later does not overwrite it.
     """
+    header = {
+        "description": original.description,
+        "list_type": original.list_type,
+        "start_year": original.start_year,
+        "end_year": original.end_year,
+    }
+    edited = sorted(key for key, value in header.items() if value not in (None, ""))
     with transaction.atomic():
         copy = ReadingList.objects.create(
             name=unique_name(name[:MAX_NAME_LEN], user),
             user=user,
-            description=original.description,
-            list_type=original.list_type,
-            start_year=original.start_year,
-            end_year=original.end_year,
+            **header,
+            edited_fields=edited,
             order_locked=True,
         )
         entries = (
@@ -251,11 +258,7 @@ def remove_source(source: ReadingListSource) -> bool:
     reading_list = source.reading_list
     with transaction.atomic():
         source.delete()
-        others = ReadingListSource.objects.filter(reading_list=reading_list).exists()
-        manual = ReadingListEntry.objects.filter(
-            reading_list=reading_list, manual=True
-        ).exists()
-        if not others and not manual:
+        if is_disposable(reading_list):
             reading_list.delete()
             return False
         recombine(reading_list)

@@ -93,8 +93,12 @@ def _inputs(
 ) -> list[_Input]:
     inputs: list[_Input] = []
     if reading_list.order_locked:
+        # The current order goes first, unless it holds nothing a source
+        # supplies: then there is no order to place new entries beside.
         source_pks = {source.pk for source in sources}
-        inputs.append(_Input(_current_document(reading_list, entries, source_pks)))
+        current = _current_document(reading_list, entries, source_pks)
+        if current[ENTRIES_KEY]:
+            inputs.append(_Input(current))
     for source in sources:
         if source.kind == ReadingListSourceKind.TAGS.value:
             tags = tags_document(source)
@@ -316,15 +320,18 @@ def _update_header(reading_list: ReadingList, combined: Mapping[str, Any]) -> No
     reading_list.extra = extra
 
 
-def _heal_manual(entries: Sequence[ReadingListEntry], matcher: ListMatcher) -> None:
-    """Find a hand-added entry's comic again by its reference once it is gone."""
+def _heal_manual(
+    entries: Sequence[ReadingListEntry], matcher: ListMatcher
+) -> list[ReadingListEntry]:
+    """Find hand-added entries' comics again by reference; return the found."""
     lost = [
         entry
         for entry in entries
         if entry.manual and _is_open(entry.comic_id, entry.match_tier)  # pyright: ignore[reportAttributeAccessIssue]
     ]
     if not lost:
-        return
+        return []
+    healed = []
     for entry, found in zip(
         lost, matcher.match([entry.reference for entry in lost]), strict=True
     ):
@@ -332,6 +339,29 @@ def _heal_manual(entries: Sequence[ReadingListEntry], matcher: ListMatcher) -> N
             entry.comic_id = found.comic_pk  # pyright: ignore[reportAttributeAccessIssue]
             entry.match_tier = found.tier
             entry.needs_review = found.needs_review
+            healed.append(entry)
+    return healed
+
+
+def _recombine_hand_made(
+    reading_list: ReadingList,
+    entries: Sequence[ReadingListEntry],
+    matcher: ListMatcher,
+) -> int:
+    """
+    Recompute a list no source feeds: a copy, or a list made by hand.
+
+    There is nothing to combine, so the entries, their order and the
+    header stay as they are. Only a hand-added entry whose comic went is
+    matched again, in place.
+    """
+    if healed := _heal_manual(entries, matcher):
+        with transaction.atomic():
+            ReadingListEntry.objects.bulk_update(
+                healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
+            )
+            reading_list.save(update_fields=("updated_at",))
+    return len(entries)
 
 
 def recombine(
@@ -356,6 +386,8 @@ def recombine(
             "position", "pk"
         )
     )
+    if not sources:
+        return _recombine_hand_made(reading_list, entries, matcher)
     if overlay is None:
         overlay = Overlay.of(entries)
     inputs = _inputs(reading_list, sources, entries)
@@ -425,8 +457,7 @@ def document_of(reading_list: ReadingList) -> dict[str, Any]:
     for attr, key in _HEADER_FIELDS:
         if value := getattr(reading_list, attr):
             document[key] = value
-    document.update(
-        {key: value for key, value in (reading_list.extra or {}).items() if value}
-    )
+    extra = reading_list.extra or {}
+    document.update({key: value for key in _EXTRA_KEYS if (value := extra.get(key))})
     document[ENTRIES_KEY] = references
     return document

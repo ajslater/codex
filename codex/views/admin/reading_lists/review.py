@@ -25,16 +25,22 @@ from codex.views.readinglists.access import to_pk, to_pks
 
 def _dry_run(lists: list[ReadingList]) -> dict[str, Any]:
     """Report what combining would give, without saving it."""
-    documents = [document_of(reading_list) for reading_list in lists]
+    # A list with no entries gives comicbox nothing, so the results line up
+    # with the lists that had some.
+    combined = [
+        (reading_list, document)
+        for reading_list in lists
+        if (document := document_of(reading_list))["entries"]
+    ]
     try:
-        result = combine([document for document in documents if document["entries"]])
+        result = combine([document for _, document in combined])
     except ReadingListError as exc:
         raise ValidationError(str(exc)) from exc
     return {
         "total": len(result.reading_list.get("entries") or ()),
         "only_in": [
             {"pk": reading_list.pk, "count": len(only)}
-            for reading_list, only in zip(lists, result.only_in, strict=False)
+            for (reading_list, _), only in zip(combined, result.only_in, strict=True)
         ],
         "order_conflicts": len(result.order_conflicts),
         "id_conflicts": len(result.id_conflicts),

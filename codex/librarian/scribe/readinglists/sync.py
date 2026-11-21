@@ -57,6 +57,23 @@ HAND_EDITED: Final = (
 )
 
 
+def is_disposable(reading_list: ReadingList) -> bool:
+    """
+    Whether a list goes with the source just removed from it.
+
+    Only a global list goes, and only once no source and no hand-added
+    entry is left: it was that source's list. A person's list is theirs to
+    delete, even empty.
+    """
+    if reading_list.user_id is not None:  # pyright: ignore[reportAttributeAccessIssue]
+        return False
+    if ReadingListSource.objects.filter(reading_list=reading_list).exists():
+        return False
+    return not ReadingListEntry.objects.filter(
+        reading_list=reading_list, manual=True
+    ).exists()
+
+
 @dataclass(frozen=True, slots=True)
 class SyncCounts:
     """What a sync changed."""
@@ -191,11 +208,7 @@ class TagListSync:
     def _remove(self, source: ReadingListSource) -> None:
         reading_list = source.reading_list
         source.delete()
-        others = ReadingListSource.objects.filter(reading_list=reading_list).exists()
-        manual = ReadingListEntry.objects.filter(
-            reading_list=reading_list, manual=True
-        ).exists()
-        if not others and not manual:
+        if is_disposable(reading_list):
             reading_list.delete()
             self._deleted += 1
             return
