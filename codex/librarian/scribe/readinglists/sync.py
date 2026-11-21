@@ -57,14 +57,17 @@ HAND_EDITED: Final = (
 )
 
 
-def is_disposable(reading_list: ReadingList) -> bool:
+def is_disposable(reading_list: ReadingList, removed_kind: str) -> bool:
     """
     Whether a list goes with the source just removed from it.
 
-    Only a global list goes, and only once no source and no hand-added
-    entry is left: it was that source's list. A person's list is theirs to
-    delete, even empty.
+    Only a global list goes, only with a document or tags source, and only
+    once no source and no hand-added entry is left: it was that source's
+    list. A person's list is theirs to delete, even empty, and no list goes
+    with a collection item.
     """
+    if removed_kind == ReadingListSourceKind.COLLECTION.value:
+        return False
     if reading_list.user_id is not None:  # pyright: ignore[reportAttributeAccessIssue]
         return False
     if ReadingListSource.objects.filter(reading_list=reading_list).exists():
@@ -208,7 +211,7 @@ class TagListSync:
     def _remove(self, source: ReadingListSource) -> None:
         reading_list = source.reading_list
         source.delete()
-        if is_disposable(reading_list):
+        if is_disposable(reading_list, source.kind):
             reading_list.delete()
             self._deleted += 1
             return

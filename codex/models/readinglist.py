@@ -38,6 +38,7 @@ from django.db.models import (
 
 from codex.choices.limits import MAX_NAME_LEN
 from codex.choices.readinglists import ReadingListSourceKind
+from codex.collection import COLLECTION_LABELS, Collection
 from codex.models.base import BaseModel
 from codex.models.choices import max_choices_len
 from codex.models.collections import BrowserCollectionModel, Series
@@ -45,6 +46,7 @@ from codex.models.comic import Comic
 from codex.models.fields import CleaningCharField, CleaningTextField
 
 __all__ = (
+    "ITEM_COLLECTIONS",
     "ReadingList",
     "ReadingListEntry",
     "ReadingListMatchTier",
@@ -58,6 +60,19 @@ __all__ = (
 MAX_REF_LEN: Final[int] = 1024
 MAX_REVISION_LEN: Final[int] = 128
 MAX_ISSUE_LEN: Final[int] = 32
+# The collections a list holds whole, as items that stay current. A comic is
+# an entry, never an item.
+ITEM_COLLECTIONS: Final = (
+    Collection.PUBLISHER,
+    Collection.IMPRINT,
+    Collection.SERIES,
+    Collection.VOLUME,
+    Collection.FOLDER,
+    Collection.ARC,
+)
+_ITEM_COLLECTION_CHOICES: Final = tuple(
+    (collection.value, COLLECTION_LABELS[collection]) for collection in ITEM_COLLECTIONS
+)
 
 
 class ReadingListMatchTier(TextChoices):
@@ -73,6 +88,8 @@ class ReadingListMatchTier(TextChoices):
     SERIES_ID = "series_id", "Series id"
     EXACT_NAME = "exact_name", "Exact name"
     NORMALIZED_NAME = "normalized_name", "Normalized name"
+    # Delivered by a collection item: a comic of the series, folder or list.
+    COLLECTION = "collection", "From a collection"
 
 
 class ReadingList(BrowserCollectionModel):
@@ -152,14 +169,34 @@ class ReadingListSource(BaseModel):
     # is built from the tag tables when it is needed.
     document = JSONField(null=True, default=None)
     fetched_at = DateTimeField(null=True, default=None)
+    # A collection item's collection and the row it is bound to. A NULL
+    # target is dangling: the series went, and ``ref`` finds it again.
+    collection = CharField(
+        max_length=16, choices=_ITEM_COLLECTION_CHOICES, blank=True, default=""
+    )
+    target_id = PositiveIntegerField(null=True, default=None)
+    # Where an item with no comics sits: how many of the list's other
+    # entries come before it. NULL is the end. Only the live sync writes it.
+    position = PositiveIntegerField(null=True, default=None)
 
     class Meta(BaseModel.Meta):
-        """A list holds one source per reference."""
+        """
+        A list holds one source per reference, and one item per row.
+
+        A collection item's ``ref`` is its identity, which two folders in
+        different libraries can share, so items are unique by target.
+        """
 
         constraints = (
             UniqueConstraint(
                 fields=("reading_list", "kind", "ref"),
+                condition=~Q(kind=ReadingListSourceKind.COLLECTION),
                 name="unique_readinglistsource_list_kind_ref",
+            ),
+            UniqueConstraint(
+                fields=("reading_list", "collection", "target_id"),
+                condition=Q(target_id__isnull=False),
+                name="unique_readinglistsource_list_item",
             ),
         )
         indexes = (Index(fields=("kind", "ref"), name="readinglistsource_kind_ref"),)
@@ -206,6 +243,16 @@ class ReadingListEntry(BaseModel):
     entry_type = CharField(max_length=32, blank=True, default="")
     # Pks of the list's sources that contributed this entry.
     source_ids = JSONField(default=list)
+    # The collection item that delivers this entry's comic. Such a live
+    # entry is the live sync's alone: no person edits it and no recompute
+    # reads it, and it goes with its item.
+    live_source = ForeignKey(
+        ReadingListSource,
+        on_delete=CASCADE,
+        null=True,
+        default=None,
+        related_name="live_entries",
+    )
 
     class Meta(BaseModel.Meta):
         """Read in list order."""

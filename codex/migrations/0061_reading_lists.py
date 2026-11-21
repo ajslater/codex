@@ -432,6 +432,7 @@ class Migration(migrations.Migration):
                             ("series_id", "Series id"),
                             ("exact_name", "Exact name"),
                             ("normalized_name", "Normalized name"),
+                            ("collection", "From a collection"),
                         ],
                         default="",
                         max_length=15,
@@ -496,6 +497,7 @@ class Migration(migrations.Migration):
                             ("metron_list", "Metron Reading List"),
                             ("metron_arc", "Metron Story Arc"),
                             ("comicvine_arc", "Comic Vine Story Arc"),
+                            ("collection", "Collection"),
                         ],
                         db_index=True,
                         max_length=13,
@@ -517,6 +519,24 @@ class Migration(migrations.Migration):
                 ("ordered", models.BooleanField(default=True)),
                 ("document", models.JSONField(default=None, null=True)),
                 ("fetched_at", models.DateTimeField(default=None, null=True)),
+                (
+                    "collection",
+                    models.CharField(
+                        blank=True,
+                        choices=[
+                            ("publishers", "Publishers"),
+                            ("imprints", "Imprints"),
+                            ("series", "Series"),
+                            ("volumes", "Volumes"),
+                            ("folders", "Folders"),
+                            ("arcs", "Reading Lists"),
+                        ],
+                        default="",
+                        max_length=16,
+                    ),
+                ),
+                ("target_id", models.PositiveIntegerField(default=None, null=True)),
+                ("position", models.PositiveIntegerField(default=None, null=True)),
             ],
             options={
                 "get_latest_by": "updated_at",
@@ -582,6 +602,17 @@ class Migration(migrations.Migration):
                 to="codex.readinglist",
             ),
         ),
+        migrations.AddField(
+            model_name="readinglistentry",
+            name="live_source",
+            field=models.ForeignKey(
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="live_entries",
+                to="codex.readinglistsource",
+            ),
+        ),
         migrations.AddConstraint(
             model_name="readinglist",
             constraint=models.UniqueConstraint(
@@ -618,8 +649,17 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="readinglistsource",
             constraint=models.UniqueConstraint(
+                condition=models.Q(("kind", "collection"), _negated=True),
                 fields=("reading_list", "kind", "ref"),
                 name="unique_readinglistsource_list_kind_ref",
+            ),
+        ),
+        migrations.AddConstraint(
+            model_name="readinglistsource",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("target_id__isnull", False)),
+                fields=("reading_list", "collection", "target_id"),
+                name="unique_readinglistsource_list_item",
             ),
         ),
         migrations.AlterField(

@@ -258,7 +258,7 @@ def remove_source(source: ReadingListSource) -> bool:
     reading_list = source.reading_list
     with transaction.atomic():
         source.delete()
-        if is_disposable(reading_list):
+        if is_disposable(reading_list, source.kind):
             reading_list.delete()
             return False
         recombine(reading_list)

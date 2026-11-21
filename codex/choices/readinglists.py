@@ -25,6 +25,9 @@ class ReadingListSourceKind(TextChoices):
     METRON_LIST = "metron_list", "Metron Reading List"
     METRON_ARC = "metron_arc", "Metron Story Arc"
     COMICVINE_ARC = "comicvine_arc", "Comic Vine Story Arc"
+    # A whole publisher, imprint, series, volume, folder or list that stays
+    # current. Its comics are stored as live entries, never sent to comicbox.
+    COLLECTION = "collection", "Collection"
 
 
 SOURCE_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
@@ -40,6 +43,7 @@ SOURCE_SHORT_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
         ReadingListSourceKind.METRON_LIST.value: "Metron",
         ReadingListSourceKind.METRON_ARC.value: "Metron Arc",
         ReadingListSourceKind.COMICVINE_ARC.value: "Comic Vine Arc",
+        ReadingListSourceKind.COLLECTION.value: "Items",
     }
 )
 # comicbox's list types, as people read them. A list from story-arc tags is
