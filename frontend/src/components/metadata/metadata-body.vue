@@ -56,11 +56,12 @@
     <MetadataRatings class="mdSection" />
     <MetadataTagsTable :tag-map="tags" class="mdSection">
       <!--
-        Only for a signed-in user: an anonymous visitor owns no shelves, and
-        the slot alone would keep an untagged comic's empty table up.
+        Shelves are a signed-in user's; reading lists show to whoever may
+        see them. The slot alone keeps a table up, so an untagged comic in
+        no list shows an anonymous visitor none.
       -->
-      <template v-if="isLoggedIn" #before>
-        <MetadataShelvesRow :book="book" />
+      <template v-if="isLoggedIn || inReadingLists" #before>
+        <MetadataShelvesRow v-if="isLoggedIn" :book="book" />
         <MetadataReadingListsRow />
       </template>
     </MetadataTagsTable>
@@ -113,6 +114,9 @@ export default {
   },
   computed: {
     ...mapState(useMetadataStore, ["credits", "md", "ratings", "tags"]),
+    ...mapState(useMetadataStore, {
+      inReadingLists: (state) => Boolean(state.md?.readingLists?.length),
+    }),
     ...mapState(useAuthStore, {
       isLoggedIn: (state) => Boolean(state.user),
     }),

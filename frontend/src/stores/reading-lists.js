@@ -106,6 +106,11 @@ export const useReadingListsStore = defineStore("readingLists", {
     },
   },
   actions: {
+    clear() {
+      // On logout: the next account must not see this one's lists.
+      this.myLists = [];
+      this.myListsLoaded = false;
+    },
     async continueReading(pk) {
       // Open the first issue of the list not yet finished, in list order.
       try {

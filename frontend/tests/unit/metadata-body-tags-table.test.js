@@ -5,6 +5,8 @@
  *   - An untagged comic shows an anonymous visitor no tags table at all:
  *     the Shelves row is theirs to never see, so the table would be empty.
  *   - A signed-in user still gets the table, for the Shelves row alone.
+ *   - Everyone sees the Reading Lists row: a list is shown to whoever may
+ *     see it, signed in or not.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -16,14 +18,14 @@ import vuetify from "@/plugins/vuetify";
 
 const BOOK = Object.freeze({ collection: "comics", ids: [5], pk: 5 });
 
-function mountBody(user) {
+function mountBody(user, readingLists = []) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user },
       browser: {
         settings: { filters: {}, show: {}, topCollection: "publishers" },
       },
-      metadata: { md: { collection: "comics", ids: [5], pk: 5 } },
+      metadata: { md: { collection: "comics", ids: [5], pk: 5, readingLists } },
       shelves: { shelves: [] },
     },
   });
@@ -51,5 +53,12 @@ describe("metadata tags table", () => {
     const table = tagsTable(wrapper);
     expect(table.find("table").exists()).toBe(true);
     expect(table.find("td.key").text()).toBe("Shelves");
+  });
+
+  test("an anonymous visitor sees the reading lists that hold a comic", () => {
+    const lists = [{ pk: 3, name: "Civil War", position: 2, count: 7 }];
+    const table = tagsTable(mountBody(undefined, lists));
+    expect(table.find("tr.readingListsRow").exists()).toBe(true);
+    expect(table.find("td.key").text()).toBe("Reading Lists");
   });
 });
