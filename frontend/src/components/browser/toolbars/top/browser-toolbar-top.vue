@@ -2,7 +2,6 @@
   <v-toolbar id="browserToolbarTop" flat density="compact" :height="48">
     <v-toolbar-items id="browserToolbarLeftItems">
       <BrowserTopCollectionSelect />
-      <ReadingListKindToggle />
       <BrowserFilterBySelect />
       <BrowserOrderBySelect v-if="!isTableMode" />
       <BrowserOrderReverseButton v-if="!isTableMode" />
@@ -27,7 +26,6 @@ import BrowserOrderBySelect from "@/components/browser/toolbars/top/order-by-sel
 import BrowserOrderReverseButton from "@/components/browser/toolbars/top/order-reverse-button.vue";
 import BrowserSearchButton from "@/components/browser/toolbars/top/search-button.vue";
 import BrowserTopCollectionSelect from "@/components/browser/toolbars/top/top-collection-select.vue";
-import ReadingListKindToggle from "@/components/browser/toolbars/top/reading-list-kind-toggle.vue";
 import BrowserViewModeToggle from "@/components/browser/toolbars/top/view-mode-toggle.vue";
 import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -44,7 +42,6 @@ export default {
     BrowserOrderReverseButton,
     BrowserViewModeToggle,
     OnlineTagReviewButton,
-    ReadingListKindToggle,
     SettingsDrawerButton,
   },
   data() {

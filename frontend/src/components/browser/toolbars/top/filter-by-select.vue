@@ -140,7 +140,6 @@ export default {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
             if (
               filterKey !== "bookmark" &&
-              filterKey !== "readingListKind" &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {

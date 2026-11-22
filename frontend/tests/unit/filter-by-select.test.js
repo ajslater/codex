@@ -149,4 +149,21 @@ describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
       "readingLists",
     ]);
   });
+
+  test("a picked reading list kind is an ordinary sub-menu", async () => {
+    const { content, wrapper } = await mountOpenMenu({
+      filters: { readingListKind: ["mine"] },
+    });
+    expect(wrapper.vm.dynamicChoiceNames).toContain("readingListKind");
+    expect(content.textContent).toContain("Reading List Kind");
+  });
+
+  test("Clear All Filters clears the kind to an empty list", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu({
+      filters: { readingListKind: ["tags"] },
+    });
+    await wrapper.vm.onClear();
+    const sent = browserStore.setSettings.mock.calls.at(-1)[0];
+    expect(sent.filters.readingListKind).toStrictEqual([]);
+  });
 });

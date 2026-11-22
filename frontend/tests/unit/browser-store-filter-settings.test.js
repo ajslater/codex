@@ -65,6 +65,20 @@ describe("browser store filter settings", () => {
     expect(store.isDynamicFiltersSelected).toBe(true);
     expect(store.isFiltersClearable).toBe(true);
   });
+
+  it("counts a picked reading list kind like any filter", () => {
+    const store = storeWith({ filters: { bookmark: "", readingListKind: [] } });
+    expect(store.isDynamicFiltersSelected).toBe(false);
+    expect(store.isFiltersClearable).toBe(false);
+    expect(store.filterOnlySettings).toStrictEqual({});
+
+    store.settings.filters.readingListKind = ["mine"];
+    expect(store.isDynamicFiltersSelected).toBe(true);
+    expect(store.isFiltersClearable).toBe(true);
+    expect(store.filterOnlySettings.filters).toStrictEqual({
+      readingListKind: ["mine"],
+    });
+  });
 });
 
 describe("browser store setSettings", () => {

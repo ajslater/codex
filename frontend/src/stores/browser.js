@@ -91,7 +91,7 @@ export function filterShowGatedDefaults(cols, show) {
  * All Filters has nothing to clear. ``undefined`` and ``null`` are unset.
  */
 // Filters that hold one value rather than a list.
-const SCALAR_FILTERS = Object.freeze(new Set(["bookmark", "readingListKind"]));
+const SCALAR_FILTERS = Object.freeze(new Set(["bookmark"]));
 
 export function isDefaultBookmarkFilter(bookmark) {
   const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";

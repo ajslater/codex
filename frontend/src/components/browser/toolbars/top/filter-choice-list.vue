@@ -43,9 +43,14 @@ import { useBrowserStore } from "@/stores/browser";
 
 /*
  * Filters whose choices come in an order that means something: Metron's
- * age ratings by age, and reading lists with your own first.
+ * age ratings by age, reading lists with your own first, and the reading
+ * list kinds as Mine, Curated, From Tags.
  */
-const SERVER_ORDERED_FILTERS = new Set(["ageRatingMetron", "readingLists"]);
+const SERVER_ORDERED_FILTERS = new Set([
+  "ageRatingMetron",
+  "readingListKind",
+  "readingLists",
+]);
 const NUMERIC_FILTERS = new Set([
   "decade",
   "seriesEndYear",

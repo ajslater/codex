@@ -1,7 +1,8 @@
 /*
  * The filter's choice list sorts by title, except where the server's order
  * means something: the Reading Lists filter offers your own lists first,
- * then the global ones, each group by name.
+ * then the global ones, each group by name; the Reading List Kind is Mine,
+ * Curated, From Tags.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -15,11 +16,16 @@ const CHOICES = Object.freeze([
   { pk: 7, name: "Zebra" },
   { pk: 1, name: "Civil War" },
 ]);
+const KIND_CHOICES = Object.freeze([
+  { pk: "mine", name: "Mine" },
+  { pk: "curated", name: "Curated" },
+  { pk: "tags", name: "From Tags" },
+]);
 
-function titles(name) {
+function titles(name, choices = CHOICES) {
   const wrapper = mount(BrowserFilterChoiceList, {
     global: { plugins: [createTestingPinia(), vuetify] },
-    props: { name, choices: CHOICES, filter: [], search: "" },
+    props: { name, choices, filter: [], search: "" },
   });
   return wrapper.vm.vuetifyItems.map((item) => item.title);
 }
@@ -30,6 +36,14 @@ describe("filter choice order", () => {
       "Want to Read",
       "Zebra",
       "Civil War",
+    ]);
+  });
+
+  test("reading list kinds keep the server's order", () => {
+    expect(titles("readingListKind", KIND_CHOICES)).toEqual([
+      "Mine",
+      "Curated",
+      "From Tags",
     ]);
   });
 
