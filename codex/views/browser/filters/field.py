@@ -6,7 +6,7 @@ from types import MappingProxyType
 from django.db.models.query_utils import Q
 
 from codex.models import Comic
-from codex.views.browser.const import BROWSER_FILTER_KEYS
+from codex.views.browser.const import BROWSER_FILTER_KEYS, MATCH_ALL_KEY
 from codex.views.browser.filters.collection import CollectionFilterView
 from codex.views.browser.filters.reading_lists import (
     READING_LIST_KIND_FILTER,
@@ -34,17 +34,11 @@ _FILTER_REL_MAP = MappingProxyType(
     }
 )
 _FILTER_ATTRIBUTES: frozenset[str] = frozenset(BROWSER_FILTER_KEYS)
-# Filters by membership in visible lists, each ``(rel_prefix, values, user)``.
-_LIST_FILTERS = MappingProxyType(
-    {
-        READING_LIST_KIND_FILTER: list_kind_filter,
-        READING_LISTS_FILTER: reading_lists_filter,
-    }
-)
 _KIND_SKIPPED = frozenset({READING_LIST_KIND_FILTER})
 _GRID_SKIPPED_FILTERS = frozenset({READING_LIST_KIND_FILTER, READING_LISTS_FILTER})
 # Filters whose "None" choice is a blank string column, never NULL.
 _FILTER_BLANK_NULL_FIELDS: frozenset[str] = frozenset({"series_status"})
+_NOTHING = Q(pk__in=())
 
 
 class ComicFieldFilterView(CollectionFilterView):
@@ -72,8 +66,33 @@ class ComicFieldFilterView(CollectionFilterView):
         return query
 
     @classmethod
-    def _filter_by_comic_field(cls, field, rel_prefix, filter_list) -> Q:
-        """Filter by a comic any2many attribute."""
+    def _match_every_value(
+        cls, field: str, rel_prefix: str, comic_rel: str, values, *, match_null: bool
+    ) -> Q:
+        """
+        Under All: the comics holding every ticked value.
+
+        One ``IN`` subquery per value, ANDed: a join would repeat the comic
+        row per matching value and multiply the sums. No comic has no value
+        and a value, so None with another value matches nothing; None alone
+        is the comics with no value, as under Any.
+        """
+        if match_null:
+            if values:
+                return _NOTHING
+            matches = (Comic.objects.filter(cls._null_q(field, comic_rel)),)
+        else:
+            matches = (Comic.objects.filter(**{comic_rel: value}) for value in values)
+        query = Q()
+        for comics in matches:
+            query &= Q(**{f"{rel_prefix}pk__in": comics.values("pk")})
+        return query
+
+    @classmethod
+    def _filter_by_comic_field(
+        cls, field, rel_prefix, filter_list, *, match_all: bool = False
+    ) -> Q:
+        """Filter by a comic any2many attribute; under All, by every value."""
         filter_query = Q()
         if not filter_list:
             return filter_query
@@ -90,6 +109,14 @@ class ComicFieldFilterView(CollectionFilterView):
         match_null = len(non_null_filter_list) != len(filter_list)
 
         if cls._is_multivalued(comic_rel):
+            if match_all:
+                return cls._match_every_value(
+                    field,
+                    rel_prefix,
+                    comic_rel,
+                    non_null_filter_list,
+                    match_null=match_null,
+                )
             # A multi-valued relation JOINed inline repeats the comic row
             # once per matching tag, which silently multiplies every
             # collection-row ``Sum`` downstream (a comic matching 2 of the
@@ -118,7 +145,9 @@ class ComicFieldFilterView(CollectionFilterView):
         Get all comic field filters for rel_prefix.
 
         ``user`` scopes the reading lists filter to the lists they may see.
+        A filter named in ``match_all`` matches every ticked value, not any.
         """
+        match_all = frozenset(filters.get(MATCH_ALL_KEY) or ())
         comic_field_filter = Q()
         # Only walk keys that are both valid AND set in this request's
         # filters - saves ~20 no-op `_filter_by_comic_field` calls per
@@ -127,11 +156,16 @@ class ComicFieldFilterView(CollectionFilterView):
             filter_list = filters.get(field)
             if not filter_list:
                 continue
-            if list_filter := _LIST_FILTERS.get(field):
-                comic_field_filter &= list_filter(rel_prefix, filter_list, user)
+            every = field in match_all
+            if field == READING_LISTS_FILTER:
+                comic_field_filter &= reading_lists_filter(
+                    rel_prefix, filter_list, user, match_all=every
+                )
+            elif field == READING_LIST_KIND_FILTER:
+                comic_field_filter &= list_kind_filter(rel_prefix, filter_list, user)
             else:
                 comic_field_filter &= cls._filter_by_comic_field(
-                    field, rel_prefix, filter_list
+                    field, rel_prefix, filter_list, match_all=every
                 )
         return comic_field_filter
 
@@ -171,5 +205,6 @@ class ComicFieldFilterView(CollectionFilterView):
         if READING_LISTS_FILTER in skipped and (
             held := filters.get(READING_LISTS_FILTER)
         ):
-            query &= held_lists_filter(held, user)
+            every = READING_LISTS_FILTER in (filters.get(MATCH_ALL_KEY) or ())
+            query &= held_lists_filter(held, user, match_all=every)
         return query
