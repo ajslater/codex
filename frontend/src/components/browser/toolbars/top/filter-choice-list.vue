@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div @keydown.capture="onKeydownCapture" @keydown="onKeydown">
     <v-list class="filterGroup overflow-y-auto" density="compact">
       <!--
         Manual ``v-for`` instead of ``:items=...`` — Vuetify would
@@ -61,6 +61,10 @@ const SERVER_ORDERED_FILTERS = new Set([
 const FIXED_ORDER_FILTERS = Object.freeze(
   new Set(["ageRatingMetron", "ageRatingTagged", "readingListKind"]),
 );
+// Keys a VList moves focus with.
+const NAVIGATION_KEYS = Object.freeze(
+  new Set(["ArrowDown", "ArrowUp", "Home", "End"]),
+);
 const NUMERIC_FILTERS = new Set([
   "decade",
   "seriesEndYear",
@@ -97,6 +101,8 @@ export default {
        * pointer.
        */
       tickedOnOpen: new Set(this.filter),
+      // The row focused before a navigation key, while it is handled.
+      focusBefore: undefined,
     };
   },
   computed: {
@@ -161,6 +167,39 @@ export default {
       "fixUniverseTitles",
       "identifierSourceTitle",
     ]),
+    onKeydownCapture(event) {
+      this.focusBefore = NAVIGATION_KEYS.has(event.key)
+        ? document.activeElement
+        : undefined;
+    },
+    onKeydown(event) {
+      /*
+       * This list sits inside the select's own list, and a VList moves
+       * focus without stopping the key, so each arrow stepped two rows.
+       * Once this list has moved one row, the key stops here. At either
+       * end this list would wrap; put focus back and let the menu's list
+       * step out of the choices instead.
+       */
+      const before = this.focusBefore;
+      this.focusBefore = undefined;
+      if (!before) {
+        return;
+      }
+      const rows = [...this.$el.querySelectorAll("[role=menuitemcheckbox]")];
+      const from = rows.indexOf(before);
+      const to = rows.indexOf(document.activeElement);
+      if (from === -1 || to === -1) {
+        return;
+      }
+      const wrapped =
+        (event.key === "ArrowDown" && to < from) ||
+        (event.key === "ArrowUp" && to > from);
+      if (wrapped) {
+        before.focus({ preventScroll: true });
+        return;
+      }
+      event.stopPropagation();
+    },
     onToggle(item) {
       /*
        * From the whole filter, not the rows shown: a ticked value the

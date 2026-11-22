@@ -20,7 +20,14 @@
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
-import { afterEach, beforeAll, describe, expect, test } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "vitest";
 
 import FilterBySelect from "@/components/browser/toolbars/top/filter-by-select.vue";
 import vuetify from "@/plugins/vuetify";
@@ -190,6 +197,52 @@ describe("BrowserFilterBySelect — ticking in a sub-menu", () => {
     });
     const row = content.querySelector(".filterTickedCount");
     expect(row.textContent.trim()).toBe("2");
+  });
+});
+
+describe("BrowserFilterBySelect — arrow keys in a sub-menu", () => {
+  /*
+   * Vuetify's list walks only rendered rows (``offsetParent``), and
+   * happy-dom renders nothing, so its arrow keys would move no focus at
+   * all. Give every element its parent as ``offsetParent`` while these
+   * run, so both nested lists really handle the key.
+   */
+  const descriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "offsetParent",
+  );
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "offsetParent", {
+      configurable: true,
+      get() {
+        return this.parentElement;
+      },
+    });
+  });
+  afterEach(() => {
+    if (descriptor) {
+      Object.defineProperty(HTMLElement.prototype, "offsetParent", descriptor);
+    }
+  });
+
+  test("an arrow key on a choice row steps one row", async () => {
+    const { choice } = await openCharacters();
+    choice("Iron Man").focus();
+    key(choice("Iron Man"), "ArrowDown");
+    expect(document.activeElement).toBe(choice("Spider-Man"));
+    key(choice("Spider-Man"), "ArrowUp");
+    expect(document.activeElement).toBe(choice("Iron Man"));
+  });
+
+  test("an arrow key off the end of the choices leaves them, not wraps", async () => {
+    const { content, choice } = await openCharacters();
+    choice("Iron Man").focus();
+    key(choice("Iron Man"), "ArrowUp");
+    expect(document.activeElement).not.toBe(choice("Spider-Man"));
+    expect(document.activeElement.getAttribute("role")).not.toBe(
+      "menuitemcheckbox",
+    );
+    expect(content.contains(document.activeElement)).toBe(true);
   });
 });
 
