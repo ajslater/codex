@@ -117,28 +117,32 @@
           {{ sourcesOrderHint }}
         </p>
         <div class="sourcesGroup">
-          <div class="sourceRow" :style="sourceRowStyle('metron')">
+          <div
+            v-for="source in sources"
+            :key="source.id"
+            class="sourceRow"
+            :style="sourceRowStyle(source.id)"
+          >
             <div
               class="sourceEnable"
-              :title="
-                defaults.hasMetronCredentials ? '' : sourceDisabledTooltip
-              "
+              :title="isConfigured(source.id) ? '' : sourceDisabledTooltip"
             >
               <v-checkbox
-                v-model="metronEnabled"
-                :disabled="!defaults.hasMetronCredentials"
-                aria-label="Enable Metron Cloud"
+                :model-value="isSourceEnabled(source.id)"
+                :disabled="!isConfigured(source.id)"
+                :aria-label="source.enableLabel"
                 hide-details
                 density="compact"
+                @update:model-value="setSourceEnabled(source.id, $event)"
               />
-              <div v-if="metronEnabled" class="sourceOrderButtons">
+              <div v-if="isSourceEnabled(source.id)" class="sourceOrderButtons">
                 <v-btn
                   icon
                   variant="text"
                   density="compact"
-                  aria-label="Raise Metron Cloud priority"
-                  :disabled="sourcePriority('metron') <= 0"
-                  @click="moveSource('metron', -1)"
+                  :aria-label="source.raiseLabel"
+                  :disabled="sourcePriority(source.id) <= 0"
+                  @click="moveSource(source.id, -1)"
                 >
                   <v-icon>{{ mdiChevronUp }}</v-icon>
                 </v-btn>
@@ -146,12 +150,12 @@
                   icon
                   variant="text"
                   density="compact"
-                  aria-label="Lower Metron Cloud priority"
+                  :aria-label="source.lowerLabel"
                   :disabled="
-                    sourcePriority('metron') >=
+                    sourcePriority(source.id) >=
                     (draft.defaultSources || []).length - 1
                   "
-                  @click="moveSource('metron', 1)"
+                  @click="moveSource(source.id, 1)"
                 >
                   <v-icon>{{ mdiChevronDown }}</v-icon>
                 </v-btn>
@@ -159,20 +163,20 @@
             </div>
             <div class="sourcePanel">
               <v-expansion-panels
-                :model-value="defaults.metronKeySet ? [] : [0]"
+                :model-value="isConfigured(source.id) ? [] : [0]"
                 variant="accordion"
               >
                 <v-expansion-panel>
                   <v-expansion-panel-title>
-                    <span class="adminCardTitle">Metron Cloud</span>
+                    <span class="adminCardTitle">{{ source.label }}</span>
                     <span
                       class="adminCardDesc credentialStatus"
                       :class="{
-                        credentialSet: defaults.metronKeySet,
+                        credentialSet: isConfigured(source.id),
                       }"
                     >
                       {{
-                        defaults.hasMetronCredentials
+                        isConfigured(source.id)
                           ? "API key set"
                           : "Not configured"
                       }}
@@ -181,196 +185,67 @@
                   <v-expansion-panel-text>
                     <v-form class="adminFieldColumn" @submit.prevent>
                       <v-text-field
-                        v-model="metronKey"
+                        v-model="keys[source.id]"
                         label="API Key"
                         type="password"
                         autocomplete="new-password"
                         hide-details="auto"
                         density="compact"
                         :placeholder="
-                          defaults.metronKeySet
+                          isConfigured(source.id)
                             ? 'New API Key'
                             : 'Enter API key'
                         "
                       />
                       <p class="adminHint">
-                        Generate an API key at
-                        <a
-                          href="https://metron.cloud/accounts/tokens/"
-                          target="_blank"
-                          >Metron Cloud API Tokens<v-icon size="small">{{
-                            mdiOpenInNew
-                          }}</v-icon></a
-                        >
-                      </p>
-                      <div class="adminInlineActions">
-                        <v-btn
-                          variant="tonal"
-                          size="small"
-                          :disabled="!metronKey"
-                          @click="saveMetronCredentials"
-                        >
-                          Save Metron Cloud API Key
-                        </v-btn>
-                        <v-btn
-                          variant="text"
-                          size="small"
-                          :loading="validating.metron"
-                          :disabled="!canTestMetron"
-                          @click="testMetronCredentials"
-                        >
-                          Test
-                        </v-btn>
-                        <ConfirmDialog
-                          v-if="defaults.hasMetronCredentials"
-                          button-text="Clear API Key"
-                          title-text="Clear Metron Cloud API Key"
-                          text="Remove the saved Metron Cloud API key?"
-                          confirm-text="Clear"
-                          variant="text"
-                          size="small"
-                          :block="false"
-                          @confirm="clearMetronCredentials"
-                        />
-                      </div>
-                      <ValidationChip
-                        v-if="validationResult.metron"
-                        :result="validationResult.metron"
-                      />
-                    </v-form>
-                  </v-expansion-panel-text>
-                </v-expansion-panel>
-              </v-expansion-panels>
-            </div>
-          </div>
-
-          <div class="sourceRow" :style="sourceRowStyle('comicvine')">
-            <div
-              class="sourceEnable"
-              :title="
-                defaults.hasComicvineCredentials ? '' : sourceDisabledTooltip
-              "
-            >
-              <v-checkbox
-                v-model="comicvineEnabled"
-                :disabled="!defaults.hasComicvineCredentials"
-                aria-label="Enable Comic Vine"
-                hide-details
-                density="compact"
-              />
-              <div v-if="comicvineEnabled" class="sourceOrderButtons">
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  aria-label="Raise Comic Vine priority"
-                  :disabled="sourcePriority('comicvine') <= 0"
-                  @click="moveSource('comicvine', -1)"
-                >
-                  <v-icon>{{ mdiChevronUp }}</v-icon>
-                </v-btn>
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  aria-label="Lower Comic Vine priority"
-                  :disabled="
-                    sourcePriority('comicvine') >=
-                    (draft.defaultSources || []).length - 1
-                  "
-                  @click="moveSource('comicvine', 1)"
-                >
-                  <v-icon>{{ mdiChevronDown }}</v-icon>
-                </v-btn>
-              </div>
-            </div>
-            <div class="sourcePanel">
-              <v-expansion-panels
-                :model-value="defaults.hasComicvineCredentials ? [] : [0]"
-                variant="accordion"
-              >
-                <v-expansion-panel>
-                  <v-expansion-panel-title>
-                    <span class="adminCardTitle">Comic Vine</span>
-                    <span
-                      class="adminCardDesc credentialStatus"
-                      :class="{
-                        credentialSet: defaults.hasComicvineCredentials,
-                      }"
-                    >
-                      {{
-                        defaults.hasComicvineCredentials
-                          ? "API key set"
-                          : "Not configured"
-                      }}
-                    </span>
-                  </v-expansion-panel-title>
-                  <v-expansion-panel-text>
-                    <v-form class="adminFieldColumn" @submit.prevent>
-                      <v-text-field
-                        v-model="comicvineKey"
-                        label="API Key"
-                        type="password"
-                        autocomplete="new-password"
-                        hide-details="auto"
-                        density="compact"
-                        :placeholder="
-                          defaults.comicvineKeySet
-                            ? 'New API Key'
-                            : 'Enter API key'
-                        "
-                      />
-                      <p class="adminHint">
-                        Get an API key from the
-                        <a
-                          href="https://comicvine.gamespot.com/api/"
-                          target="_blank"
-                          >Comic Vine API<v-icon size="small">{{
-                            mdiOpenInNew
-                          }}</v-icon></a
+                        {{ source.tokenHint }}
+                        <a :href="source.tokenUrl" target="_blank"
+                          >{{ source.tokenLinkText
+                          }}<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
                         >
                       </p>
                       <v-text-field
-                        v-model="comicvineUrlLocal"
+                        v-if="source.customUrl"
+                        v-model="urls[source.id]"
                         label="Custom URL (optional)"
                         autocomplete="off"
                         hide-details="auto"
                         density="compact"
-                        :placeholder="defaults.comicvineUrl || 'Default'"
+                        :placeholder="defaults[source.fields.url] || 'Default'"
                       />
                       <div class="adminInlineActions">
                         <v-btn
                           variant="tonal"
                           size="small"
-                          :disabled="!comicvineKey && !comicvineUrlLocal"
-                          @click="saveComicvineCredentials"
+                          :disabled="!hasCredentialInput(source.id)"
+                          @click="saveCredentials(source.id)"
                         >
-                          Save Comic Vine Credentials
+                          {{ source.saveText }}
                         </v-btn>
                         <v-btn
                           variant="text"
                           size="small"
-                          :loading="validating.comicvine"
-                          :disabled="!canTestComicvine"
-                          @click="testComicvineCredentials"
+                          :loading="validating[source.id]"
+                          :disabled="!canTest(source.id)"
+                          @click="testCredentials(source.id)"
                         >
                           Test
                         </v-btn>
                         <ConfirmDialog
-                          v-if="defaults.hasComicvineCredentials"
+                          v-if="isConfigured(source.id)"
                           button-text="Clear API Key"
-                          title-text="Clear Comic Vine API Key"
-                          text="Remove the saved Comic Vine API key and custom URL?"
+                          :title-text="source.clearTitle"
+                          :text="source.clearText"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
                           :block="false"
-                          @confirm="clearComicvineCredentials"
+                          @confirm="clearCredentials(source.id)"
                         />
                       </div>
                       <ValidationChip
-                        v-if="validationResult.comicvine"
-                        :result="validationResult.comicvine"
+                        v-if="validationResult[source.id]"
+                        :result="validationResult[source.id]"
                       />
                     </v-form>
                   </v-expansion-panel-text>
@@ -413,6 +288,11 @@ import {
   namedFormats,
   WRITE_FORMAT_CHOICES,
 } from "@/components/metadata/edit-mode/write-formats";
+import {
+  credentialFields,
+  SOURCE_DESCRIPTORS,
+  SUPPORTED_SOURCES,
+} from "@/components/online-tag/source-labels";
 import { useAdminStore } from "@/stores/admin";
 
 const EDITABLE_FIELDS = Object.freeze([
@@ -425,6 +305,34 @@ const EDITABLE_FIELDS = Object.freeze([
   "defaultSources",
   "mergeAllSources",
 ]);
+
+// One row per source, with the copy its credential panel shows.
+const SOURCE_ROWS = Object.freeze(
+  SUPPORTED_SOURCES.map((id) => {
+    const descriptor = SOURCE_DESCRIPTORS[id];
+    const { label, customUrl } = descriptor;
+    return Object.freeze({
+      id,
+      ...descriptor,
+      fields: credentialFields(id),
+      enableLabel: `Enable ${label}`,
+      raiseLabel: `Raise ${label} priority`,
+      lowerLabel: `Lower ${label} priority`,
+      saveText: customUrl
+        ? `Save ${label} Credentials`
+        : `Save ${label} API Key`,
+      clearTitle: `Clear ${label} API Key`,
+      clearText: customUrl
+        ? `Remove the saved ${label} API key and custom URL?`
+        : `Remove the saved ${label} API key?`,
+    });
+  }),
+);
+
+/** A fresh per-source state map, every source set to ``value``. */
+function bySource(value) {
+  return Object.fromEntries(SUPPORTED_SOURCES.map((id) => [id, value]));
+}
 
 function pickFields(source) {
   const out = {};
@@ -473,53 +381,24 @@ export default {
         "Enabled sources run in priority order — use the arrows to reorder. With Merge all sources off, the highest-priority source that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried for each comic and their results are merged into one record for the most complete metadata.",
       mergeAllSourcesHint:
         "Merging queries every enabled source for each comic instead of stopping at the first match, so it roughly multiplies online API calls by the number of enabled sources — scans take longer and hit rate limits sooner. Can be overridden per scan in the Tag Online dialog.",
+      sources: SOURCE_ROWS,
       draft: pickFields(undefined),
       saving: false,
       pendingSave: false,
-      metronKey: "",
-      comicvineKey: "",
-      comicvineUrlLocal: "",
-      validating: { metron: false, comicvine: false },
-      validationResult: { metron: undefined, comicvine: undefined },
+      // Typed, unsaved credentials, keyed by source.
+      keys: bySource(""),
+      urls: bySource(""),
+      validating: bySource(false),
+      validationResult: bySource(undefined),
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       defaults: (state) => state.taggingDefaults,
     }),
-    // The Online Sources enable checkboxes drive ``draft.defaultSources``, which
-    // auto-saves with the rest of the defaults. A source can only be checked once
-    // its credentials exist, so gate the getter on the stored credential flag
-    // too — a credential-less source always reads as off-and-disabled.
-    metronEnabled: {
-      get() {
-        return (
-          Boolean(this.defaults?.hasMetronCredentials) &&
-          (this.draft.defaultSources || []).includes("metron")
-        );
-      },
-      set(value) {
-        this.setSourceEnabled("metron", value);
-      },
-    },
-    comicvineEnabled: {
-      get() {
-        return (
-          Boolean(this.defaults?.hasComicvineCredentials) &&
-          (this.draft.defaultSources || []).includes("comicvine")
-        );
-      },
-      set(value) {
-        this.setSourceEnabled("comicvine", value);
-      },
-    },
-    canTestMetron() {
-      return Boolean(this.metronKey) || Boolean(this.defaults?.metronKeySet);
-    },
-    canTestComicvine() {
-      return (
-        Boolean(this.comicvineKey) || Boolean(this.defaults?.comicvineKeySet)
-      );
+    configuredSources() {
+      // The sources with a stored API key, as the server reports them.
+      return new Set(this.defaults?.configuredSources || []);
     },
     formatsMessages() {
       // The last checked format's box is disabled; say why under the hints.
@@ -538,9 +417,10 @@ export default {
     },
     canMerge() {
       // Merging needs at least two enabled sources; with one there's nothing
-      // to merge. metronEnabled / comicvineEnabled already gate on credentials.
+      // to merge. isSourceEnabled already gates on credentials.
       return (
-        [this.metronEnabled, this.comicvineEnabled].filter(Boolean).length >= 2
+        SUPPORTED_SOURCES.filter((source) => this.isSourceEnabled(source))
+          .length >= 2
       );
     },
   },
@@ -578,6 +458,33 @@ export default {
     ]),
     isFormatDisabled(value) {
       return isWriteFormatDisabled(this.draft.defaultFormats, value);
+    },
+    isConfigured(source) {
+      return this.configuredSources.has(source);
+    },
+    isSourceEnabled(source) {
+      // The enable checkboxes drive ``draft.defaultSources``, which auto-saves
+      // with the rest of the defaults. A source can only be checked once its
+      // credentials exist, so gate on the stored credentials too — a
+      // credential-less source always reads as off-and-disabled.
+      return (
+        this.isConfigured(source) &&
+        (this.draft.defaultSources || []).includes(source)
+      );
+    },
+    canTest(source) {
+      return Boolean(this.keys[source]) || this.isConfigured(source);
+    },
+    credentialInput(source) {
+      // The typed fields, under the names the API takes them by.
+      const { key, url } = credentialFields(source);
+      const data = {};
+      if (this.keys[source]) data[key] = this.keys[source];
+      if (url && this.urls[source]) data[url] = this.urls[source];
+      return data;
+    },
+    hasCredentialInput(source) {
+      return Object.keys(this.credentialInput(source)).length > 0;
     },
     setSourceEnabled(source, enabled) {
       // defaultSources order is run priority; a newly enabled source
@@ -630,50 +537,30 @@ export default {
         this.autoSave();
       }
     },
-    async saveMetronCredentials() {
-      const data = {};
-      if (this.metronKey) data.metronKey = this.metronKey;
-      this.validationResult.metron = undefined;
-      const hadCredentials = Boolean(this.defaults?.hasMetronCredentials);
+    async saveCredentials(source) {
+      const data = this.credentialInput(source);
+      this.validationResult[source] = undefined;
+      const hadCredentials = this.isConfigured(source);
       await this.updateTaggingDefaults(data);
-      this.metronKey = "";
+      this.keys[source] = "";
+      this.urls[source] = "";
       // Configuring a brand-new source enables it automatically; re-saving
       // credentials respects the existing checkbox state.
-      if (!hadCredentials && this.defaults?.hasMetronCredentials) {
-        this.setSourceEnabled("metron", true);
+      if (!hadCredentials && this.isConfigured(source)) {
+        this.setSourceEnabled(source, true);
       }
     },
-    async saveComicvineCredentials() {
-      const data = {};
-      if (this.comicvineKey) data.comicvineKey = this.comicvineKey;
-      if (this.comicvineUrlLocal) data.comicvineUrl = this.comicvineUrlLocal;
-      this.validationResult.comicvine = undefined;
-      const hadCredentials = Boolean(this.defaults?.hasComicvineCredentials);
-      await this.updateTaggingDefaults(data);
-      this.comicvineKey = "";
-      this.comicvineUrlLocal = "";
-      if (!hadCredentials && this.defaults?.hasComicvineCredentials) {
-        this.setSourceEnabled("comicvine", true);
-      }
+    clearCredentials(source) {
+      // Clearing the key clears a custom url with it.
+      const { key, url } = credentialFields(source);
+      const data = { [key]: "" };
+      if (url) data[url] = "";
+      this.validationResult[source] = undefined;
+      this.updateTaggingDefaults(data);
     },
-    clearMetronCredentials() {
-      this.validationResult.metron = undefined;
-      this.updateTaggingDefaults({ metronKey: "" });
-    },
-    clearComicvineCredentials() {
-      this.validationResult.comicvine = undefined;
-      this.updateTaggingDefaults({ comicvineKey: "", comicvineUrl: "" });
-    },
-    async testMetronCredentials() {
-      const payload = { source: "metron" };
-      if (this.metronKey) payload.metronKey = this.metronKey;
-      await this._runValidation("metron", payload);
-    },
-    async testComicvineCredentials() {
-      const payload = { source: "comicvine" };
-      if (this.comicvineKey) payload.comicvineKey = this.comicvineKey;
-      if (this.comicvineUrlLocal) payload.comicvineUrl = this.comicvineUrlLocal;
-      await this._runValidation("comicvine", payload);
+    async testCredentials(source) {
+      const payload = { source, ...this.credentialInput(source) };
+      await this._runValidation(source, payload);
     },
     async _runValidation(source, payload) {
       this.validating[source] = true;

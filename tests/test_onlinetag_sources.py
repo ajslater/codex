@@ -14,20 +14,23 @@ comicbox vocabulary.
 import json
 from http import HTTPStatus
 from importlib import import_module
-from typing import Final, override
+from typing import Any, Final, override
 from unittest.mock import patch
 
 import pytest
+from comicbox.config.online import Effort
 from comicbox.config.online.settings import OnlineSourceCredentials
 from comicbox.formats.base.online import SOURCE_NAMES
 from comicbox.formats.base.online.sources.base import OnlineSource
 from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
 from comicbox.formats.metron_api.online_source import MetronOnlineSource
+from comicbox.online_estimate import requests_per_comic
 from comicbox.online_session import OnlineCredentials
 from django.contrib.auth.models import User
 from django.test import Client, SimpleTestCase, TestCase
 
 from codex.choices.admin import TAGGING_CHOICES
+from codex.choices.onlinetag import TAGGING_ESTIMATE
 from codex.librarian.onlinetag.credential_validator import (
     KNOWN_SOURCES,
     validate_credentials,
@@ -51,6 +54,7 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _DEFAULTS_URL: Final = "/api/v4/admin/tagging-defaults"
 _VALIDATE_URL: Final = f"{_DEFAULTS_URL}/validate"
 _START_URL: Final = "/api/v4/admin/tag-sessions/start"
+_COMICVINE_PER_HOUR: Final = 200
 _FULL_CREDS: Final = OnlineCredentials(
     metron_key="m", comicvine_key="c", comicvine_url="https://cv.example.com/api"
 )
@@ -260,3 +264,28 @@ class ConfiguredSourcesFieldTests(TestCase):
 
     def test_a_url_alone_is_not_configured(self) -> None:
         assert self._configured(comicvine_url="https://cv.example.com/api") == []
+
+
+def _estimate(key: str) -> Any:
+    """One entry of the estimate table; its values differ in type by key."""
+    return TAGGING_ESTIMATE[key]
+
+
+class TaggingEstimateTests(SimpleTestCase):
+    """The launcher's estimate table is comicbox's, per source and effort."""
+
+    def test_requests_per_comic_is_comicbox_pricing(self) -> None:
+        table = _estimate("requests_per_comic")
+        assert tuple(table) == SUPPORTED_SOURCES
+        for source in SUPPORTED_SOURCES:
+            assert dict(table[source]) == {
+                effort.value: requests_per_comic(source, effort.value)
+                for effort in Effort
+            }
+
+    def test_source_rates(self) -> None:
+        rates = _estimate("source_rates")
+        assert tuple(rates) == SUPPORTED_SOURCES
+        metron = rates["metron"]
+        assert metron["per_hour"] == metron["per_minute"] * 60
+        assert rates["comicvine"]["per_hour"] == _COMICVINE_PER_HOUR

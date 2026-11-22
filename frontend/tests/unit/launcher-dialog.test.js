@@ -24,10 +24,7 @@ const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 function mountDialog({
   book = { collection: "comics", pk: 7, ids: [7], childCount: 1 },
   taggingDefaults = {
-    hasMetronCredentials: true,
-    hasComicvineCredentials: true,
-    metronKeySet: true,
-    comicvineKeySet: true,
+    configuredSources: ["metron", "comicvine"],
   },
   identifiers = [],
 } = {}) {
@@ -103,9 +100,7 @@ describe("OnlineTagLauncherDialog", () => {
     test("an id for an unconfigured source blocks submit", async () => {
       const { wrapper } = mountDialog({
         taggingDefaults: {
-          hasMetronCredentials: true,
-          hasComicvineCredentials: false,
-          metronKeySet: true,
+          configuredSources: ["metron"],
         },
       });
 
@@ -121,8 +116,7 @@ describe("OnlineTagLauncherDialog", () => {
     test("disables the action when no source credentials are configured", () => {
       const { wrapper } = mountDialog({
         taggingDefaults: {
-          hasMetronCredentials: false,
-          hasComicvineCredentials: false,
+          configuredSources: [],
         },
       });
 
@@ -135,8 +129,7 @@ describe("OnlineTagLauncherDialog", () => {
     test("an unconfigured source is disabled and the group says why", async () => {
       const { wrapper } = mountDialog({
         taggingDefaults: {
-          hasMetronCredentials: true,
-          hasComicvineCredentials: false,
+          configuredSources: ["metron"],
         },
       });
       wrapper.vm.sources = ["metron"];
@@ -231,8 +224,7 @@ describe("OnlineTagLauncherDialog", () => {
       const { wrapper, onlineTagStore } = mountDialog();
       const adminStore = useAdminStore();
       adminStore.taggingDefaults = {
-        hasMetronCredentials: true,
-        hasComicvineCredentials: true,
+        configuredSources: ["metron", "comicvine"],
         defaultSources: ["comicvine", "metron"],
       };
 
@@ -451,8 +443,7 @@ describe("OnlineTagLauncherDialog", () => {
     test("a bare integer with one configured source needs no pick", async () => {
       const { wrapper } = mountDialog({
         taggingDefaults: {
-          hasMetronCredentials: true,
-          hasComicvineCredentials: false,
+          configuredSources: ["metron"],
         },
       });
 
@@ -492,12 +483,73 @@ describe("OnlineTagLauncherDialog", () => {
     });
   });
 
+  describe("source lists", () => {
+    test("the source picker offers the configured sources by short name", () => {
+      const both = mountDialog().wrapper;
+      expect(both.vm.sourceChoices).toEqual([
+        { title: "Auto-detect", value: "auto" },
+        { title: "Metron", value: "metron" },
+        { title: "Comic Vine", value: "comicvine" },
+      ]);
+
+      const one = mountDialog({
+        taggingDefaults: { configuredSources: ["comicvine"] },
+      }).wrapper;
+      expect(one.vm.sourceChoices).toEqual([
+        { title: "Auto-detect", value: "auto" },
+        { title: "Comic Vine", value: "comicvine" },
+      ]);
+      expect(one.vm.soleConfiguredSource).toBe("comicvine");
+    });
+
+    test("the bare-id warning names the configured sources", async () => {
+      const { wrapper } = mountDialog();
+      wrapper.vm.idInputs = ["12345"];
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.text()).toContain(
+        "Bare ID — choose Metron or Comic Vine.",
+      );
+    });
+
+    test("merge is offered only with two or more configured sources", () => {
+      expect(mountDialog().wrapper.vm.multipleConfigured).toBe(true);
+      const one = mountDialog({
+        taggingDefaults: { configuredSources: ["metron"] },
+      }).wrapper;
+      expect(one.vm.multipleConfigured).toBe(false);
+      expect(one.text()).not.toContain("Merge all sources");
+    });
+
+    test("the id field names each source's prefix", () => {
+      const { wrapper } = mountDialog();
+      expect(wrapper.vm.idInputsPlaceholder).toBe(
+        "metron:ID, comicvine:ID, or issue URL",
+      );
+      expect(wrapper.vm.idInputsHint).toBe(
+        "Enter one or more issue URLs or ids (metron:ID, comicvine:ID, 4000-ID). A source with an id is fetched directly; the rest are searched.",
+      );
+    });
+
+    test("urls, prefixes and Comic Vine's 4000- code self-identify", () => {
+      const { vm } = mountDialog().wrapper;
+      expect(vm.detectSource("https://metron.cloud/issue/12345/")).toBe(
+        "metron",
+      );
+      expect(vm.detectSource("Comicvine:4000-1")).toBe("comicvine");
+      expect(
+        vm.detectSource("https://comicvine.gamespot.com/x/4000-67890/"),
+      ).toBe("comicvine");
+      expect(vm.detectSource("4000-67890")).toBe("comicvine");
+      expect(vm.detectSource("12345")).toBeNull();
+    });
+  });
+
   describe("merge all sources", () => {
     test("defaults the search checkbox from the admin tagging default on open", async () => {
       const { wrapper } = mountDialog({
         taggingDefaults: {
-          hasMetronCredentials: true,
-          hasComicvineCredentials: true,
+          configuredSources: ["metron", "comicvine"],
           defaultSources: ["metron", "comicvine"],
           mergeAllSources: true,
         },

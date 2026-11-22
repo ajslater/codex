@@ -50,7 +50,7 @@
             <v-combobox
               :model-value="idInputs"
               label="Issue URLs or IDs"
-              placeholder="metron:ID, comicvine:ID, or issue URL"
+              :placeholder="idInputsPlaceholder"
               :hint="idInputsHint"
               persistent-hint
               multiple
@@ -71,7 +71,7 @@
               class="mt-3"
             />
             <div v-if="needsSourcePick" class="pickSourceWarning">
-              Bare ID &mdash; choose Metron or Comic Vine.
+              Bare ID &mdash; choose {{ configuredSourceNames }}.
             </div>
             <div v-if="unconfiguredIdWarning" class="pickSourceWarning">
               {{ unconfiguredIdWarning }}
@@ -81,7 +81,7 @@
             </div>
           </template>
           <v-checkbox
-            v-if="bothConfigured"
+            v-if="multipleConfigured"
             v-model="mergeAllSources"
             label="Merge all sources"
             :hint="mergeAllSourcesHint"
@@ -180,7 +180,11 @@ import { mapActions, mapState } from "pinia";
 import { HTTP } from "@/api/v4/base";
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 import TAGGING_ESTIMATE from "@/choices/tagging-estimate.json";
-import { sourceLabel } from "@/components/online-tag/source-labels";
+import {
+  sourceLabel,
+  sourceShortLabel,
+  SUPPORTED_SOURCES,
+} from "@/components/online-tag/source-labels";
 import { useAdminStore } from "@/stores/admin";
 import { useCommonStore } from "@/stores/common";
 import { useOnlineTagStore } from "@/stores/online-tag";
@@ -226,23 +230,25 @@ const SOURCE_RATES = Object.fromEntries(
 );
 
 function callsForSource(source, effort) {
-  if (source === "metron") return TAGGING_ESTIMATE.metronRequestsPerComic;
-  if (source === "comicvine") {
-    // Unset is answered by comicbox once the run starts, so price it as
-    // what it spends on a run it does not spare.
-    const budget = effort === EFFORT_AUTO ? EFFORT_AUTO_BUDGET : effort;
-    return (
-      TAGGING_ESTIMATE.comicvineRequestsByEffort[budget] ||
-      TAGGING_ESTIMATE.defaultRequestsPerComic
-    );
-  }
-  return TAGGING_ESTIMATE.defaultRequestsPerComic;
+  // Unset is answered by comicbox once the run starts, so price it as
+  // what it spends on a run it does not spare.
+  const budget = effort === EFFORT_AUTO ? EFFORT_AUTO_BUDGET : effort;
+  return (
+    TAGGING_ESTIMATE.requestsPerComic[source]?.[budget] ||
+    TAGGING_ESTIMATE.defaultRequestsPerComic
+  );
 }
 
-// Only these sources support online id tagging; derived from comicbox's
-// SOURCE_NAMES via the tagging choices so it tracks the backend. Other
-// identifiers a comic carries aren't offered.
-const TAGGABLE_SOURCES = Object.freeze(new Set(TAGGING_CHOICES.sources));
+// Only these sources support online id tagging: the ones the backend can
+// drive (tagging choices) and this UI can describe. Other identifiers a
+// comic carries aren't offered.
+const TAGGABLE_SOURCES = Object.freeze(new Set(SUPPORTED_SOURCES));
+// A bare number is one source's id only when it says whose: "source:ID".
+const ID_PREFIXES = Object.freeze(
+  SUPPORTED_SOURCES.map((source) => `${source}:ID`),
+);
+// Which configured sources a bare id might belong to: "Metron or Comic Vine".
+const SOURCE_NAME_LIST = new Intl.ListFormat("en", { type: "disjunction" });
 // A comic's own issue identifier is stored with id_type "comic" — codex's
 // IdentifierType.ISSUE value is the table name, not "issue". Accept that (and
 // a bare "issue" defensively); skip non-issue types like publisher / series.
@@ -284,7 +290,7 @@ export default {
       matchModeChoices: TAGGING_CHOICES.matchMode,
       effortChoices: TAGGING_CHOICES.effort,
       promptsModeChoices: TAGGING_CHOICES.promptsMode,
-      sources: [...TAGGING_CHOICES.sources],
+      sources: [...SUPPORTED_SOURCES],
       matchMode: "auto",
       // Empty is Auto: comicbox picks, and may spare a large run.
       effort: "",
@@ -302,8 +308,8 @@ export default {
       renameHint:
         "Rename each tagged comic file to the comicbox scheme derived from its new tags.",
       pinnedControlsHint: "Not used when all sources are tagged by ID.",
-      idInputsHint:
-        "Enter one or more issue URLs or ids (metron:ID, comicvine:ID, 4000-ID). A source with an id is fetched directly; the rest are searched.",
+      idInputsPlaceholder: `${ID_PREFIXES.join(", ")}, or issue URL`,
+      idInputsHint: `Enter one or more issue URLs or ids (${[...ID_PREFIXES, "4000-ID"].join(", ")}). A source with an id is fetched directly; the rest are searched.`,
       // Pinned ids
       idInputs: [],
       sourceChoice: "auto",
@@ -323,28 +329,25 @@ export default {
       };
       return [...this.sources].sort((a, b) => rank(a) - rank(b));
     },
-    hasMetron() {
-      return Boolean(this.taggingDefaults?.hasMetronCredentials);
+    configuredSources() {
+      // The supported sources with a stored API key, in priority order.
+      const configured = new Set(this.taggingDefaults?.configuredSources || []);
+      return SUPPORTED_SOURCES.filter((source) => configured.has(source));
     },
-    hasComicvine() {
-      return Boolean(this.taggingDefaults?.hasComicvineCredentials);
+    multipleConfigured() {
+      return this.configuredSources.length >= 2;
     },
-    bothConfigured() {
-      return this.hasMetron && this.hasComicvine;
+    configuredSourceNames() {
+      return SOURCE_NAME_LIST.format(
+        this.configuredSources.map(sourceShortLabel),
+      );
     },
     sourceItems() {
-      return [
-        {
-          title: sourceLabel("metron"),
-          value: "metron",
-          disabled: !this.hasMetron,
-        },
-        {
-          title: sourceLabel("comicvine"),
-          value: "comicvine",
-          disabled: !this.hasComicvine,
-        },
-      ];
+      return SUPPORTED_SOURCES.map((source) => ({
+        title: sourceLabel(source),
+        value: source,
+        disabled: !this.configuredSources.includes(source),
+      }));
     },
     unconfiguredSourcesHint() {
       // Why a source's checkbox is disabled, and where to fix it.
@@ -361,7 +364,7 @@ export default {
       return this.searchDisabled ? ["Pick at least one source"] : [];
     },
     allSourcesDisabled() {
-      return !this.hasMetron && !this.hasComicvine;
+      return this.configuredSources.length === 0;
     },
     enabledSources() {
       // The sources that could run at all: credentials configured.
@@ -404,14 +407,13 @@ export default {
       return options;
     },
     sourceChoices() {
-      const choices = [{ title: "Auto-detect", value: "auto" }];
-      if (this.hasMetron) {
-        choices.push({ title: "Metron", value: "metron" });
-      }
-      if (this.hasComicvine) {
-        choices.push({ title: "Comic Vine", value: "comicvine" });
-      }
-      return choices;
+      return [
+        { title: "Auto-detect", value: "auto" },
+        ...this.configuredSources.map((source) => ({
+          title: sourceShortLabel(source),
+          value: source,
+        })),
+      ];
     },
     idTokens() {
       // Each chip is one identifier; trim and drop blanks.
@@ -419,10 +421,10 @@ export default {
     },
     needsSourceSelect() {
       // Only a bare number (or otherwise unrecognizable token) needs a manual
-      // source — URLs, metron:/comicvine: prefixes, and 4000- ids self-identify.
-      // A lone configured source resolves a bare number on its own.
+      // source — URLs, source: prefixes, and 4000- ids self-identify. A lone
+      // configured source resolves a bare number on its own.
       return (
-        this.bothConfigured &&
+        this.multipleConfigured &&
         this.idTokens.some((t) => this.detectSource(t) === null)
       );
     },
@@ -430,9 +432,9 @@ export default {
       return this.needsSourceSelect && this.sourceChoice === "auto";
     },
     soleConfiguredSource() {
-      if (this.bothConfigured) return null;
-      if (this.hasMetron) return "metron";
-      return this.hasComicvine ? "comicvine" : null;
+      return this.configuredSources.length === 1
+        ? this.configuredSources[0]
+        : null;
     },
     tokensBySource() {
       // Group the entered tokens by the source each resolves to. A token whose
@@ -628,10 +630,12 @@ export default {
       // Cheap source detection mirroring the backend parser's self-identifying
       // forms; returns null when the token is just a number (ambiguous) or
       // otherwise unrecognizable, so the UI can ask which source it is.
+      // A source's name is in its own urls and prefixes; a bare 4000-NNN is
+      // Comic Vine's issue code.
       const t = String(token).trim().toLowerCase();
       if (!t) return null;
-      if (t.includes("metron")) return "metron";
-      if (t.includes("comicvine")) return "comicvine";
+      const named = SUPPORTED_SOURCES.find((source) => t.includes(source));
+      if (named) return named;
       if (/^4000-\d+$/.test(t)) return "comicvine";
       return null;
     },

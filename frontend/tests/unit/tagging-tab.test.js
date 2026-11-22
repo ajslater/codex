@@ -9,8 +9,11 @@
  *     Online Tagging Sources.
  *   - The Online Sources combo box is gone; each source is enabled by a
  *     checkbox to the left of its credential panel.
+ *   - One row per source the backend lists, in its order, Metron then Comic
+ *     Vine; each row's copy comes from the source's descriptor.
  *   - That checkbox drives ``draft.defaultSources``, which auto-saves the moment
- *     it changes, and is disabled until the source's credentials exist.
+ *     it changes, and is disabled until the source is in the server's
+ *     ``configuredSources``.
  *   - A disabled source checkbox explains itself with a title tooltip (on a
  *     wrapper element, since Vuetify kills pointer events on disabled controls).
  *   - ``defaultSources`` order is run priority; enabling appends to the end,
@@ -45,10 +48,7 @@ const BASE_DEFAULTS = {
   defaultMatchMode: "auto",
   defaultPromptsMode: "ask",
   defaultSources: [],
-  hasMetronCredentials: false,
-  hasComicvineCredentials: false,
-  metronKeySet: false,
-  comicvineKeySet: false,
+  configuredSources: [],
   comicvineUrl: "",
 };
 
@@ -72,55 +72,53 @@ function mountTab(overrides = {}) {
 }
 
 describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
-  test("metronEnabled reflects and auto-saves draft.defaultSources", async () => {
-    const wrapper = mountTab({ hasMetronCredentials: true });
+  test("the enable checkbox reflects and auto-saves draft.defaultSources", async () => {
+    const wrapper = mountTab({ configuredSources: ["metron"] });
     const vm = wrapper.vm;
     const store = useAdminStore();
-    expect(vm.metronEnabled).toBe(false);
+    const metronInput = () => wrapper.findAll(".sourceEnable")[0].find("input");
+    expect(vm.isSourceEnabled("metron")).toBe(false);
     expect(store.updateTaggingDefaults).not.toHaveBeenCalled();
 
-    vm.metronEnabled = true;
-    await vm.$nextTick();
+    await metronInput().setValue(true);
     expect(vm.draft.defaultSources).toContain("metron");
-    expect(vm.metronEnabled).toBe(true);
+    expect(vm.isSourceEnabled("metron")).toBe(true);
+    expect(metronInput().element.checked).toBe(true);
     // Toggling a source persists immediately — no Save button required.
     expect(store.updateTaggingDefaults).toHaveBeenCalled();
 
-    vm.metronEnabled = false;
-    await vm.$nextTick();
+    await metronInput().setValue(false);
     expect(vm.draft.defaultSources).not.toContain("metron");
   });
 
   test("a credential-less source reads as off even if listed in defaultSources", () => {
     const wrapper = mountTab({
-      hasMetronCredentials: false,
+      configuredSources: [],
       defaultSources: ["metron"],
     });
-    expect(wrapper.vm.metronEnabled).toBe(false);
+    expect(wrapper.vm.isSourceEnabled("metron")).toBe(false);
   });
 
   test("canMerge is true only with two or more enabled sources", () => {
     const oneEnabled = mountTab({
-      hasMetronCredentials: true,
-      hasComicvineCredentials: true,
+      configuredSources: ["metron", "comicvine"],
       defaultSources: ["metron"],
     });
     expect(oneEnabled.vm.canMerge).toBe(false);
 
     const bothEnabled = mountTab({
-      hasMetronCredentials: true,
-      hasComicvineCredentials: true,
+      configuredSources: ["metron", "comicvine"],
       defaultSources: ["metron", "comicvine"],
     });
     expect(bothEnabled.vm.canMerge).toBe(true);
   });
 
   test("the enable checkbox is disabled until credentials exist", () => {
-    const off = mountTab({ hasMetronCredentials: false });
+    const off = mountTab({ configuredSources: [] });
     const offInput = off.findAll(".sourceEnable")[0].find("input");
     expect(offInput.element.disabled).toBe(true);
 
-    const on = mountTab({ hasMetronCredentials: true });
+    const on = mountTab({ configuredSources: ["metron"] });
     const onInput = on.findAll(".sourceEnable")[0].find("input");
     expect(onInput.element.disabled).toBe(false);
   });
@@ -128,12 +126,12 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
   test("a disabled source checkbox explains itself with a title tooltip", () => {
     // The title sits on the wrapper, not the checkbox, because Vuetify sets
     // pointer-events:none on disabled controls (see edit-panel tooltips).
-    const off = mountTab({ hasMetronCredentials: false });
+    const off = mountTab({ configuredSources: [] });
     expect(off.findAll(".sourceEnable")[0].attributes("title")).toBe(
       SOURCE_TIP,
     );
 
-    const on = mountTab({ hasMetronCredentials: true });
+    const on = mountTab({ configuredSources: ["metron"] });
     expect(on.findAll(".sourceEnable")[0].attributes("title")).toBe("");
   });
 
@@ -149,15 +147,15 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     store.updateTaggingDefaults.mockImplementation(() => {
       store.taggingDefaults = {
         ...store.taggingDefaults,
-        hasMetronCredentials: true,
+        configuredSources: ["metron"],
       };
     });
 
-    vm.metronKey = "token";
-    await vm.saveMetronCredentials();
+    vm.keys.metron = "token";
+    await vm.saveCredentials("metron");
     await vm.$nextTick();
     expect(vm.draft.defaultSources).toContain("metron");
-    expect(vm.metronEnabled).toBe(true);
+    expect(vm.isSourceEnabled("metron")).toBe(true);
     // The enable persists through the draft auto-save.
     expect(store.updateTaggingDefaults).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -167,15 +165,15 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
   });
 
   test("re-saving credentials respects a deliberately disabled source", async () => {
-    const wrapper = mountTab({ hasMetronCredentials: true });
+    const wrapper = mountTab({ configuredSources: ["metron"] });
     const vm = wrapper.vm;
     const store = useAdminStore();
 
-    vm.metronKey = "token";
-    await vm.saveMetronCredentials();
+    vm.keys.metron = "token";
+    await vm.saveCredentials("metron");
     await vm.$nextTick();
     expect(vm.draft.defaultSources).not.toContain("metron");
-    expect(vm.metronEnabled).toBe(false);
+    expect(vm.isSourceEnabled("metron")).toBe(false);
     // Only the credential save itself hit the server — no defaultSources write.
     expect(store.updateTaggingDefaults).toHaveBeenCalledTimes(1);
   });
@@ -185,19 +183,18 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     const vm = wrapper.vm;
 
     // The server rejected the key; defaults keep no credentials.
-    vm.metronKey = "bad";
-    await vm.saveMetronCredentials();
+    vm.keys.metron = "bad";
+    await vm.saveCredentials("metron");
     await vm.$nextTick();
     expect(vm.draft.defaultSources).not.toContain("metron");
-    expect(vm.metronEnabled).toBe(false);
+    expect(vm.isSourceEnabled("metron")).toBe(false);
   });
 
   test("only Comic Vine offers a custom URL field", async () => {
     // simyan takes a base_url, so a Comic Vine proxy or mirror works. mokkari
     // hardcodes the metron.cloud endpoint, so Metron has no such field.
     const wrapper = mountTab({
-      hasMetronCredentials: true,
-      hasComicvineCredentials: true,
+      configuredSources: ["metron", "comicvine"],
     });
 
     // The credential fields live in collapsed expansion panels, so expand
@@ -217,8 +214,7 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
 
   test("Metron reads as an API key source, like Comic Vine", async () => {
     const wrapper = mountTab({
-      hasMetronCredentials: true,
-      metronKeySet: true,
+      configuredSources: ["metron"],
     });
 
     expect(wrapper.text()).toContain("API key set");
@@ -233,26 +229,71 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     });
   });
 
+  test("each source row carries its own copy, in source order", async () => {
+    const wrapper = mountTab({
+      configuredSources: ["metron", "comicvine"],
+      defaultSources: ["metron", "comicvine"],
+    });
+    for (const title of wrapper.findAll(".v-expansion-panel-title")) {
+      await title.trigger("click");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const ariaLabels = wrapper
+      .findAll("[aria-label]")
+      .map((el) => el.attributes("aria-label"))
+      .filter((label) => /Comic Vine|Metron Cloud/v.test(label));
+    expect(ariaLabels).toEqual([
+      "Enable Metron Cloud",
+      "Raise Metron Cloud priority",
+      "Lower Metron Cloud priority",
+      "Enable Comic Vine",
+      "Raise Comic Vine priority",
+      "Lower Comic Vine priority",
+    ]);
+    const [metronPanel, comicvinePanel] = wrapper.findAll(".sourcePanel");
+    expect(metronPanel.find(".adminCardTitle").text()).toBe("Metron Cloud");
+    expect(metronPanel.find(".adminHint").text()).toBe(
+      "Generate an API key at Metron Cloud API Tokens",
+    );
+    expect(metronPanel.find(".adminHint a").attributes("href")).toBe(
+      "https://metron.cloud/accounts/tokens/",
+    );
+    expect(comicvinePanel.find(".adminCardTitle").text()).toBe("Comic Vine");
+    expect(comicvinePanel.find(".adminHint").text()).toBe(
+      "Get an API key from the Comic Vine API",
+    );
+    expect(comicvinePanel.find(".adminHint a").attributes("href")).toBe(
+      "https://comicvine.gamespot.com/api/",
+    );
+    const [, comicvineClear] = wrapper.findAllComponents(ConfirmDialog);
+    expect(comicvineClear.props()).toMatchObject({
+      buttonText: "Clear API Key",
+      titleText: "Clear Comic Vine API Key",
+      text: "Remove the saved Comic Vine API key and custom URL?",
+    });
+  });
+
   test("saving sends only the API key, never a username or password", async () => {
     const wrapper = mountTab();
     const vm = wrapper.vm;
     const store = useAdminStore();
 
-    vm.metronKey = "token";
-    await vm.saveMetronCredentials();
+    vm.keys.metron = "token";
+    await vm.saveCredentials("metron");
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
       metronKey: "token",
     });
     // The field is cleared so a saved key is never left sitting in the form.
-    expect(vm.metronKey).toBe("");
+    expect(vm.keys.metron).toBe("");
   });
 
   test("clearing sends a blank key", async () => {
-    const wrapper = mountTab({ hasMetronCredentials: true });
+    const wrapper = mountTab({ configuredSources: ["metron"] });
     const vm = wrapper.vm;
     const store = useAdminStore();
 
-    vm.clearMetronCredentials();
+    vm.clearCredentials("metron");
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
       metronKey: "",
     });
@@ -263,21 +304,21 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     const vm = wrapper.vm;
     const store = useAdminStore();
 
-    vm.comicvineUrlLocal = "https://cv.example.com/api";
-    await vm.saveComicvineCredentials();
+    vm.urls.comicvine = "https://cv.example.com/api";
+    await vm.saveCredentials("comicvine");
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
       comicvineUrl: "https://cv.example.com/api",
     });
-    expect(vm.comicvineUrlLocal).toBe("");
+    expect(vm.urls.comicvine).toBe("");
     // A url is not a credential, so it must not enable the source.
     expect(vm.draft.defaultSources).not.toContain("comicvine");
   });
 
   test("clearing the Comic Vine key clears the custom URL too", () => {
-    const wrapper = mountTab({ hasComicvineCredentials: true });
+    const wrapper = mountTab({ configuredSources: ["comicvine"] });
     const store = useAdminStore();
 
-    wrapper.vm.clearComicvineCredentials();
+    wrapper.vm.clearCredentials("comicvine");
     expect(store.updateTaggingDefaults).toHaveBeenCalledWith({
       comicvineKey: "",
       comicvineUrl: "",
@@ -285,12 +326,12 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
   });
 
   test("testing Comic Vine validates against the typed URL", async () => {
-    const wrapper = mountTab({ hasComicvineCredentials: true });
+    const wrapper = mountTab({ configuredSources: ["comicvine"] });
     const vm = wrapper.vm;
     const store = useAdminStore();
 
-    vm.comicvineUrlLocal = "https://cv.example.com/api";
-    await vm.testComicvineCredentials();
+    vm.urls.comicvine = "https://cv.example.com/api";
+    await vm.testCredentials("comicvine");
     expect(store.validateTaggingCredentials).toHaveBeenCalledWith({
       source: "comicvine",
       comicvineUrl: "https://cv.example.com/api",
@@ -298,35 +339,33 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
   });
 
   test("a stored key can be tested without retyping it", () => {
-    const vm = mountTab({ hasMetronCredentials: true, metronKeySet: true }).vm;
-    expect(vm.canTestMetron).toBe(true);
+    const vm = mountTab({ configuredSources: ["metron"] }).vm;
+    expect(vm.canTest("metron")).toBe(true);
 
     const unconfigured = mountTab().vm;
-    expect(unconfigured.canTestMetron).toBe(false);
+    expect(unconfigured.canTest("metron")).toBe(false);
   });
 
   test("toggling one source leaves the other untouched", async () => {
     const wrapper = mountTab({
-      hasMetronCredentials: true,
-      hasComicvineCredentials: true,
+      configuredSources: ["metron", "comicvine"],
       defaultSources: ["comicvine"],
     });
     const vm = wrapper.vm;
-    expect(vm.comicvineEnabled).toBe(true);
+    expect(vm.isSourceEnabled("comicvine")).toBe(true);
 
-    vm.metronEnabled = true;
+    vm.setSourceEnabled("metron", true);
     await vm.$nextTick();
     expect(vm.draft.defaultSources).toEqual(
       expect.arrayContaining(["comicvine", "metron"]),
     );
-    expect(vm.comicvineEnabled).toBe(true);
+    expect(vm.isSourceEnabled("comicvine")).toBe(true);
   });
 });
 
 function mountBoth(defaultSources) {
   return mountTab({
-    hasMetronCredentials: true,
-    hasComicvineCredentials: true,
+    configuredSources: ["metron", "comicvine"],
     defaultSources,
   });
 }
@@ -334,7 +373,7 @@ function mountBoth(defaultSources) {
 describe("AdminTaggingTab — source priority order", () => {
   test("enabling a source appends it at the end (lowest priority)", async () => {
     const vm = mountBoth(["comicvine"]).vm;
-    vm.metronEnabled = true;
+    vm.setSourceEnabled("metron", true);
     await vm.$nextTick();
     // Appended after the existing comicvine, not prepended.
     expect(vm.draft.defaultSources).toEqual(["comicvine", "metron"]);
@@ -371,7 +410,7 @@ describe("AdminTaggingTab — source priority order", () => {
     expect(vm.sourceRowStyle("metron")).toEqual({ order: 1 });
 
     const off = mountTab({
-      hasComicvineCredentials: true,
+      configuredSources: ["comicvine"],
       defaultSources: ["comicvine"],
     }).vm;
     // Metron isn't in the priority list — it sinks below the enabled rows.
