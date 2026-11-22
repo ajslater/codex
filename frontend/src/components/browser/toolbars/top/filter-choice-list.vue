@@ -41,6 +41,11 @@ import { mapActions, mapState } from "pinia";
 import { toVuetifyItems } from "@/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
+/*
+ * Filters whose choices come in an order that means something: Metron's
+ * age ratings by age, and reading lists with your own first.
+ */
+const SERVER_ORDERED_FILTERS = new Set(["ageRatingMetron", "readingLists"]);
 const NUMERIC_FILTERS = new Set([
   "decade",
   "seriesEndYear",
@@ -95,7 +100,7 @@ export default {
           : this.choices;
       const sortBy = this.isNumeric
         ? "numeric"
-        : this.name == "ageRatingMetron"
+        : SERVER_ORDERED_FILTERS.has(this.name)
           ? ""
           : this.name == "ageRatingTagged"
             ? "index"

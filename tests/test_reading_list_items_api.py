@@ -163,6 +163,19 @@ class RemoveTests(ItemsFixture):
         assert refused["item"]["label"] == self.series.name
         assert c1.pk in self.order(self.mine)
 
+    def test_removing_the_last_item_closes_the_gap(self) -> None:
+        """A hand entry after the series moves up to the top."""
+        _, more = self.make_series("Daredevil")
+        self.patch_items(self.mine, {"add": {"series": [self.series.pk]}})
+        self.patch_items(self.mine, {"add": {"comics": [more[0].pk]}})
+        self.patch_items(self.mine, {"remove": {"series": [self.series.pk]}})
+        positions = list(
+            ReadingListEntry.objects.filter(reading_list=self.mine).values_list(
+                "position", "comic_id"
+            )
+        )
+        assert positions == [(0, more[0].pk)]
+
     def test_the_answer_counts_the_list(self) -> None:
         """The list's new issue count comes back, for the menus."""
         c1, c2, _, _ = self.comics

@@ -568,6 +568,19 @@ def _touch(reading_list: ReadingList) -> None:
     reading_list.updated_at = now
 
 
+def _close_gaps(reading_list: ReadingList) -> bool:
+    """Renumber a list's entries 0..n-1; return whether any moved."""
+    pks = (
+        ReadingListEntry.objects.filter(reading_list=reading_list)
+        .order_by("position", "pk")
+        .values_list("pk", flat=True)
+    )
+    if not renumber(list(pks)):
+        return False
+    _touch(reading_list)
+    return True
+
+
 def reconcile_list(reading_list: ReadingList) -> bool:
     """
     Bring a list's live entries in line with its items; return if it changed.
@@ -587,7 +600,8 @@ def reconcile_list(reading_list: ReadingList) -> bool:
             reading_list=reading_list, live_source__isnull=False
         )
         if not items and not live_rows.exists():
-            return False
+            # Its last item may just have gone, with the rows it brought.
+            return _close_gaps(reading_list)
         rebound = _bind(reading_list, items)
         sourced = (
             ReadingListSource.objects.filter(reading_list=reading_list)
