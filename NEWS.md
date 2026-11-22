@@ -34,8 +34,8 @@ border-radius: 128px;
   Links and OPDS bookmarks into a story arc change once.
 - Shelves are now your own reading lists, with the same names and contents, in
   saved views, filters, columns, backups and OPDS start pages.
-- Filters take several values: tick as many as you like while the menu stays
-  open.
+- Filters take several values while the menu stays open, and tag filters can
+  match all ticked values.
 
 ### 🔥 Removed
 
