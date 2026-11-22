@@ -207,7 +207,6 @@
                       <p v-if="source.notes" class="adminHint sourceNotes">
                         {{ source.notes }}
                       </p>
-                      <SourceCredit :source="source.id" />
                       <v-text-field
                         v-if="source.customUrl"
                         v-model="urls[source.id]"
@@ -293,7 +292,6 @@ import {
   namedFormats,
   WRITE_FORMAT_CHOICES,
 } from "@/components/metadata/edit-mode/write-formats";
-import SourceCredit from "@/components/online-tag/source-credit.vue";
 import {
   credentialFields,
   SOURCE_DESCRIPTORS,
@@ -370,7 +368,6 @@ export default {
   components: {
     AdminSection,
     ConfirmDialog,
-    SourceCredit,
     TaggingStatusTable,
     TagWriteErrorsPanel,
     ValidationChip,

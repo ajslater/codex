@@ -3,9 +3,8 @@
  *
  * Behavior locked in here:
  *   - The Tagging tab shows a VerseDB card: its token link, its free-tier
- *     budget and terms, and the "Data from VerseDB" credit, which no other
- *     source's card carries. Saving its first key enables it last in
- *     priority, and three enabled sources can merge.
+ *     budget and terms. Saving its first key enables it last in priority,
+ *     and three enabled sources can merge.
  *   - The launcher reads `versedb:ID` and versedb.com urls as VerseDB, asks
  *     which source a bare id is among all three, warns on VerseDB's hourly
  *     and daily caps, and says which sources ignore effort.
@@ -60,14 +59,14 @@ function mountTab(overrides = {}) {
   });
 }
 
-const panelFor = (wrapper, title) =>
+const panelFor = (wrapper) =>
   wrapper
     .findAll(".sourcePanel")
-    .find((panel) => panel.find(".adminCardTitle").text() === title);
+    .find((panel) => panel.find(".adminCardTitle").text() === "VerseDB");
 
 describe("Tagging tab — VerseDB card", () => {
-  test("shows its token link, budget, terms and credit", () => {
-    const panel = panelFor(mountTab(), "VerseDB");
+  test("shows its token link, budget and terms", () => {
+    const panel = panelFor(mountTab());
     expect(panel).toBeTruthy();
     const link = panel.find(".adminHint a");
     expect(link.attributes("href")).toBe(
@@ -81,21 +80,10 @@ describe("Tagging tab — VerseDB card", () => {
     // The budget line already says "Free tier"; the terms do not repeat it.
     expect(notes.match(/Free/gv)).toHaveLength(1);
     expect(notes).toContain("Metron and Comic Vine win");
-    const credit = panel.find(".sourceCredit a");
-    expect(credit.text()).toBe(CREDIT);
-    expect(credit.attributes("href")).toBe(CREDIT_URL);
+    // A settings card shows none of VerseDB's data, so it carries no credit.
+    expect(panel.text()).not.toContain(CREDIT);
     // No mirror exists, so no custom url field.
     expect(panel.text()).not.toContain("Custom URL");
-  });
-
-  test("only VerseDB carries a credit", () => {
-    const wrapper = mountTab();
-    expect(
-      panelFor(wrapper, "Metron Cloud").find(".sourceCredit").exists(),
-    ).toBe(false);
-    expect(panelFor(wrapper, "Comic Vine").find(".sourceCredit").exists()).toBe(
-      false,
-    );
   });
 
   test("its first key enables it last in priority", async () => {
@@ -132,9 +120,7 @@ describe("Tagging tab — VerseDB card", () => {
       versedbKey: "",
     });
 
-    await panelFor(wrapper, "VerseDB")
-      .find(".v-expansion-panel-title")
-      .trigger("click");
+    await panelFor(wrapper).find(".v-expansion-panel-title").trigger("click");
     await new Promise((resolve) => setTimeout(resolve, 0));
     const dialog = wrapper
       .findAllComponents(ConfirmDialog)
