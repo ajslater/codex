@@ -1,5 +1,6 @@
 """Browser Filters."""
 
+from collections.abc import Collection
 from functools import cached_property
 from typing import Final
 
@@ -126,7 +127,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         pks=None,
         *,
         include_missing=False,
-        kind_filter=True,
+        omit: Collection[str] = (),
     ) -> Q:
         """Return all the filters except the collection filter."""
         big_include_filter = Q()
@@ -138,12 +139,12 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             collection, pks, page_mtime=page_mtime
         )
         big_include_filter &= self.get_comic_field_filter(
-            model, collection, pks, kind_filter=kind_filter
+            model, collection, pks, omit=omit
         )
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
         big_include_filter &= self.get_retired_filter()
-        if kind_filter:
+        if READING_LIST_KIND_FILTER not in omit:
             big_include_filter &= self.get_reading_list_kind_filter(
                 model, collection, pks
             )
@@ -164,14 +165,14 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         page_mtime=False,
         bookmark_filter=True,
         include_missing=False,
-        kind_filter=True,
+        omit: Collection[str] = (),
     ) -> QuerySet:
         """
         Get a filtered queryset for the model.
 
         ``include_missing`` keeps scanner-stamped rows. Only write paths
-        and the reader pass it; see ``get_acl_filter``. ``kind_filter``
-        off leaves the Reading List Kind out, for its own choices.
+        and the reader pass it; see ``get_acl_filter``. ``omit`` names
+        filters to leave out, as a filter's own choices do.
         """
         query_filters = self._get_query_filters(
             model,
@@ -180,7 +181,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             collection=collection,
             pks=pks,
             include_missing=include_missing,
-            kind_filter=kind_filter,
+            omit=omit,
         )
         qs = model.objects.filter(query_filters)
         # Non-Comic queries traverse ``comic__`` for ACL/group/field filters,

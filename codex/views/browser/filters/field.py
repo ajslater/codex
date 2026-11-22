@@ -1,5 +1,6 @@
 """Comic field filters."""
 
+from collections.abc import Collection
 from types import MappingProxyType
 
 from django.db.models.query_utils import Q
@@ -134,9 +135,7 @@ class ComicFieldFilterView(CollectionFilterView):
                 )
         return comic_field_filter
 
-    def _skipped_filters(
-        self, model, collection, pks, *, kind_filter: bool
-    ) -> frozenset[str]:
+    def _skipped_filters(self, model, collection, pks) -> frozenset[str]:
         """
         Return the filters that do not narrow by the lists' comics here.
 
@@ -145,12 +144,12 @@ class ComicFieldFilterView(CollectionFilterView):
         """
         if self.is_lists_grid(model, collection, pks):
             return _GRID_SKIPPED_FILTERS
-        if not kind_filter or self.is_in_lists(collection, pks):
+        if self.is_in_lists(collection, pks):
             return _KIND_SKIPPED
         return frozenset()
 
     def get_comic_field_filter(
-        self, model, collection=None, pks=None, *, kind_filter=True
+        self, model, collection=None, pks=None, *, omit: Collection[str] = ()
     ) -> Q:
         """
         Filter the comics based on the form filters.
@@ -159,12 +158,14 @@ class ComicFieldFilterView(CollectionFilterView):
         chosen lists hold; every other filter still narrows by the lists'
         comics. Inside one list it narrows the comics like any filter, and
         the kind does nothing. Elsewhere the kind narrows to comics on a
-        list of that kind. ``kind_filter`` off leaves the kind out.
+        list of that kind. ``omit`` names filters to leave out entirely:
+        apart from the skipped ones, so leaving the Reading Lists filter
+        out of a comic query never puts the held lists' pks on it.
         """
         rel_prefix = self.get_rel_prefix(model)
-        filters = self.params["filters"]
+        filters = {k: v for k, v in self.params["filters"].items() if k not in omit}
         user = self.request.user
-        skipped = self._skipped_filters(model, collection, pks, kind_filter=kind_filter)
+        skipped = self._skipped_filters(model, collection, pks)
         others = {k: v for k, v in filters.items() if k not in skipped}
         query = self.get_all_comic_field_filters(rel_prefix, others, user)
         if READING_LISTS_FILTER in skipped and (

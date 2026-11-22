@@ -874,7 +874,7 @@ def _restore_list_kinds(row_keys, row) -> list[str]:
     except json.JSONDecodeError:
         value = raw
     if isinstance(value, str):
-        value = [value]
+        return [value] if value in BROWSER_READING_LIST_KIND_CHOICES else []
     if not isinstance(value, list):
         return []
     return [

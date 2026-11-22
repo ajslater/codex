@@ -105,6 +105,7 @@ _NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
 _M2M_DISTINCT_PROBE_LIMIT = 2
 # The Reading List Kind is offered when it has two kinds to choose between.
 _KINDS_TO_CHOOSE = 2
+_KIND_OMITTED = frozenset({READING_LIST_KIND_FILTER})
 
 
 class BrowserChoicesViewBase(BrowserFilterView):
@@ -191,12 +192,12 @@ class BrowserChoicesViewBase(BrowserFilterView):
         user = self.request.user
         kinds = list_kinds_for(user)
         if self.is_lists_grid(ReadingList):
-            lists = self.get_filtered_queryset(ReadingList, kind_filter=False)
+            lists = self.get_filtered_queryset(ReadingList, omit=_KIND_OMITTED)
             return {
                 kind: self.force_inner_joins(lists.filter(list_kind_q((kind,), user)))
                 for kind in kinds
             }
-        comics = self.get_filtered_queryset(Comic, kind_filter=False)
+        comics = self.get_filtered_queryset(Comic, omit=_KIND_OMITTED)
         return {
             kind: comics.filter(pk__in=listed_comics(user, kinds=(kind,)))
             for kind in kinds
