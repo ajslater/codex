@@ -95,7 +95,11 @@ class RefusalTests(LiveEntriesFixture):
         """Hand-added #1 goes; Daredevil #1 is refused, with its series."""
         c1 = self.comics[0]
         dd1 = self.more[0]
-        response = self.post("/remove", {"comics": [c1.pk, dd1.pk]})
+        response = self.client.patch(
+            f"{self.url}/items",
+            data=json.dumps({"remove": {"comics": [c1.pk, dd1.pk]}}),
+            content_type="application/json",
+        )
         assert response.status_code == _OK, response.content
         body = _data(response)
         assert body["removed"] == 1

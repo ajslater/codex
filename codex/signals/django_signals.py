@@ -41,6 +41,23 @@ def _on_reading_list_deleted(sender, instance, **_kwargs) -> None:
     )
     if holders:
         LIBRARIAN_QUEUE.put(ReadingListLiveSyncTask(list_pks=holders))
+    _forget_list_in_filters(instance.pk)
+
+
+def _forget_list_in_filters(list_pk: int) -> None:
+    """
+    Drop a deleted list from every stored Reading Lists filter.
+
+    Covers the live browser and OPDS settings and every saved view, so none
+    is left filtering on a list that no longer exists, which matches nothing.
+    """
+    from codex.models.settings import SettingsBrowserFilters
+
+    for filters in SettingsBrowserFilters.objects.exclude(reading_lists=[]):
+        kept = [pk for pk in filters.reading_lists if pk != list_pk]
+        if kept != filters.reading_lists:
+            filters.reading_lists = kept
+            filters.save(update_fields=("reading_lists", "updated_at"))
 
 
 def _ensure_user_auth(sender, instance, created, **_kwargs) -> None:

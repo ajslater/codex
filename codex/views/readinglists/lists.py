@@ -6,6 +6,7 @@ A personal list is saved in Codex only and never changes a comic file.
 """
 
 import re
+from collections.abc import Sequence
 from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, Final
@@ -49,6 +50,7 @@ from codex.views.readinglists.access import (
 )
 from codex.views.readinglists.details import continue_comic
 from codex.views.readinglists.entries import add_comics
+from codex.views.readinglists.items import COMICS, ITEM_TARGETS
 
 _KEYLESS_KINDS: Final = frozenset(
     {ReadingListSourceKind.TAGS, ReadingListSourceKind.UPLOAD}
@@ -181,15 +183,57 @@ def _entry_count(reading_list: ReadingList) -> int:
     return count
 
 
-def list_repr(reading_list: ReadingList, user) -> dict[str, Any]:
-    """Return a list for menus and the My Lists dialog."""
-    return {
+def list_repr(
+    reading_list: ReadingList, user, items: dict[str, list[int]] | None = None
+) -> dict[str, Any]:
+    """Return a list for menus and the My Lists dialog, with its items if given."""
+    row = {
         "pk": reading_list.pk,
         "name": reading_list.name,
         "personal": reading_list.user_id is not None,  # pyright: ignore[reportAttributeAccessIssue]
         "count": _entry_count(reading_list),
         "editable": can_edit(user, reading_list),
     }
+    if items is not None:
+        row["items"] = items
+    return row
+
+
+def direct_items(list_pks: Sequence[int]) -> dict[int, dict[str, list[int]]]:
+    """
+    Map each list to what it holds directly, by collection.
+
+    Issues held by hand or from a source, not hidden, and the targets of its
+    collection items: what a menu toggles. An issue that is there through
+    its series is not listed under ``comics``.
+    """
+    held: dict[int, dict[str, list[int]]] = {
+        pk: {target: [] for target in ITEM_TARGETS} for pk in list_pks
+    }
+    comics = (
+        ReadingListEntry.objects.filter(
+            reading_list_id__in=list_pks,
+            live_source__isnull=True,
+            ignored=False,
+            comic__isnull=False,
+        )
+        .order_by("position", "pk")
+        .values_list("reading_list_id", "comic_id")
+    )
+    for list_pk, comic_pk in comics:
+        held[list_pk][COMICS].append(comic_pk)
+    items = (
+        ReadingListSource.objects.filter(
+            reading_list_id__in=list_pks,
+            kind=ReadingListSourceKind.COLLECTION,
+            target_id__isnull=False,
+        )
+        .order_by("rank", "pk")
+        .values_list("reading_list_id", "collection", "target_id")
+    )
+    for list_pk, collection, target_pk in items:
+        held[list_pk][collection].append(target_pk)
+    return held
 
 
 class ReadingListsView(ReadingListAccessView):
@@ -200,12 +244,13 @@ class ReadingListsView(ReadingListAccessView):
     def get(self, *_args, **_kwargs) -> Response:
         """Return the user's own lists, and for an admin the curated global ones."""
         user = self.request.user
-        lists = (
+        lists = list(
             ReadingList.objects.filter(menu_lists_q(user))
             .annotate(count=Count("entries", filter=_COUNTED))
             .order_by("user_id", "sort_name", "pk")
         )
-        return Response({"lists": [list_repr(rl, user) for rl in lists]})
+        held = direct_items([rl.pk for rl in lists])
+        return Response({"lists": [list_repr(rl, user, held[rl.pk]) for rl in lists]})
 
     def post(self, *_args, **_kwargs) -> Response:
         """Make a personal list, empty or holding the ``comics`` the user sees."""

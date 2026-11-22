@@ -40,7 +40,6 @@ from codex.views.readinglists.access import (
     can_edit,
     entries_acl_q,
     to_pk,
-    to_pks,
 )
 
 _CANDIDATE_LIMIT: Final = 50
@@ -340,43 +339,37 @@ class ReadingListEntryView(ReadingListAccessView):
         return Response({"deleted": entry.manual})
 
 
-class ReadingListRemoveView(ReadingListAccessView):
+def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, Any]:
     """
-    POST ``{comics}``: take comics out of a list, in place.
+    Take comics out of a list, in place; say how many of each kind.
 
-    The entry DELETE's rule for each of their entries: one added by hand
-    goes, any other is hidden, since its source would bring it back.
+    An entry added by hand goes; any other is hidden, since its source
+    would bring it back. A comic a collection item delivers is refused,
+    and the answer names the item, to remove instead.
     """
-
-    def post(self, *_args, **_kwargs) -> Response:
-        """
-        Remove or hide each entry of the comics; say how many of each.
-
-        A comic a collection item delivers is refused: the answer names
-        the item, so the person can remove the series instead.
-        """
-        reading_list = self.get_reading_list()
-        pks = to_pks(self.data_value("comics"), "comics")
-        entries = ReadingListEntry.objects.filter(
-            reading_list=reading_list, comic_id__in=pks
+    pks = list(pks)
+    if not pks:
+        return {"removed": 0, "hidden": 0, "refused": []}
+    entries = ReadingListEntry.objects.filter(
+        reading_list=reading_list, comic_id__in=pks
+    )
+    refused = [
+        {"comic": entry.comic_id, "item": item_repr(entry.live_source)}  # pyright: ignore[reportAttributeAccessIssue]
+        for entry in entries.filter(live_source__isnull=False).select_related(
+            "live_source"
         )
-        refused = [
-            {"comic": entry.comic_id, "item": item_repr(entry.live_source)}  # pyright: ignore[reportAttributeAccessIssue]
-            for entry in entries.filter(live_source__isnull=False).select_related(
-                "live_source"
-            )
-        ]
-        own = entries.filter(live_source__isnull=True)
-        with transaction.atomic():
-            removed, _ = own.filter(manual=True).delete()
-            hidden = own.filter(manual=False, ignored=False).update(ignored=True)
-            if removed:
-                _renumber(reading_list, _order(reading_list))
-            else:
-                reading_list.save()
-        if removed or hidden:
-            _settle(reading_list)
-        return Response({"removed": removed, "hidden": hidden, "refused": refused})
+    ]
+    own = entries.filter(live_source__isnull=True)
+    with transaction.atomic():
+        removed, _ = own.filter(manual=True).delete()
+        hidden = own.filter(manual=False, ignored=False).update(ignored=True)
+        if removed:
+            _renumber(reading_list, _order(reading_list))
+        else:
+            reading_list.save()
+    if removed or hidden:
+        _settle(reading_list)
+    return {"removed": removed, "hidden": hidden, "refused": refused}
 
 
 class ReadingListReorderView(ReadingListAccessView):
@@ -524,10 +517,11 @@ __all__ = (
     "ReadingListCandidatesView",
     "ReadingListEntriesView",
     "ReadingListEntryView",
-    "ReadingListRemoveView",
     "ReadingListReorderView",
     "add_comics",
     "can_edit",
     "entry_repr",
+    "item_repr",
     "next_position",
+    "remove_comics",
 )

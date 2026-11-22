@@ -305,16 +305,16 @@ class ReadingListApiTests(ReadingListFixture):
         assert response.status_code == _FORBIDDEN
         assert not ReadingList.objects.filter(user__isnull=True).exists()
 
-    def test_add_a_selection(self) -> None:
-        """A series adds the comics the list lacks, in reading order, after its last."""
+    def test_add_a_series_as_an_item(self) -> None:
+        """A series is held whole: it adds the comics the list lacks, after its last."""
         pk = self._personal_list()
-        response = self.client.post(
-            f"{_LISTS}/{pk}/add",
-            data=json.dumps({"targets": {"series": [self.comics[0].series_id]}}),
+        response = self.client.patch(
+            f"{_LISTS}/{pk}/items",
+            data=json.dumps({"add": {"series": [self.comics[0].series_id]}}),
             content_type="application/json",
         )
         assert response.status_code == _OK, response.content
-        assert _data(response)["added"] == 2  # noqa: PLR2004
+        assert _data(response)["added"] == 1
         order = list(
             ReadingListEntry.objects.filter(reading_list_id=pk)
             .order_by("position")

@@ -109,18 +109,23 @@ class RemoveFromListTests(ManageFixture):
     """Remove comics from a list in place, as the entry DELETE does."""
 
     def _remove(self, reading_list: ReadingList, comics) -> Any:
-        return self.client.post(
-            f"/api/v4/reading-lists/{reading_list.pk}/remove",
-            data=json.dumps({"comics": comics}),
+        return self.client.patch(
+            f"/api/v4/reading-lists/{reading_list.pk}/items",
+            data=json.dumps({"remove": {"comics": comics}}),
             content_type="application/json",
         )
+
+    @staticmethod
+    def _result(response) -> dict:
+        data = response.json()["data"]
+        return {key: data[key] for key in ("removed", "hidden", "refused")}
 
     def test_a_hand_added_comic_goes(self) -> None:
         """An entry added by hand is deleted; the rest close up."""
         c3, c4 = self.comics[2:]
         response = self._remove(self.mine, [c3.pk])
         assert response.status_code == _OK, response.content
-        assert response.json()["data"] == {"removed": 1, "hidden": 0, "refused": []}
+        assert self._result(response) == {"removed": 1, "hidden": 0, "refused": []}
         rows = list(
             ReadingListEntry.objects.filter(reading_list=self.mine).values_list(
                 "comic_id", "position"
@@ -134,7 +139,7 @@ class RemoveFromListTests(ManageFixture):
         c1 = self.comics[0]
         ReadingListEntry.objects.filter(reading_list=self.imported).update(manual=False)
         response = self._remove(self.imported, [c1.pk])
-        assert response.json()["data"] == {"removed": 0, "hidden": 1, "refused": []}
+        assert self._result(response) == {"removed": 0, "hidden": 1, "refused": []}
         assert ReadingListEntry.objects.get(
             reading_list=self.imported, comic=c1
         ).ignored
