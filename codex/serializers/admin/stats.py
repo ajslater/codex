@@ -141,10 +141,10 @@ class StatsUsageSerializer(Serializer):
     """Reader Engagement Counts."""
 
     bookmark_count = IntegerField(required=False, read_only=True)
-    shelf_count = IntegerField(required=False, read_only=True)
-    shelf_user_count = IntegerField(required=False, read_only=True)
-    shelf_item_count = IntegerField(required=False, read_only=True)
-    shelf_items = CountDictField(required=False, read_only=True)
+    personal_list_count = IntegerField(required=False, read_only=True)
+    personal_list_user_count = IntegerField(required=False, read_only=True)
+    list_item_count = IntegerField(required=False, read_only=True)
+    list_items = CountDictField(required=False, read_only=True)
     device_key_count = IntegerField(required=False, read_only=True)
     device_key_user_count = IntegerField(required=False, read_only=True)
     device_key_used_count = IntegerField(required=False, read_only=True)

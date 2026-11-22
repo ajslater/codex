@@ -113,15 +113,6 @@ class JanitorCleanupSettingsStatus(JanitorStatus):
     ITEM_NAME = "orphan settings"
 
 
-class JanitorCleanupShelfItemsStatus(JanitorStatus):
-    """Janitor Cleanup Shelf Items Status."""
-
-    CODE = "JRF"
-    VERB = "Cleanup"
-    _verbed = "Cleaned up"
-    ITEM_NAME = "orphan shelf items"
-
-
 class JanitorKoreaderHashStatus(JanitorStatus):
     """Janitor KOReader Hash Backfill Status."""
 
@@ -213,7 +204,6 @@ JANITOR_STATII = (
     JanitorCleanupCoversStatus,
     JanitorCleanupBookmarksStatus,
     JanitorCleanupSettingsStatus,
-    JanitorCleanupShelfItemsStatus,
     JanitorKoreaderHashStatus,
     JanitorCleanupTaggingStateStatus,
     JanitorDBFKIntegrityStatus,

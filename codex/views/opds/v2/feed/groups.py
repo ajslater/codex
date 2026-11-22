@@ -26,7 +26,7 @@ from codex.views.opds.v2.const import (
     Link,
     LinkData,
     LinkGroup,
-    shelf_preview_link,
+    list_preview_link,
 )
 from codex.views.opds.v2.feed.publications import OPDS2PublicationsView
 
@@ -93,7 +93,7 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         Narrow the current feed by a facet.
 
         A facet's ``filters`` merge into the current ones instead of
-        replacing them, so a read filter on a shelf feed keeps the shelf.
+        replacing them, so a read filter on a list feed keeps the list.
         The feed's ``title`` is not inherited: it named the feed before the
         facet changed it.
         """
@@ -190,14 +190,14 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
         """Top Nav Groups."""
         return self._create_group(TOP_GROUPS)
 
-    def _shelf_preview_links(self) -> tuple[Link, ...]:
+    def _list_preview_links(self) -> tuple[Link, ...]:
         """
-        Return one preview link per non-empty shelf of the requesting user.
+        Return one preview link per non-empty reading list of the user's own.
 
-        Empty for anonymous sessions and for users with no shelves, so the
+        Empty for anonymous sessions and for users with no lists, so the
         start page gains nothing for them.
         """
-        return tuple(shelf_preview_link(pk, name) for pk, name in self.user_shelves())
+        return tuple(list_preview_link(pk, name) for pk, name in self.user_lists())
 
     def get_ordered_groups(self) -> list:
         """Ordered Publication Groups."""
@@ -207,9 +207,9 @@ class OPDS2FeedGroupsView(OPDS2PublicationsView):
             for link_spec in group_spec.links:
                 pub_section = self.get_publications_preview(link_spec)
                 groups += pub_section
-        # One preview per shelf, after the static previews. A shelf whose
+        # One preview per list, after the static previews. A list whose
         # comics are all hidden from this user yields no section.
-        for link_spec in self._shelf_preview_links():
+        for link_spec in self._list_preview_links():
             groups += self.get_publications_preview(link_spec)
         return groups
 

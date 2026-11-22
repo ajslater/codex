@@ -60,8 +60,6 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         if (order_key == "search_score" and not self.fts_mode) or (
             (order_key == "filename" and not self.admin_flags["folder_view"])
             or (order_key == "child_count" and self.TARGET == "cover")
-            # Only table view annotates ``shelved``.
-            or (order_key == "shelved" and self.params.get("view_mode") != "table")
         ):
             order_key = "sort_name"
         return order_key
@@ -74,13 +72,10 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             order_key = "sort_name"
         # The cover subquery is a correlated Comic query that doesn't
         # carry the outer view's M2M / FK alias annotations, so an
-        # M2M sort would reference a missing column. Same applies to
-        # ``shelved`` — its annotation is added by
-        # ``_add_table_view_shelved_annotation`` on the outer
-        # queryset, not on the per-cover subquery. Cover-context
-        # falls back to sort_name; picking "the first comic" by
-        # alphabetical title is what the cover subquery wants anyway.
-        if for_cover and (order_key in m2m_columns() or order_key == "shelved"):
+        # M2M sort would reference a missing column. Cover-context falls
+        # back to sort_name; picking "the first comic" by alphabetical
+        # title is what the cover subquery wants anyway.
+        if for_cover and order_key in m2m_columns():
             order_key = "sort_name"
         return order_key
 

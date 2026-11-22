@@ -14,7 +14,6 @@ from codex.views.browser.metadata.const import (
     M2M_QUERY_OPTIMIZERS,
 )
 from codex.views.browser.metadata.reading_lists import selection_reading_lists
-from codex.views.browser.shelf_membership import selection_shelves
 from codex.views.const import METADATA_COLLECTION_RELATION, MODEL_REL_MAP
 
 
@@ -164,10 +163,8 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
 
         return m2m_intersections
 
-    def query_intersections(
-        self, filtered_qs
-    ) -> tuple[dict, dict, dict, list[int], list[dict]]:
-        """Query complex intersections, the user's shelves and reading lists."""
+    def query_intersections(self, filtered_qs) -> tuple[dict, dict, dict, list[dict]]:
+        """Query complex intersections and the reading lists holding them."""
         collection_lists = self._query_collection_lists()
         comic_pks = self._get_comic_pks(filtered_qs)
         # One cheap COUNT round-trip; every intersection path needs the
@@ -175,7 +172,6 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
         num_comics = comic_pks.count()
         fk_intersections = self._query_fk_intersections(comic_pks, num_comics)
         m2m_intersections = self._query_m2m_intersections(comic_pks, num_comics)
-        shelves = selection_shelves(self.request.user, comic_pks, num_comics)
         reading_lists = selection_reading_lists(
             self.request.user, comic_pks, single=num_comics == 1, is_admin=self.is_admin
         )
@@ -183,6 +179,5 @@ class MetadataQueryIntersectionsView(MetadataAnnotateView):
             collection_lists,
             fk_intersections,
             m2m_intersections,
-            shelves,
             reading_lists,
         )

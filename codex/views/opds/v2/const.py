@@ -175,14 +175,14 @@ PREVIEW_GROUPS = (
 )
 
 
-def shelf_preview_link(shelf_pk: int, name: str) -> Link:
+def list_preview_link(list_pk: int, name: str) -> Link:
     """
-    Build the start-page preview link for one of the user's shelves.
+    Build the start-page preview link for one of the user's reading lists.
 
-    Shelves are per-user rows, so unlike the static ``PREVIEW_GROUPS``
-    these are built per request in
-    ``OPDS2FeedGroupsView.get_ordered_groups``. Every browser parameter
-    is spelled out: OPDS settings persist between requests, so a
+    Lists are per-user rows, so unlike the static ``PREVIEW_GROUPS`` these
+    are built per request in ``OPDS2FeedGroupsView.get_ordered_groups``.
+    The preview is the list's comics in reading order. Every browser
+    parameter is spelled out: OPDS settings persist between requests, so a
     parameter left off the link would inherit whatever the client asked
     for last.
     """
@@ -193,8 +193,10 @@ def shelf_preview_link(shelf_pk: int, name: str) -> Link:
         MappingProxyType(
             {
                 "topCollection": "comics",
-                "filters": MappingProxyType({"bookmark": "", "shelves": [shelf_pk]}),
-                "orderBy": "sort_name",
+                "filters": MappingProxyType(
+                    {"bookmark": "", "reading_lists": [list_pk]}
+                ),
+                "orderBy": "story_arc_number",
                 "orderReverse": False,
                 "title": name,
             }

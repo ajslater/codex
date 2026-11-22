@@ -68,16 +68,18 @@ describe("resolveTableColumns", () => {
     expect(store._resolveTableColumns()).toEqual(["name"]);
   });
 
-  it("drops the always-empty Shelves column for anonymous visitors", () => {
+  it("gives anonymous visitors every column, Reading Lists too", () => {
     useAuthStore().defaults = {
-      browser: { tableColumns: { comics: ["cover", "shelved", "name"] } },
+      browser: { tableColumns: { comics: ["cover", "reading_lists", "name"] } },
     };
     const store = useBrowserStore();
     store.settings.topCollection = "comics";
     store.settings.tableColumns = {};
-    expect(store._resolveTableColumns()).toEqual(["cover", "name"]);
-    useAuthStore().user = { id: 1, username: "alice" };
-    expect(store._resolveTableColumns()).toEqual(["cover", "shelved", "name"]);
+    expect(store._resolveTableColumns()).toEqual([
+      "cover",
+      "reading_lists",
+      "name",
+    ]);
   });
 });
 

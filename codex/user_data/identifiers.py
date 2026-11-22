@@ -111,7 +111,7 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
 
 
 # Per-collection part extractors. Keys are the collection values from
-# :data:`codex.models.shelf.SHELF_MODEL_COLLECTIONS` (a ``Collection``
+# :data:`codex.models.collection_models.BROWSE_MODEL_COLLECTIONS` (a ``Collection``
 # member hashes equal to its collection-name value, so a plain-string
 # lookup finds it). Each callable takes the row instance and returns the
 # identifier ``parts`` list. Pulled out of an ``if``/``elif`` chain to

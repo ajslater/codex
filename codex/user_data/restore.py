@@ -628,8 +628,10 @@ _LEGACY_KEY_RENAMES: Final[dict[str, str]] = {"critical_rating": "community_rati
 _SORT_KEY_RENAMES: Final[dict[str, str]] = {
     **_LEGACY_KEY_RENAMES,
     "alternate_number": "reprints",
-    # Favorites became shelves; the per-row flag is now "on any shelf".
-    "favorite": "shelved",
+    # Favorites became shelves and shelves became reading lists: both the
+    # old flags' sort and column are now the Reading Lists column.
+    "favorite": "reading_lists",
+    "shelved": "reading_lists",
     # Story arcs and reading lists are one concept: Reading Lists.
     "story_arcs": "reading_lists",
 }
@@ -895,9 +897,9 @@ def _resolve_last_route_pks(
     """Map sidecar identifier tuples to main-DB PKs; missing rows drop + log."""
     if collection == Collection.ROOT or not decoded:
         return []
-    from codex.models.shelf import SHELF_COLLECTION_MODELS
+    from codex.models.collection_models import BROWSE_COLLECTION_MODELS
 
-    target_model = SHELF_COLLECTION_MODELS.get(collection)
+    target_model = BROWSE_COLLECTION_MODELS.get(collection)
     if target_model is None:
         return []
     pks: list[int] = []

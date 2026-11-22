@@ -100,29 +100,29 @@ class RootTopLinks:
     ALL = (KEEP_READING, NEW_UNREAD, OLD_UNREAD)
 
 
-def shelf_top_link(shelf_pk: int, name: str) -> TopLink:
+def list_top_link(list_pk: int, name: str) -> TopLink:
     """
-    Build the start-page entry for one of the user's shelves.
+    Build the start-page entry for one of the user's reading lists.
 
-    Shelves are per-user rows, so unlike ``RootTopLinks.ALL`` these are
-    built per request in ``OPDS1LinksView.root_top_links``. Every browser
-    parameter is spelled out: OPDS settings persist between requests, so
-    a parameter left off the link would inherit whatever the client asked
-    for last.
+    Lists are per-user rows, so unlike ``RootTopLinks.ALL`` these are built
+    per request in ``OPDS1LinksView.root_top_links``. The entry is the
+    list's own feed, in reading order. Every browser parameter is spelled
+    out: OPDS settings persist between requests, so a parameter left off
+    the link would inherit whatever the client asked for last.
     """
     return TopLink(
-        TopRoutes.SERIES,
+        MappingProxyType({**TopRoutes.STORY_ARC, "pks": (list_pk,)}),
         Rel.FEATURED,
         MimeType.ACQUISITION,
         {
-            "topCollection": "series",
-            "filters": json.dumps({"bookmark": "", "shelves": [shelf_pk]}),
-            "orderBy": "sort_name",
+            "topCollection": "arcs",
+            "filters": json.dumps({"bookmark": ""}),
+            "orderBy": "story_arc_number",
             "orderReverse": "false",
         },
         "▤",
         name,
-        "Issues on this shelf.",
+        "Your reading list, in order.",
     )
 
 

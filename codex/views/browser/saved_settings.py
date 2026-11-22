@@ -32,7 +32,6 @@ from codex.models.settings import (
     SettingsBrowserFilters,
     SettingsBrowserLastRoute,
 )
-from codex.models.shelf import Shelf
 from codex.serializers.browser.saved import (
     SavedBrowserSettingsListSerializer,
     SavedBrowserSettingsSaveSerializer,
@@ -63,7 +62,6 @@ _FILTER_FK_MODEL_MAP = MappingProxyType(
         "original_format": OriginalFormat,
         "reprints": Reprint,
         "series_groups": SeriesGroup,
-        "shelves": Shelf,
         "reading_lists": ReadingList,
         "stories": Story,
         "tagger": Tagger,
@@ -109,21 +107,15 @@ def _validate_filter_pks(
 
     Modifies *filters_data* in place.  When *filters_obj* is provided the
     cleaned values are persisted back to the database so subsequent loads
-    skip the validation. Shelves are private, so a shelf pk is valid only
-    when *user* owns it; anyone else's is stripped like a missing one.
+    skip the validation. A list pk is valid only when *user* may see the
+    list; anyone else's personal list is stripped like a missing one.
 
     Returns a list of filter field names that had invalid PKs removed.
     """
     warnings: list[str] = []
     for field, model in _FILTER_FK_MODEL_MAP.items():
         model_qs = model.objects.all()
-        if model is Shelf:
-            model_qs = (
-                model_qs.filter(user=user)
-                if user and getattr(user, "pk", None)
-                else model_qs.none()
-            )
-        elif model is ReadingList:
+        if model is ReadingList:
             # Another user's personal list is no list at all.
             model_qs = visible_lists(user)
         _validate_filter_field(filters_data, field, model_qs, warnings)

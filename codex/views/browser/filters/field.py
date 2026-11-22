@@ -4,11 +4,12 @@ from types import MappingProxyType
 
 from django.db.models.query_utils import Q
 
-from codex.models import Comic
+from codex.models import Comic, ReadingList
 from codex.views.browser.const import BROWSER_FILTER_KEYS
 from codex.views.browser.filters.collection import CollectionFilterView
 from codex.views.browser.filters.reading_lists import (
     READING_LISTS_FILTER,
+    held_lists_filter,
     reading_lists_filter,
 )
 from codex.views.settings import CREDIT_PERSON_UI_FIELD, IDENTIFIER_TYPE_UI_FIELD
@@ -125,7 +126,18 @@ class ComicFieldFilterView(CollectionFilterView):
         return comic_field_filter
 
     def get_comic_field_filter(self, model) -> Q:
-        """Filter the comics based on the form filters."""
+        """
+        Filter the comics based on the form filters.
+
+        At the lists root the Reading Lists filter shows the lists the chosen
+        lists hold; every other filter still narrows by the lists' comics.
+        """
         rel_prefix = self.get_rel_prefix(model)
         filters = self.params["filters"]
-        return self.get_all_comic_field_filters(rel_prefix, filters, self.request.user)
+        user = self.request.user
+        if model is not ReadingList or not filters.get(READING_LISTS_FILTER):
+            return self.get_all_comic_field_filters(rel_prefix, filters, user)
+        others = {k: v for k, v in filters.items() if k != READING_LISTS_FILTER}
+        return self.get_all_comic_field_filters(
+            rel_prefix, others, user
+        ) & held_lists_filter(filters[READING_LISTS_FILTER], user)

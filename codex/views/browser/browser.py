@@ -45,7 +45,6 @@ from codex.views.browser.reading_list_sources import (
     attach_list_coverage,
     attach_list_sources,
 )
-from codex.views.browser.shelf_membership import annotate_shelved, page_row_shelves
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -153,21 +152,6 @@ class BrowserView(BrowserTitleView):
                 keys.append(key)
         return tuple(keys)
 
-    def _add_table_view_shelved_annotation(self, qs):
-        """
-        Annotate ``qs`` with ``shelved`` (effective membership) for table view.
-
-        Runs unconditional on model — shelves apply to every
-        browsable collection as well as Comic — and unconditional on
-        column selection, so the user can sort by ``shelved`` from the
-        order_by enum without separate gating. True exactly when the
-        row's Shelves cell lists a shelf (``annotate_shelved``).
-        """
-        if self.params.get("view_mode") != "table":
-            return qs
-        user = self.request.user
-        return annotate_shelved(qs, user, self.get_comic_acl(user))
-
     def _sort_annotation_keys(self) -> tuple[str, ...]:
         """
         Return the keys whose ORDER BY aliases this queryset must carry.
@@ -264,14 +248,6 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            # Shelved annotation lands first so the order pipeline
-            # can reference ``F("shelved")`` from inside
-            # ``annotate_order_aggregates`` — Django resolves F()
-            # targets against the queryset's known annotations at
-            # ``annotate()`` call time, not at SQL compile time, so
-            # an out-of-order add raises ``Cannot resolve keyword
-            # 'shelved' into field`` for the collection queryset.
-            qs = self._add_table_view_shelved_annotation(qs)
             qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)
@@ -556,12 +532,6 @@ class BrowserView(BrowserTitleView):
             if collection_qs is not None:
                 data["collection_intersections"] = compute_collection_intersections(
                     collection_qs, columns, acl
-                )
-            # The shelved cell lists the row's shelves by the same rule,
-            # only when the column is shown.
-            if "shelved" in columns:
-                data["row_shelves"] = page_row_shelves(
-                    self.request.user, acl, collection_qs, data.get("books")
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

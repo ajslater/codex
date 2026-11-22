@@ -64,10 +64,6 @@ class JanitorCleanupSettingsTask(JanitorTask):
     """Clean orphan settings rows."""
 
 
-class JanitorCleanupShelfItemsTask(JanitorTask):
-    """Clean shelf items whose target row no longer exists."""
-
-
 @dataclass
 class JanitorKoreaderHashTask(JanitorTask):
     """Backfill KOReader sync hashes for comics that lack them, a batch a task."""

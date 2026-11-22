@@ -60,7 +60,6 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "search_score": "Search Score",
         "series_name": "Series",
         "series_groups": "Series Groups",
-        "shelved": "Shelved",
         "stories": "Stories",
         "story_arc_number": "Reading Order",
         "reading_lists": "Reading Lists",
@@ -280,7 +279,7 @@ _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
         "reading_list_kind": "",
-        # Pks of the user's shelves; a row on any selected shelf matches.
+        # Retired with shelves: a client still sending one gets nothing.
         "shelves": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
@@ -536,22 +535,6 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        # Per-user state. ``shelved`` is the only currently-editable
-        # cell — its button opens the shelf menu, which writes through
-        # ``PATCH /api/v4/shelves/<pk>/items``. The annotation (true when
-        # the cell lists at least one shelf) is added in
-        # ``BrowserView._add_table_view_shelved_annotation`` for both
-        # collection and Comic querysets so the column is sortable and
-        # renderable across all browsable models. Beside the button the
-        # cell lists the shelves the row is on, from the ``shelves`` pks
-        # ``codex.views.browser.shelf_membership`` adds to each row.
-        "shelved": {
-            "label": "Shelves",
-            "sort_key": "shelved",
-            "m2m": False,
-            "editable": True,
-            "edit_widget": "checkbox",
-        },
         # M2M relations — sortable as of Phase 7 M2M-sort experiment.
         # ``sort_key`` matches the column key so header clicks set
         # ``order_by`` to the same string the backend recognizes.
@@ -621,8 +604,8 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "label": "Reading Lists",
             "sort_key": "reading_lists",
             "m2m": True,
-            "editable": False,
-            "edit_widget": None,
+            "editable": True,
+            "edit_widget": "checkbox",
         },
         "tags": {
             "label": "Tags",

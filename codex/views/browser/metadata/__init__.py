@@ -125,10 +125,9 @@ class MetadataView(MetadataCopyIntersectionsView):
         obj = self._aggregate_editable(filtered_qs, obj)
 
         # Hacks to add to object after query
-        collection_lists, fk_intersections, m2m_intersections, shelves, lists = (
+        collection_lists, fk_intersections, m2m_intersections, lists = (
             self.query_intersections(filtered_qs)
         )
-        obj.shelves = shelves
         obj.reading_lists = lists
         obj.reading_list_details = self._reading_list_details(pks)
         return self.copy_intersections_into_comic_fields(

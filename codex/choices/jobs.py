@@ -57,7 +57,6 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JRS",
     "JRB",
     "JAS",
-    "JRF",
     "JTG",
     "JKH",
     "SIR",
@@ -413,14 +412,6 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                             " session or user. Runs nightly."
                         ),
                         "statuses": ("JAS",),
-                    },
-                    {
-                        "value": "cleanup_shelf_items",
-                        "title": "Remove Orphan Shelf Items",
-                        "desc": (
-                            "Drop shelf items whose target row is gone. Runs nightly."
-                        ),
-                        "statuses": ("JRF",),
                     },
                     {
                         "value": "koreader_hash",

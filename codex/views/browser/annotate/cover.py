@@ -39,12 +39,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         q &= self.get_comic_field_filter(Comic)
         if self.is_bookmark_filtered:
             q &= self.get_bookmark_filter(Comic)
-        # Apply the shelves filter the same way ``_get_query_filters`` does for
-        # the outer browser query. Without this the topmost collection's cover
-        # subquery happily picks a descendant that is on no shelf, while
-        # intermediate collections (whose query already runs through the main
-        # filter pipeline) honor it.
-        q &= self.get_shelf_filter(Comic)
+        q &= self.get_retired_filter()
         include_q, exclude_q, fts_q = self.get_search_filters(Comic)
         q &= include_q & ~exclude_q
         if fts_q:

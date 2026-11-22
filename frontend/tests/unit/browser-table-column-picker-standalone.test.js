@@ -23,10 +23,10 @@ const SHOW = Object.freeze({
   volumes: false,
 });
 
-function mountPicker(props, { settings = {}, defaults, user } = {}) {
+function mountPicker(props, { settings = {}, defaults } = {}) {
   const pinia = createTestingPinia({
     initialState: {
-      auth: { defaults, user },
+      auth: { defaults, user: void 0 },
       browser: {
         settings: {
           topCollection: "comics",
@@ -173,29 +173,18 @@ const offeredKeys = (vm) =>
   );
 
 describe("column picker — anonymous visitors", () => {
-  test("never offers the Shelves column", async () => {
-    const { wrapper, vm } = mountPicker(
-      {},
-      { settings: { tableColumns: { comics: ["cover", "shelved", "name"] } } },
-    );
-    await open(wrapper);
-    expect(offeredKeys(vm)).not.toContain("shelved");
-    expect(vm.draft).toEqual(["cover", "name"]);
-    vm.selectAll();
-    expect(vm.draft).not.toContain("shelved");
-  });
-
-  test("a signed-in user is offered it", async () => {
+  test("are offered the Reading Lists column: lists show to everyone", async () => {
     const { wrapper, vm } = mountPicker(
       {},
       {
-        settings: { tableColumns: { comics: ["cover", "shelved", "name"] } },
-        user: { id: 1, username: "alice" },
+        settings: {
+          tableColumns: { comics: ["cover", "reading_lists", "name"] },
+        },
       },
     );
     await open(wrapper);
-    expect(offeredKeys(vm)).toContain("shelved");
-    expect(vm.draft).toEqual(["cover", "shelved", "name"]);
+    expect(offeredKeys(vm)).toContain("reading_lists");
+    expect(vm.draft).toEqual(["cover", "reading_lists", "name"]);
   });
 });
 
@@ -221,18 +210,13 @@ describe("column picker — category checkboxes", () => {
     expect(groups.length).toBeGreaterThan(1);
     expect(groups[0].find(".v-label").text()).not.toBe("");
     expect(columnInput(wrapper, "name").element.checked).toBe(true);
-    expect(columnInput(wrapper, "shelved").element.checked).toBe(false);
+    expect(columnInput(wrapper, "issue").element.checked).toBe(false);
   });
 
   test("checking a column lands at its canonical position", async () => {
     const wrapper = await openBody();
-    await columnInput(wrapper, "shelved").setValue(true);
-    expect(wrapper.vm.draft).toEqual([
-      "cover",
-      "shelved",
-      "name",
-      "child_count",
-    ]);
+    await columnInput(wrapper, "issue").setValue(true);
+    expect(wrapper.vm.draft).toEqual(["cover", "issue", "name", "child_count"]);
   });
 
   test("unchecking a column removes only that column", async () => {

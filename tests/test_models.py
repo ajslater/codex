@@ -159,28 +159,6 @@ class ShelfTestCase(TestCase):
             self.other_shelf.pk
         ]
 
-    def test_target_delete_cascades_via_signal(self):
-        """Deleting a Series wipes pointing-at-Series items on every shelf."""
-        series_pk = self.series.pk
-        for shelf in (self.shelf, self.other_shelf):
-            ShelfItem.objects.create(
-                shelf=shelf, collection="series", target_id=series_pk
-            )
-        # Distractor: the same target_id under another collection must
-        # NOT be touched.
-        ShelfItem.objects.create(
-            shelf=self.shelf, collection="publishers", target_id=series_pk
-        )
-
-        self.series.delete()
-
-        assert not ShelfItem.objects.filter(
-            collection="series", target_id=series_pk
-        ).exists()
-        assert ShelfItem.objects.filter(
-            collection="publishers", target_id=series_pk
-        ).exists()
-
 
 class MissingSinceFieldTestCase(TestCase):
     """

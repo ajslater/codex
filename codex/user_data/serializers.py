@@ -182,9 +182,9 @@ def serialize_shelf_item(
     Resolution may fail (target deleted between signal queue and write) —
     return ``None`` to skip rather than crash.
     """
-    from codex.models.shelf import SHELF_COLLECTION_MODELS
+    from codex.models.collection_models import BROWSE_COLLECTION_MODELS
 
-    target_model = SHELF_COLLECTION_MODELS.get(item.collection)
+    target_model = BROWSE_COLLECTION_MODELS.get(item.collection)
     if target_model is None:
         return None
     instance = target_model.objects.filter(pk=item.target_id).first()
@@ -375,9 +375,9 @@ def _resolve_last_route_pks(collection: str, pks: list[int]) -> list[list[Any]]:
     if collection == Collection.ROOT:
         # Root pseudo-collection — no PKs to resolve.
         return []
-    from codex.models.shelf import SHELF_COLLECTION_MODELS
+    from codex.models.collection_models import BROWSE_COLLECTION_MODELS
 
-    target_model = SHELF_COLLECTION_MODELS.get(collection)
+    target_model = BROWSE_COLLECTION_MODELS.get(collection)
     if target_model is None:
         return []
     by_pk = {obj.pk: obj for obj in target_model.objects.filter(pk__in=pks)}

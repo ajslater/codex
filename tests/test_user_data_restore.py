@@ -226,7 +226,7 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         seed = self._seed_main_db()
         show, _ = SettingsBrowserShow.objects.get_or_create()
         browser = SettingsBrowser.objects.create(
-            user=seed["user"], show=show, order_by="shelved"
+            user=seed["user"], show=show, order_by="reading_lists"
         )
         SettingsBrowserFilters.objects.create(browser=browser)
         snapshot = self._snapshot_sidecar()
@@ -264,7 +264,7 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert shelf.name == "Favorites"
         assert ShelfItem.objects.filter(shelf=shelf).count() == _SEED_SHELF_ITEMS_COUNT
         restored = SettingsBrowser.objects.get(user=seed["user"])
-        assert restored.order_by == "shelved"
+        assert restored.order_by == "reading_lists"
         filters = SettingsBrowserFilters.objects.get(browser=restored)
         assert filters.shelves == [shelf.pk]
 

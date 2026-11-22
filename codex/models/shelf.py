@@ -1,6 +1,5 @@
 """Shelf models: per-user named groupings of browsable targets."""
 
-from types import MappingProxyType
 from typing import Final, override
 
 from django.conf import settings
@@ -14,11 +13,12 @@ from django.db.models import (
 )
 
 from codex.choices.limits import MAX_NAME_LEN
-from codex.collection import COLLECTION_LABELS, Collection
+from codex.collection import COLLECTION_LABELS
 from codex.models.base import BaseModel
-from codex.models.collections import Folder, Imprint, Publisher, Series, Volume
-from codex.models.comic import Comic
-from codex.models.readinglist import ReadingList
+from codex.models.collection_models import (
+    BROWSE_COLLECTION_MODELS,
+    BROWSE_MODEL_COLLECTIONS,
+)
 
 __all__ = (
     "SHELF_COLLECTION_CHOICES",
@@ -28,31 +28,9 @@ __all__ = (
     "ShelfItem",
 )
 
-# Single source of truth for the model ↔ collection dispatch. The collection
-# code is the collection vocabulary (a :class:`Collection` member, whose value
-# is the collection name) shared by the whole app. Every shelf-related
-# view, signal, cron, and annotation pulls from these maps so the seven
-# collections stay aligned across the codebase. Filter / annotation / API
-# views consume the forward map; the cleanup cron and signal handler
-# consume the reverse map. Both are immutable proxies.
-SHELF_MODEL_COLLECTIONS: Final[MappingProxyType[type[BaseModel], Collection]] = (
-    MappingProxyType(
-        {
-            Publisher: Collection.PUBLISHER,
-            Imprint: Collection.IMPRINT,
-            Series: Collection.SERIES,
-            Volume: Collection.VOLUME,
-            Folder: Collection.FOLDER,
-            ReadingList: Collection.ARC,
-            Comic: Collection.COMIC,
-        }
-    )
-)
-SHELF_COLLECTION_MODELS: Final[MappingProxyType[str, type[BaseModel]]] = (
-    MappingProxyType(
-        {code.value: model for model, code in SHELF_MODEL_COLLECTIONS.items()}
-    )
-)
+# Moved to codex.models.collection_models; aliased here until shelves go.
+SHELF_MODEL_COLLECTIONS: Final = BROWSE_MODEL_COLLECTIONS
+SHELF_COLLECTION_MODELS: Final = BROWSE_COLLECTION_MODELS
 SHELF_COLLECTION_CHOICES: Final = tuple(
     (collection.value, COLLECTION_LABELS[collection])
     for collection in SHELF_MODEL_COLLECTIONS.values()

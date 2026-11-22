@@ -11,12 +11,22 @@ import json
 from typing import Final, override
 from unittest.mock import patch
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.test import Client
+from django.utils import timezone
 
 from codex.librarian.scribe.readinglists import live
 from codex.librarian.scribe.readinglists.tasks import ReadingListLiveSyncTask
-from codex.models import ReadingList, ReadingListEntry, ReadingListSource
+from codex.models import (
+    Comic,
+    Library,
+    ReadingList,
+    ReadingListEntry,
+    ReadingListSource,
+    Series,
+    Volume,
+)
+from codex.models.auth import GroupAuth
 from codex.models.readinglist import ReadingListSourceKind
 from codex.models.settings import (
     ClientChoices,
@@ -25,6 +35,7 @@ from codex.models.settings import (
     SettingsBrowserShow,
 )
 from tests.test_reading_list_live import LiveFixture
+from tests.test_reading_lists import TMP_DIR
 
 _OK: Final = 200
 _BAD: Final = 400
@@ -207,3 +218,43 @@ class OldRoutesTests(ItemsFixture):
                 content_type="application/json",
             )
             assert response.status_code in (_REDIRECT, _NOT_FOUND), path
+
+
+class VisibilityTests(ItemsFixture):
+    """Ported from the shelves API: what a reader may add."""
+
+    def test_hidden_targets_are_skipped(self) -> None:
+        """A series in a library the reader cannot see adds nothing."""
+        library = Library.objects.create(path=str(TMP_DIR / "hidden"))
+        group = Group.objects.create(name="nobody here")
+        GroupAuth.objects.create(group=group)
+        library.groups.add(group)
+        hidden = Series.objects.create(
+            name="Hidden", imprint=self.imprint, publisher=self.publisher
+        )
+        volume = Volume.objects.create(
+            name=1, series=hidden, imprint=self.imprint, publisher=self.publisher
+        )
+        comic = self.make_comic(hidden, volume, 1)
+        Comic.objects.filter(pk=comic.pk).update(library=library)
+        body = _data(
+            self.patch_items(
+                self.mine, {"add": {"comics": [comic.pk], "series": [999999]}}
+            )
+        )
+        assert body["added"] == 0
+        assert self.order(self.mine) == []
+
+    def test_a_target_whose_file_is_missing_is_kept(self) -> None:
+        """A comic pending delete may still be added, as bookmarks are."""
+        c1 = self.comics[0]
+        Comic.objects.filter(pk=c1.pk).update(missing_since=timezone.now())
+        body = _data(self.patch_items(self.mine, {"add": {"comics": [c1.pk]}}))
+        assert body["added"] == 1
+
+    def test_anonymous_sessions_are_refused(self) -> None:
+        """Only a signed-in user owns lists: to anyone else there is none."""
+        self.client.logout()
+        response = self.patch_items(self.mine, {"add": {"comics": [1]}})
+        assert response.status_code in (401, 403, 404), response.content
+        assert not ReadingListEntry.objects.filter(reading_list=self.mine).exists()

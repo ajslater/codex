@@ -31,12 +31,11 @@ from codex.models import (
     OriginalFormat,
     Publisher,
     ReadingList,
+    ReadingListSource,
     Reprint,
     ScanInfo,
     Series,
     SeriesGroup,
-    Shelf,
-    ShelfItem,
     Story,
     StoryArc,
     StoryArcNumber,
@@ -187,8 +186,8 @@ METADATA_MODELS = (
 )
 STATS_USAGE_MODELS = (
     Bookmark,
-    Shelf,
-    ShelfItem,
+    ReadingList,
+    ReadingListSource,
     UserApiKey,
 )
 CONFIG_MODELS = (

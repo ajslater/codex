@@ -82,7 +82,8 @@ def _restore_shelf_item_rows(
     """
     from django.contrib.auth import get_user_model
 
-    from codex.models.shelf import SHELF_COLLECTION_MODELS, Shelf, ShelfItem
+    from codex.models.collection_models import BROWSE_COLLECTION_MODELS
+    from codex.models.shelf import Shelf, ShelfItem
 
     user_model = get_user_model()
     for row in rows:
@@ -94,7 +95,7 @@ def _restore_shelf_item_rows(
             report.note_skipped(table, f"missing user {row['username']!r}")
             continue
         collection = row["collection"]
-        target_model = SHELF_COLLECTION_MODELS.get(collection)
+        target_model = BROWSE_COLLECTION_MODELS.get(collection)
         if target_model is None:
             report.note_skipped(table, f"unknown shelf collection {collection!r}")
             continue

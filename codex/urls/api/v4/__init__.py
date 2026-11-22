@@ -43,7 +43,6 @@ urlpatterns += [
     path("comics/", include("codex.urls.api.v4.comics")),
     path("reader/", include("codex.urls.api.v4.reader")),
     path("reading-lists/", include("codex.urls.api.v4.readinglists")),
-    path("shelves/", include("codex.urls.api.v4.shelves")),
     path("mtime", MtimeView.as_view(), name="mtime"),
     path("session", SessionView.as_view(), name="session"),
     path("version", VersionView.as_view(), name="version"),

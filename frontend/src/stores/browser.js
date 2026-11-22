@@ -128,12 +128,6 @@ export function resolveTableColumns(
   return registryTableColumns(topCollection, show);
 }
 
-/*
- * Columns an anonymous visitor never gets: they own no shelves, so their
- * Shelves column is always empty.
- */
-export const ANONYMOUS_HIDDEN_COLUMNS = Object.freeze(["shelved"]);
-
 // The site default table columns ``/session`` delivered, if any.
 export function siteTableColumns() {
   return useAuthStore().defaults?.browser?.tableColumns;
@@ -744,17 +738,12 @@ export const useBrowserStore = defineStore("browser", {
        * from breadcrumb navigation doesn't get those columns leading
        * their table view either.
        */
-      const columns = resolveTableColumns(
+      return resolveTableColumns(
         this.settings.topCollection ?? "publishers",
         this.settings.tableColumns,
         this.settings.show,
         siteTableColumns(),
       );
-      return useAuthStore().user
-        ? columns
-        : columns.filter(
-            (column) => !ANONYMOUS_HIDDEN_COLUMNS.includes(column),
-          );
     },
     /*
      * MUTATIONS

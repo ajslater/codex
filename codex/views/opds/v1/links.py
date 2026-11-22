@@ -13,8 +13,8 @@ from codex.views.opds.v1.const import (
     RootTopLinks,
     TopLink,
     TopLinks,
+    list_top_link,
     reading_list_continue_top_link,
-    shelf_top_link,
 )
 from codex.views.opds.v1.entry.entry import OPDS1Entry
 from codex.views.opds.v1.facets import OPDS1FacetsView
@@ -24,10 +24,10 @@ class OPDS1LinksView(OPDS1FacetsView):
     """OPDS 1 Links methods."""
 
     def root_top_links(self) -> tuple[TopLink, ...]:
-        """Root top links for this user, then one entry per non-empty shelf."""
+        """Root top links for this user, then one entry per non-empty list."""
         return (
             *RootTopLinks.ALL,
-            *(shelf_top_link(pk, name) for pk, name in self.user_shelves()),
+            *(list_top_link(pk, name) for pk, name in self.user_lists()),
         )
 
     def reading_list_top_links(self) -> tuple[TopLink, ...]:
