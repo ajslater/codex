@@ -1,33 +1,36 @@
 <template>
   <div>
-    <v-list
-      :model-value="filter"
-      class="filterGroup overflow-y-auto"
-      density="compact"
-      multiple
-      @update:selected="$emit('selected', $event)"
-    >
+    <v-list class="filterGroup overflow-y-auto" density="compact">
       <!--
         Manual ``v-for`` instead of ``:items=...`` — Vuetify would
         render each row a second time on top of this loop. Also needed
-        for the per-item ``#prepend`` slot (the standardized age-rating
-        column in the As-tagged tab). The column renders for every
-        As-tagged row — empty for unmapped tags — so the raw tags stay
-        vertically aligned.
+        for the per-item ``#prepend`` slot. Each row is a checkbox that
+        toggles its value, as the released Shelves sub-menu did; the
+        list has no selection model of its own. The As-tagged tab puts
+        the standardized age rating in a column after the checkbox,
+        empty for unmapped tags, so the raw tags stay aligned.
       -->
       <v-list-item
         v-for="item of vuetifyItems"
         :key="item.value"
+        class="filterChoice"
         density="compact"
         variant="plain"
-        :value="item.value"
+        role="menuitemcheckbox"
+        :aria-checked="String(item.ticked)"
         :title="itemTitle(item)"
-        :active="item.active"
-        :disabled="item.active"
-        :append-icon="item.icon"
+        @click="onToggle(item)"
       >
-        <template v-if="name === 'ageRatingTagged'" #prepend>
-          <span class="metronName">{{ item.metronName }}</span>
+        <template #prepend>
+          <v-checkbox-btn
+            density="compact"
+            :model-value="item.ticked"
+            tabindex="-1"
+            readonly
+          />
+          <span v-if="name === 'ageRatingTagged'" class="metronName">{{
+            item.metronName
+          }}</span>
         </template>
       </v-list-item>
     </v-list>
@@ -35,7 +38,6 @@
 </template>
 
 <script>
-import { mdiCheck } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import { toVuetifyItems } from "@/vuetify-items";
@@ -51,6 +53,14 @@ const SERVER_ORDERED_FILTERS = new Set([
   "readingListKind",
   "readingLists",
 ]);
+/*
+ * Filters whose order is the point, so ticked rows do not jump ahead:
+ * the age ratings by age, the reading list kinds as Mine, Curated, From
+ * Tags. Reading lists do bring ticked lists first.
+ */
+const FIXED_ORDER_FILTERS = Object.freeze(
+  new Set(["ageRatingMetron", "ageRatingTagged", "readingListKind"]),
+);
 const NUMERIC_FILTERS = new Set([
   "decade",
   "seriesEndYear",
@@ -79,6 +89,16 @@ export default {
     },
   },
   emits: ["selected"],
+  data() {
+    return {
+      /*
+       * The values ticked when the list opened. They come first, and
+       * stay where they are as you tick, so rows don't jump under the
+       * pointer.
+       */
+      tickedOnOpen: new Set(this.filter),
+    };
+  },
   computed: {
     ...mapState(useBrowserStore, {
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
@@ -122,11 +142,18 @@ export default {
         sortBy,
         copyKeys,
       });
+      const ticked = new Set(this.filter);
       for (const item of vItems) {
-        item.active = this.filter?.includes(item.value);
-        item.icon = item.active ? mdiCheck : undefined;
+        item.ticked = ticked.has(item.value);
       }
-      return vItems;
+      if (FIXED_ORDER_FILTERS.has(this.name) || !this.tickedOnOpen.size) {
+        return vItems;
+      }
+      const isFirst = (item) => this.tickedOnOpen.has(item.value);
+      return [
+        ...vItems.filter((item) => isFirst(item)),
+        ...vItems.filter((item) => !isFirst(item)),
+      ];
     },
   },
   methods: {
@@ -134,6 +161,17 @@ export default {
       "fixUniverseTitles",
       "identifierSourceTitle",
     ]),
+    onToggle(item) {
+      /*
+       * From the whole filter, not the rows shown: a ticked value the
+       * search box hides stays ticked.
+       */
+      const filter = this.filter || [];
+      const next = filter.includes(item.value)
+        ? filter.filter((value) => value !== item.value)
+        : [...filter, item.value];
+      this.$emit("selected", next);
+    },
     itemTitle(item) {
       if (this.name === "readingDirection") {
         return this.readingDirectionTitles[item.value];
@@ -172,9 +210,8 @@ export default {
 
   /*
    * Vuetify puts a 32px spacer between a list item's prepend and its
-   * content; the standardized column already pads itself with its
-   * fixed width, so tighten the gap. Only As-tagged rows render a
-   * prepend, so the selector can't affect other filter lists.
+   * content; the checkbox, and the standardized column with its fixed
+   * width, already pad themselves, so tighten the gap.
    */
   .filterGroup :deep(.v-list-item__prepend > .v-list-item__spacer) {
     width: 8px;
