@@ -58,21 +58,24 @@ def list_kind_q(kinds: Iterable[str], user) -> Q:
     """
     Return the lists of any of ``kinds``, the browser's Reading List Kind.
 
-    The one definition of the kinds, and they overlap on purpose: ``mine``
-    is the viewer's own lists, nothing for a viewer who is not signed in;
-    ``tags`` is a list made from story-arc tags alone; ``curated`` is every
-    other list, the viewer's own among them. An unknown kind matches
-    nothing.
+    The one definition of the kinds. Every list the viewer sees is exactly
+    one kind, decided in this order: ``mine`` is the viewer's own lists,
+    nothing for a viewer who is not signed in; ``tags`` is any other list
+    made from story-arc tags alone; ``curated`` is every other list.
+    Ownership can be given away, so a viewer may own a list from tags: it
+    is Mine. An unknown kind matches nothing.
     """
+    signed_in = user is not None and user.is_authenticated
+    not_mine = ~Q(user=user) if signed_in else Q()
     query = Q(pk__in=())
     for kind in kinds:
         match kind:
-            case "mine" if user is not None and user.is_authenticated:
+            case "mine" if signed_in:
                 query |= Q(user=user)
             case "tags":
-                query |= tags_only_q()
+                query |= tags_only_q() & not_mine
             case "curated":
-                query |= ~tags_only_q()
+                query |= ~tags_only_q() & not_mine
             case _:
                 pass
     return query

@@ -13,7 +13,7 @@ from typing import Final
 from django.core.cache import cache
 
 from codex.librarian.scribe.readinglists.live import add_item
-from codex.models import ReadingListEntry
+from codex.models import ReadingList, ReadingListEntry
 from codex.models.readinglist import ReadingListMatchTier
 from codex.models.settings import SettingsBrowserFilters
 from tests.test_reading_list_manage import ManageFixture
@@ -110,8 +110,27 @@ class GridKindTests(ManageFixture):
         assert self._root([]) == {"From Tags", "Imported", "Hand Made", "Mine"}
 
     def test_curated_is_not_from_tags_only(self) -> None:
-        """Hand-made lists are curated too, and so are the viewer's own."""
-        assert self._root(["curated"]) == {"Imported", "Hand Made", "Mine"}
+        """Hand-made lists are curated too; the viewer's own are Mine."""
+        assert self._root(["curated"]) == {"Imported", "Hand Made"}
+
+    def test_the_kinds_split_the_lists(self) -> None:
+        """Every list the viewer sees is exactly one kind."""
+        by_kind = [self._root([kind]) for kind in ("mine", "curated", "tags")]
+        every = self._root([])
+        assert set().union(*by_kind) == every
+        assert sum(len(names) for names in by_kind) == len(every)
+
+    def test_a_tags_list_of_the_viewers_own_is_mine(self) -> None:
+        """Ownership comes first: the viewer's list from tags is Mine."""
+        ReadingList.objects.filter(pk=self.tags_list.pk).update(user=self.user)
+        assert self._root(["mine"]) == {"Mine", "From Tags"}
+        assert self._root(["tags"]) == set()
+
+    def test_anonymous_curated_and_tags(self) -> None:
+        """Signed out, the two kinds split the global lists."""
+        self.client.logout()
+        assert self._root(["curated"]) == {"Imported", "Hand Made"}
+        assert self._root(["tags"]) == {"From Tags"}
 
     def test_from_tags(self) -> None:
         """Lists whose only source is their tags."""

@@ -55,10 +55,10 @@ class KindInEveryViewTests(KindFixture):
         """Only the comic on the viewer's own list."""
         assert self.listed(_MINE) == {self.comics[0].pk}
 
-    def test_curated_includes_the_viewers_own(self) -> None:
-        """Hand-made global lists and the viewer's own; not the tag list."""
+    def test_curated_leaves_out_the_viewers_own(self) -> None:
+        """Hand-made global lists; the viewer's own are Mine."""
         curated = {"reading_list_kind": ["curated"]}
-        assert self.listed(curated) == {self.comics[0].pk, self.comics[1].pk}
+        assert self.listed(curated) == {self.comics[1].pk}
 
     def test_from_tags(self) -> None:
         """Only the comic on the list from tags."""

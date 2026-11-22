@@ -15,9 +15,9 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
         "UNREAD": "Unread",
     },
 )
-# Lists by whose they are, or where they come from, in menu order. They
-# overlap: Curated is every list not made from tags alone, the viewer's own
-# among them. Cleared means every list.
+# Lists by whose they are, or where they come from, in menu order. Each
+# list is one kind: the viewer's own are Mine, other lists made from tags
+# alone are From Tags, the rest are Curated. Cleared means every list.
 BROWSER_READING_LIST_KIND_CHOICES = MappingProxyType(
     {
         "mine": "Mine",
