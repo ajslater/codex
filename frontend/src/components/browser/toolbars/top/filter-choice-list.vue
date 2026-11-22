@@ -19,6 +19,7 @@
         variant="plain"
         role="menuitemcheckbox"
         :aria-checked="String(item.ticked)"
+        :disabled="item.blocked"
         :title="itemTitle(item)"
         @click="onToggle(item)"
       >
@@ -33,6 +34,9 @@
             item.metronName
           }}</span>
         </template>
+        <template v-if="item.reason" #append>
+          <span class="filterChoiceReason">{{ item.reason }}</span>
+        </template>
       </v-list-item>
     </v-list>
   </div>
@@ -41,6 +45,7 @@
 <script>
 import { mapActions, mapState } from "pinia";
 
+import { VUETIFY_NULL_CODE } from "@/choices/browser-choices.json";
 import { toVuetifyItems } from "@/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
@@ -62,6 +67,8 @@ const SERVER_ORDERED_FILTERS = new Set([
 const FIXED_ORDER_FILTERS = Object.freeze(
   new Set(["ageRatingMetron", "ageRatingTagged", "readingListKind"]),
 );
+// Under All, None cannot be ticked with other values; its row says so.
+const NONE_UNDER_ALL_REASON = "Not with Match all";
 // Keys a VList moves focus with.
 const NAVIGATION_KEYS = Object.freeze(
   new Set(["ArrowDown", "ArrowUp", "Home", "End"]),
@@ -92,6 +99,11 @@ export default {
       type: String,
       default: "",
     },
+    // The filter matches all ticked values, not any.
+    matchAll: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["selected"],
   data() {
@@ -102,6 +114,13 @@ export default {
        * pointer.
        */
       tickedOnOpen: new Set(this.filter),
+      /*
+       * Every row shown since the list opened, in its place. Under All a
+       * refresh never removes one, which would move rows under the
+       * pointer: a row no longer offered dims instead, and rows newly
+       * offered go after. They drop out when the list opens again.
+       */
+      keptItems: [],
       // The row focused before a navigation key, while it is handled.
       focusBefore: undefined,
     };
@@ -113,15 +132,14 @@ export default {
     isNumeric() {
       return NUMERIC_FILTERS.has(this.name);
     },
-    vuetifyItems() {
+    offeredItems() {
       /*
-       * ``choices`` may be ``true`` (a loading-state placeholder set
-       * by the store before ``loadFilterChoices`` resolves) or
-       * ``undefined`` if the dynamic filter isn't applicable to the
-       * current group. ``toVuetifyItems`` calls ``for...of`` on its
-       * ``items``, so anything non-iterable would TypeError; bail out
-       * with an empty list and let the parent show its progress
-       * indicator until real choices arrive.
+       * The choices on offer now as rows, sorted, before the search box.
+       * ``choices`` may be ``true`` (a loading-state placeholder set by
+       * the store before ``loadFilterChoices`` resolves) or ``undefined``
+       * if the dynamic filter isn't applicable to the current group;
+       * either is no rows, and the parent shows its progress indicator
+       * until real choices arrive.
        */
       if (!Array.isArray(this.choices)) {
         return [];
@@ -143,24 +161,40 @@ export default {
           : this.name === "ageRatingTagged"
             ? ["metronName", "index"]
             : [];
-      const vItems = toVuetifyItems({
-        items,
-        filter: this.search,
-        sortBy,
-        copyKeys,
-      });
+      return toVuetifyItems({ items, sortBy, copyKeys });
+    },
+    vuetifyItems() {
+      const offered = this.offeredItems;
+      const offeredValues = new Set(offered.map((item) => item.value));
       const ticked = new Set(this.filter);
-      for (const item of vItems) {
-        item.ticked = ticked.has(item.value);
+      const search = this.search?.toLowerCase();
+      const shown = [];
+      for (const source of this.matchAll ? this.keptItems : offered) {
+        if (search && !source.title.toLowerCase().includes(search)) {
+          continue;
+        }
+        shown.push(this._row(source, ticked, offeredValues));
       }
       if (FIXED_ORDER_FILTERS.has(this.name) || !this.tickedOnOpen.size) {
-        return vItems;
+        return shown;
       }
       const isFirst = (item) => this.tickedOnOpen.has(item.value);
       return [
-        ...vItems.filter((item) => isFirst(item)),
-        ...vItems.filter((item) => !isFirst(item)),
+        ...shown.filter((item) => isFirst(item)),
+        ...shown.filter((item) => !isFirst(item)),
       ];
+    },
+  },
+  watch: {
+    offeredItems: {
+      immediate: true,
+      handler(items) {
+        const kept = new Set(this.keptItems.map((item) => item.value));
+        const added = items.filter((item) => !kept.has(item.value));
+        if (added.length) {
+          this.keptItems = [...this.keptItems, ...added];
+        }
+      },
     },
   },
   methods: {
@@ -201,7 +235,28 @@ export default {
       }
       event.stopPropagation();
     },
+    _row(source, ticked, offeredValues) {
+      /*
+       * One row to show. Under All a row is not tickable when it no
+       * longer occurs with the ticked values, or is None, which cannot
+       * combine with them. A ticked row is never blocked, so it can be
+       * unticked.
+       */
+      const item = { ...source, ticked: ticked.has(source.value) };
+      if (!this.matchAll || item.ticked) {
+        return item;
+      }
+      const isNone = item.value === VUETIFY_NULL_CODE;
+      item.blocked = isNone || !offeredValues.has(item.value);
+      if (isNone) {
+        item.reason = NONE_UNDER_ALL_REASON;
+      }
+      return item;
+    },
     onToggle(item) {
+      if (item.blocked) {
+        return;
+      }
       /*
        * From the whole filter, not the rows shown: a ticked value the
        * search box hides stays ticked.
@@ -239,6 +294,11 @@ export default {
    */
   .filterChoiceTicked {
     opacity: 1;
+  }
+
+  .filterChoiceReason {
+    color: rgb(var(--v-theme-on-surface));
+    font-size: smaller;
   }
 
   .metronName {

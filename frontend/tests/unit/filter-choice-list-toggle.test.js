@@ -36,10 +36,11 @@ function mountList({
   choices = CHOICES,
   filter = [],
   search = "",
+  matchAll = false,
 } = {}) {
   return mount(BrowserFilterChoiceList, {
     global: { plugins: [createTestingPinia(), vuetify] },
-    props: { name, choices, filter, search },
+    props: { name, choices, filter, search, matchAll },
   });
 }
 
@@ -150,5 +151,67 @@ describe("the As-tagged tab", () => {
     const parts = [...prepend.element.children].map((el) => el.className);
     expect(parts[0]).toContain("v-selection-control");
     expect(prepend.find(".metronName").text()).toBe("Teen");
+  });
+});
+
+const isDimmed = (candidate) =>
+  candidate.classes().includes("v-list-item--disabled");
+
+describe("under All", () => {
+  const ABC = Object.freeze([
+    { pk: 1, name: "Alpha" },
+    { pk: 2, name: "Bravo" },
+    { pk: 3, name: "Charlie" },
+  ]);
+
+  test("a row no longer offered stays in place, dimmed and not tickable", async () => {
+    const wrapper = mountList({ choices: ABC, filter: [], matchAll: true });
+    await wrapper.setProps({ choices: [ABC[0]], filter: [1] });
+    expect(titles(wrapper)).toEqual(["Alpha", "Bravo", "Charlie"]);
+    expect(isDimmed(row(wrapper, "Alpha"))).toBe(false);
+    expect(isDimmed(row(wrapper, "Bravo"))).toBe(true);
+    await row(wrapper, "Bravo").trigger("click");
+    expect(wrapper.emitted("selected")).toBeUndefined();
+  });
+
+  test("a ticked row is never dimmed", async () => {
+    const wrapper = mountList({ choices: ABC, filter: [2], matchAll: true });
+    await wrapper.setProps({ choices: [ABC[0]] });
+    expect(isDimmed(row(wrapper, "Bravo"))).toBe(false);
+    expect(row(wrapper, "Bravo").attributes("aria-checked")).toBe("true");
+  });
+
+  test("a row offered again is tickable again", async () => {
+    const wrapper = mountList({ choices: ABC, filter: [], matchAll: true });
+    await wrapper.setProps({ choices: [ABC[0]] });
+    await wrapper.setProps({ choices: ABC });
+    expect(isDimmed(row(wrapper, "Bravo"))).toBe(false);
+  });
+
+  test("a newly offered row goes after the rows shown", async () => {
+    const wrapper = mountList({
+      choices: [ABC[1]],
+      filter: [],
+      matchAll: true,
+    });
+    await wrapper.setProps({ choices: ABC });
+    expect(titles(wrapper)).toEqual(["Bravo", "Alpha", "Charlie"]);
+  });
+
+  test("None cannot be ticked, and says why in its row", () => {
+    const wrapper = mountList({
+      choices: [{ pk: -1, name: "_none_" }, ...ABC],
+      filter: [],
+      matchAll: true,
+    });
+    const none = row(wrapper, "None");
+    expect(isDimmed(none)).toBe(true);
+    expect(none.find(".filterChoiceReason").exists()).toBe(true);
+  });
+
+  test("under Any the list is replaced as before", async () => {
+    const wrapper = mountList({ choices: ABC, filter: [] });
+    await wrapper.setProps({ choices: [ABC[0]] });
+    expect(titles(wrapper)).toEqual(["Alpha"]);
   });
 });

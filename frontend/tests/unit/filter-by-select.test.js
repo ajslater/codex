@@ -337,6 +337,15 @@ describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
     expect(content.textContent).toContain("Reading List Kind");
   });
 
+  test("Clear All Filters resets the Match all ticked switch", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu({
+      filters: { characters: [1], matchAll: ["characters"] },
+    });
+    await wrapper.vm.onClear();
+    const sent = browserStore.setSettings.mock.calls.at(-1)[0];
+    expect(sent.filters.matchAll).toStrictEqual([]);
+  });
+
   test("Clear All Filters clears the kind to an empty list", async () => {
     const { wrapper, browserStore } = await mountOpenMenu({
       filters: { readingListKind: ["tags"] },

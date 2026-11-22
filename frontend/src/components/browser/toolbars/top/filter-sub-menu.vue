@@ -59,6 +59,23 @@
             rounded
             indeterminate
           />
+          <!--
+            Tag-like filters only, and always shown there, so the list
+            does not move when a value is ticked.
+          -->
+          <v-switch
+            v-if="isTagLike"
+            class="matchAllSwitch"
+            color="primary"
+            density="compact"
+            hide-details
+            label="Match all ticked"
+            :model-value="isMatchAll"
+            @update:model-value="onMatchAll"
+          />
+          <div v-if="isMatchAll" class="matchAllHint">
+            {{ matchAllHint }}
+          </div>
         </header>
         <!--
           Age Rating: dual-tab UI. The "Standardized" tab (metron
@@ -116,6 +133,7 @@
           :choices="choices"
           :filter="filter"
           :search="search"
+          :match-all="isMatchAll"
           @selected="onSelected"
         />
       </div>
@@ -134,9 +152,12 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
+import BROWSER_CHOICES, {
+  VUETIFY_NULL_CODE,
+} from "@/choices/browser-choices.json";
 import { NULL_PKS, toVuetifyItems } from "@/vuetify-items";
 import BrowserFilterChoiceList from "@/components/browser/toolbars/top/filter-choice-list.vue";
-import { useBrowserStore } from "@/stores/browser";
+import { MATCH_ALL_FILTER, useBrowserStore } from "@/stores/browser";
 
 const FILTER_TITLE_OVERRIDES = {
   ageRatingMetron: "Age Rating",
@@ -146,6 +167,13 @@ const FILTER_TITLE_OVERRIDES = {
 };
 // Tab values are the filter keys; "Standardized" is the default tab.
 const AGE_RATING_DEFAULT_TAB = "ageRatingMetron";
+/*
+ * The filters a comic holds several values of, where "Match all ticked"
+ * means something. Defined once on the server; see make build-choices.
+ */
+const TAG_LIKE_FILTERS = Object.freeze(
+  new Set(BROWSER_CHOICES.MATCH_ALL_FILTERS),
+);
 // A tick in one Age Rating tab narrows the other tab's choices.
 const OTHER_AGE_RATING_TAB = Object.freeze({
   ageRatingMetron: "ageRatingTagged",
@@ -169,8 +197,9 @@ export default {
       mdiCloseCircleOutline,
       search: "",
       activeTab: AGE_RATING_DEFAULT_TAB,
-      // The Age Rating tab to refetch once the page reloads after a tick.
+      // The list to refetch once the page reloads after a tick.
       refreshAfterLoad: undefined,
+      matchAllHint: "Dimmed rows don't occur with every ticked value.",
     };
   },
   computed: {
@@ -187,6 +216,8 @@ export default {
       taggedFilter: (state) => state.settings.filters.ageRatingTagged,
       choicesStale: (state) => state.choicesStale,
       page: (state) => state.page,
+      matchAllFilters: (state) =>
+        state.settings.filters[MATCH_ALL_FILTER] || [],
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     isAgeRating() {
@@ -255,6 +286,12 @@ export default {
     isOpen() {
       return this.filterMode === this.name;
     },
+    isTagLike() {
+      return TAG_LIKE_FILTERS.has(this.name);
+    },
+    isMatchAll() {
+      return this.isTagLike && this.matchAllFilters.includes(this.name);
+    },
     isClearable() {
       if (this.isAgeRating) {
         return this.metronHasSelections || this.taggedHasSelections;
@@ -301,7 +338,8 @@ export default {
       /*
        * The page reloaded after a tick. Under Any a filter's own value
        * leaves its own list alone, so only the other Age Rating tab can
-       * have changed; refetch it in place.
+       * have changed; under All the open list narrows to what still
+       * occurs with the ticked values. Refetch it in place.
        */
       const key = this.refreshAfterLoad;
       if (!key || !this.isOpen) {
@@ -392,7 +430,24 @@ export default {
       }
     },
     onSelected(value) {
+      if (this.isMatchAll) {
+        this.refreshAfterLoad = this.name;
+      }
       this.$emit("selected", { filters: { [this.name]: value } });
+    },
+    onMatchAll(on) {
+      const others = this.matchAllFilters.filter((name) => name !== this.name);
+      const filters = {
+        [MATCH_ALL_FILTER]: on ? [...others, this.name] : others,
+      };
+      if (on && this.filter?.includes(VUETIFY_NULL_CODE)) {
+        // None cannot combine with All.
+        filters[this.name] = this.filter.filter(
+          (value) => value !== VUETIFY_NULL_CODE,
+        );
+      }
+      this.refreshAfterLoad = this.name;
+      this.$emit("selected", { filters });
     },
     onAgeRatingSelected(key, value) {
       this.refreshAfterLoad = OTHER_AGE_RATING_TAB[key];
@@ -491,6 +546,16 @@ export default {
   // A plain row sits at 0.62 opacity unless hovered; one with ticks doesn't.
   .filterRowTicked {
     opacity: 1;
+  }
+
+  .matchAllSwitch {
+    padding-left: 16px;
+  }
+
+  .matchAllHint {
+    padding: 0 16px 4px;
+    color: rgb(var(--v-theme-text-disabled));
+    font-size: smaller;
   }
 
   .filterTickedCount {

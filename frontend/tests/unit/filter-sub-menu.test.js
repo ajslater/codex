@@ -138,3 +138,90 @@ describe("stale choices refresh in place", () => {
     expect(browserStore.loadFilterChoices).toHaveBeenCalledWith("characters");
   });
 });
+
+describe("the Match all ticked switch", () => {
+  const SPIDEY = Object.freeze([{ pk: 1, name: "Spider-Man" }]);
+
+  test("shows on tag-like filters only, ticked or not", () => {
+    for (const [name, shown] of [
+      ["characters", true],
+      ["readingLists", true],
+      ["seriesGroups", true],
+      ["year", false],
+      ["readingListKind", false],
+      ["ageRatingMetron", false],
+    ]) {
+      const { wrapper } = mountSubmenu({ name, dynamic: { [name]: [] } });
+      expect({ name, shown: wrapper.find(".matchAllSwitch").exists() }).toEqual(
+        { name, shown },
+      );
+      wrapper.unmount();
+    }
+  });
+
+  test("turning it on sends this filter in matchAll and unticks None", async () => {
+    const { wrapper } = mountSubmenu({
+      filters: { characters: [-1, 1], matchAll: ["tags"] },
+      dynamic: { characters: SPIDEY },
+    });
+    wrapper.vm.onMatchAll(true);
+    await flushPromises();
+    expect(wrapper.emitted("selected").at(-1)[0]).toEqual({
+      filters: { matchAll: ["tags", "characters"], characters: [1] },
+    });
+  });
+
+  test("turning it off removes only this filter", async () => {
+    const { wrapper } = mountSubmenu({
+      filters: { characters: [1], matchAll: ["characters", "tags"] },
+      dynamic: { characters: SPIDEY },
+    });
+    wrapper.vm.onMatchAll(false);
+    await flushPromises();
+    expect(wrapper.emitted("selected").at(-1)[0]).toEqual({
+      filters: { matchAll: ["tags"] },
+    });
+  });
+
+  test("says why rows dim while it is on", () => {
+    // Stated, not defaulted: earlier tests leak into the shared defaults.
+    const off = mountSubmenu({
+      filters: { matchAll: [] },
+      dynamic: { characters: SPIDEY },
+    });
+    expect(off.wrapper.find(".matchAllHint").exists()).toBe(false);
+    off.wrapper.unmount();
+    const on = mountSubmenu({
+      filters: { matchAll: ["characters"] },
+      dynamic: { characters: SPIDEY },
+    });
+    expect(on.wrapper.find(".matchAllHint").text()).toBeTruthy();
+  });
+
+  test("under All, a tick refreshes the open list once the page reloads", async () => {
+    const { wrapper, browserStore } = mountSubmenu({
+      filters: { characters: [], matchAll: ["characters"] },
+      dynamic: { characters: SPIDEY },
+    });
+    wrapper.vm.onSelected([1]);
+    await flushPromises();
+    expect(browserStore.loadFilterChoices).not.toHaveBeenCalled();
+    browserStore.page = { mtime: 2 };
+    await flushPromises();
+    expect(browserStore.loadFilterChoices).toHaveBeenCalledExactlyOnceWith(
+      "characters",
+    );
+  });
+
+  test("Clear Filter leaves the switch as set", async () => {
+    const { wrapper, browserStore } = mountSubmenu({
+      filters: { characters: [1], matchAll: ["characters"] },
+      dynamic: { characters: SPIDEY },
+    });
+    await wrapper.find(".clearFilter").trigger("click");
+    await flushPromises();
+    expect(browserStore.clearOneFilter).toHaveBeenCalledWith("characters");
+    expect(browserStore.setSettings).not.toHaveBeenCalled();
+    expect(browserStore.settings.filters.matchAll).toEqual(["characters"]);
+  });
+});
