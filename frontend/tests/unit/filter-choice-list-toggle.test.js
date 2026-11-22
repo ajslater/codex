@@ -206,7 +206,11 @@ describe("under All", () => {
     });
     const none = row(wrapper, "None");
     expect(isDimmed(none)).toBe(true);
-    expect(none.find(".filterChoiceReason").exists()).toBe(true);
+    // Under the title, not in a column of its own that widens the menu.
+    expect(
+      none.find(".v-list-item-subtitle .filterChoiceReason").exists(),
+    ).toBe(true);
+    expect(none.find(".v-list-item__append").exists()).toBe(false);
   });
 
   test("under Any the list is replaced as before", async () => {

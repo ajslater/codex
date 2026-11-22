@@ -34,7 +34,7 @@
             item.metronName
           }}</span>
         </template>
-        <template v-if="item.reason" #append>
+        <template v-if="item.reason" #subtitle>
           <span class="filterChoiceReason">{{ item.reason }}</span>
         </template>
       </v-list-item>
@@ -296,9 +296,20 @@ export default {
     opacity: 1;
   }
 
+  /*
+   * Under the title, and no wider than the menu already is: a reason
+   * that widened the menu moved it under the pointer as All came on.
+   */
+  .filterChoice :deep(.v-list-item-subtitle) {
+    display: block;
+    -webkit-line-clamp: unset;
+  }
+
   .filterChoiceReason {
-    color: rgb(var(--v-theme-on-surface));
-    font-size: smaller;
+    display: block;
+    width: 0;
+    min-width: 100%;
+    white-space: normal;
   }
 
   .metronName {

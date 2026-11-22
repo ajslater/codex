@@ -552,7 +552,13 @@ export default {
     padding-left: 16px;
   }
 
+  /*
+   * No wider than the menu already is: a hint that widened the menu
+   * moved the switch out from under the pointer.
+   */
   .matchAllHint {
+    width: 0;
+    min-width: 100%;
     padding: 0 16px 4px;
     color: rgb(var(--v-theme-text-disabled));
     font-size: smaller;
