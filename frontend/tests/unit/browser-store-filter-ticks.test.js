@@ -208,9 +208,44 @@ describe("late answers", () => {
   });
 
   test("a library check during a page load is skipped", async () => {
-    const store = storeWith({ browserPageLoaded: false });
+    const { promise, resolve } = Promise.withResolvers();
+    API.getBrowserPage.mockReturnValue(promise);
+    const store = storeWith();
+    const loading = store.loadBrowserPage();
     await store.loadMtimes();
     expect(API.getBrowserHead).not.toHaveBeenCalled();
+    resolve(PAGE);
+    await loading;
+  });
+
+  test("after a failed page load, a library check loads the page again", async () => {
+    // Nothing is in flight: the next library change is how it recovers.
+    API.getBrowserHead.mockResolvedValue({ data: { mtime: 5, count: 10 } });
+    const store = storeWith({ browserPageLoaded: false });
+    const load = vi.spyOn(store, "loadBrowserPage").mockResolvedValue();
+    await store.loadMtimes();
+    expect(API.getBrowserHead).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledWith(5);
+  });
+
+  test("a tick made while the library check is out stops its full load", async () => {
+    const { promise, resolve } = Promise.withResolvers();
+    API.getBrowserHead.mockReturnValue(promise);
+    API.getBrowserPage.mockResolvedValue(PAGE);
+    const store = storeWith();
+    const loaded = [];
+    store.$subscribe((_mutation, state) => {
+      loaded.push(state.browserPageLoaded);
+    });
+    const checking = store.loadMtimes();
+    await vi.advanceTimersByTimeAsync(0);
+    store.tickFilters({ characters: [1] });
+    resolve({ data: { mtime: 5, count: 10 } });
+    await checking;
+    await vi.advanceTimersByTimeAsync(WAIT);
+    expect(API.getBrowserPage).toHaveBeenCalledOnce();
+    expect(loaded).not.toContain(false);
+    expect(API.updateSettings).toHaveBeenCalledOnce();
   });
 
   test("a library check while a tick waits is skipped", async () => {

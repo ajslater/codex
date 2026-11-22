@@ -1203,16 +1203,20 @@ export const useBrowserStore = defineStore("browser", {
      * differs from the page we last fetched. Skips a reload for views the
      * change didn't touch instead of reloading on every broadcast.
      */
+    _isPageLoadPending() {
+      /*
+       * A page fetch is in flight or a tick is waiting for its own. Not
+       * ``browserPageLoaded``: a load that failed leaves it false with
+       * nothing in flight, and the next library change is what recovers.
+       */
+      return this.pageFetches > 0 || this.filterReloadTimeout !== undefined;
+    },
     async loadMtimes() {
-      if (
-        !this.browserPageLoaded ||
-        this.pageFetches > 0 ||
-        this.filterReloadTimeout !== undefined
-      ) {
+      if (this._isPageLoadPending()) {
         /*
-         * A page load is in flight or a tick is waiting: it fetches fresh
-         * data anyway, and a full load started now would fall into
-         * ``loadSettings`` and overwrite the ticks with the saved filters.
+         * The pending load fetches fresh data anyway, and a full load
+         * started now would abort a tick's fetch, show the placeholder
+         * under the open menu, and never save the tick's settings.
          */
         return true;
       }
@@ -1230,7 +1234,8 @@ export const useBrowserStore = defineStore("browser", {
         const head = response?.data;
         const isChanged =
           head?.mtime !== this.page.mtime || head?.count !== this.page.count;
-        if (isChanged) {
+        // A tick may have started while the head request was out.
+        if (isChanged && !this._isPageLoadPending()) {
           this.$patch(expireDynamicChoices);
           this.loadBrowserPage(head?.mtime);
         }
