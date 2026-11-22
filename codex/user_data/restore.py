@@ -19,11 +19,14 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
-from uuid import UUID
 
 from loguru import logger
 
 from codex.collection import Collection
+from codex.user_data.identifiers import (
+    resolve_browse_collection_pks,
+    watched_path_pks,
+)
 from codex.user_data.restore_api_keys import restore_api_keys
 from codex.user_data.restore_reading_lists import restore_reading_lists
 from codex.user_data.restore_shelves import (
@@ -101,11 +104,11 @@ def restore(
         _restore_bookmarks(store, report, dry_run=dry_run)
         # Before the shelf items and saved filters, which find lists by UUID.
         restore_reading_lists(
-            store, report, _resolve_browse_collection_pks, dry_run=dry_run
+            store, report, resolve_browse_collection_pks, dry_run=dry_run
         )
         restore_shelves(store, report, dry_run=dry_run)
         restore_shelf_items(
-            store, report, _resolve_browse_collection_pks, dry_run=dry_run
+            store, report, resolve_browse_collection_pks, dry_run=dry_run
         )
         _restore_settings_browser(store, report, dry_run=dry_run)
         total_written = sum(report.written.values())
@@ -541,23 +544,6 @@ def _restore_settings_defaults(
     report.note_written("settings_defaults")
 
 
-def _watched_path_pks(model, path: str) -> tuple[int, ...]:
-    """
-    Return every ``WatchedPath`` row at ``path``, lowest pk first.
-
-    ``WatchedPath`` is unique on ``(library, path)``, not on ``path``, so
-    nested or overlapping library roots hold the same file under two
-    libraries. The sidecar keys bookmarks and comic/folder shelf items on
-    the path alone -- one file on disk -- and cannot say which library a
-    row came from, so taking the arbitrary first match dropped the user's
-    data in whichever library they actually browse. Restore into all of
-    them instead.
-    """
-    return tuple(
-        model.objects.filter(path=path).order_by("pk").values_list("pk", flat=True)
-    )
-
-
 def _restore_bookmarks(
     store: SidecarStore, report: RestoreReport, *, dry_run: bool
 ) -> None:
@@ -576,7 +562,7 @@ def _restore_bookmarks(
         if user is None:
             report.note_skipped("bookmarks", f"missing user {row['username']!r}")
             continue
-        comic_pks = _watched_path_pks(Comic, row["comic_path"])
+        comic_pks = watched_path_pks(Comic, row["comic_path"])
         if not comic_pks:
             report.note_skipped("bookmarks", f"missing comic {row['comic_path']!r}")
             continue
@@ -588,56 +574,6 @@ def _restore_bookmarks(
                 defaults={"page": row["page"], "finished": bool(row["finished"])},
             )
         report.note_written("bookmarks")
-
-
-def _resolve_reading_list(model, parts: list[Any]):
-    """
-    Find a reading list by its UUID, else a global one by name.
-
-    A rebuilt database makes new lists from the tags, with new UUIDs, and a
-    backup from before reading lists named the story arc only.
-    """
-    if len(parts) > 1:
-        try:
-            uuid = UUID(str(parts[1]))
-        except ValueError:
-            uuid = None
-        if uuid and (obj := model.objects.filter(uuid=uuid).first()):
-            return obj
-    return model.objects.filter(name=parts[0], user__isnull=True).order_by("pk").first()
-
-
-def _resolve_browse_collection_pks(
-    collection: str, parts: list[Any], model
-) -> tuple[int, ...]:
-    """Resolve a name-chain identifier back to main-DB PKs."""
-    match collection:
-        case Collection.COMIC | Collection.FOLDER:
-            # Path is only unique within a library -- see _watched_path_pks.
-            return _watched_path_pks(model, parts[0])
-        case Collection.ARC:
-            obj = _resolve_reading_list(model, parts)
-        case Collection.PUBLISHER:
-            obj = model.objects.filter(name=parts[0]).first()
-        case Collection.IMPRINT:
-            obj = model.objects.filter(publisher__name=parts[0], name=parts[1]).first()
-        case Collection.SERIES:
-            obj = model.objects.filter(
-                publisher__name=parts[0],
-                imprint__name=parts[1],
-                name=parts[2],
-            ).first()
-        case Collection.VOLUME:
-            obj = model.objects.filter(
-                publisher__name=parts[0],
-                imprint__name=parts[1],
-                series__name=parts[2],
-                name=parts[3],
-                number_to=parts[4],
-            ).first()
-        case _:
-            return ()
-    return () if obj is None else (obj.pk,)
 
 
 # ── Browser settings ─────────────────────────────────────────────────
@@ -966,7 +902,7 @@ def _resolve_last_route_pks(
         return []
     pks: list[int] = []
     for parts in decoded:
-        resolved = _resolve_browse_collection_pks(collection, parts, target_model)
+        resolved = resolve_browse_collection_pks(collection, parts, target_model)
         if not resolved:
             report.note_skipped(
                 "settings_last_route",

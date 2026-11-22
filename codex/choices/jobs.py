@@ -31,6 +31,7 @@ _IMPORTER_STATUSES = (
     "IFC",
     "IFD",
     "RLS",
+    "RLL",
 )
 
 _POLL_STATUSES = ("WPO", *_IMPORTER_STATUSES, "IGU")
@@ -49,6 +50,7 @@ _JANITOR_NIGHTLY_STATUSES = (
     "JCT",
     "RLS",
     "RLM",
+    "RLL",
     "RLF",
     "RLI",
     "JRV",

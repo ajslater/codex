@@ -9,6 +9,7 @@ from codex.librarian.notifier.tasks import (
 )
 from codex.librarian.scribe.readinglists.combine import recombine, rematch
 from codex.librarian.scribe.readinglists.errors import add_reading_list_error
+from codex.librarian.scribe.readinglists.live import sync_live
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.service import (
     SourceSpec,
@@ -17,11 +18,13 @@ from codex.librarian.scribe.readinglists.service import (
 )
 from codex.librarian.scribe.readinglists.status import (
     ReadingListImportStatus,
+    ReadingListLiveStatus,
     ReadingListMatchStatus,
 )
 from codex.librarian.scribe.readinglists.tasks import (
     ImportItem,
     ReadingListImportTask,
+    ReadingListLiveSyncTask,
     ReadingListRecombineTask,
     ReadingListRematchTask,
 )
@@ -113,6 +116,19 @@ class ReadingListWorker(WorkerStatusBase):
         if found:
             self.log.info(f"Matched {found} reading list issues.")
 
+    def sync_live_lists(self, task: ReadingListLiveSyncTask) -> None:
+        """Sync the comics of lists' collection items."""
+        status = ReadingListLiveStatus(0, None)
+        self.status_controller.start(status)
+        changed = 0
+        try:
+            changed = sync_live(force=task.force, list_pks=task.list_pks or None)
+        finally:
+            self.status_controller.finish(status)
+            self._notify(changed=bool(changed))
+        if changed:
+            self.log.info(f"Synced the collections of {changed} reading lists.")
+
     def _notify(self, *, changed: bool) -> None:
         self.librarian_queue.put(READING_LISTS_CHANGED_TASK)
         if changed:
@@ -127,5 +143,7 @@ class ReadingListWorker(WorkerStatusBase):
                 self.recombine_lists(task)
             case ReadingListRematchTask():
                 self.rematch_lists(task)
+            case ReadingListLiveSyncTask():
+                self.sync_live_lists(task)
             case _:
                 self.log.warning(f"Unknown reading list task {task}")

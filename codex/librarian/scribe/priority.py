@@ -34,6 +34,7 @@ from codex.librarian.scribe.janitor.tasks import (
 )
 from codex.librarian.scribe.readinglists.tasks import (
     ReadingListImportTask,
+    ReadingListLiveSyncTask,
     ReadingListRecombineTask,
     ReadingListRematchTask,
 )
@@ -76,6 +77,7 @@ _SCRIBE_TASK_PRIORITY = (
     ReadingListImportTask,
     ReadingListRecombineTask,
     ReadingListRematchTask,
+    ReadingListLiveSyncTask,
     # The first slot in the contiguous cleanup band. Ahead of
     # the FK cleanup and the search sync, which both depend on the rows
     # really being gone; behind the tag-writing and import tasks, so a

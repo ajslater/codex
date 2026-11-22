@@ -932,6 +932,7 @@ class Migration(migrations.Migration):
                     ("RCS", "Stop Codex Server"),
                     ("RLF", "Fetch Reading Lists"),
                     ("RLI", "Import Reading Lists"),
+                    ("RLL", "Sync Collections In Reading Lists"),
                     ("RLM", "Match Reading List Issues"),
                     ("RLS", "Sync Reading Lists From Tags"),
                     ("SIO", "Optimize Search Virtual Table"),

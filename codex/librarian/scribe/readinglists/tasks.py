@@ -44,3 +44,16 @@ class ReadingListRematchTask(ScribeTask):
     """Match missing entries again. No pks means every list with any."""
 
     list_pks: tuple[int, ...] = field(default_factory=tuple)
+
+
+@dataclass
+class ReadingListLiveSyncTask(ScribeTask):
+    """
+    Sync the comics of lists' collection items.
+
+    No pks means every list with an item. Without ``force`` a list syncs
+    only when an item's comics changed.
+    """
+
+    list_pks: tuple[int, ...] = field(default_factory=tuple)
+    force: bool = False

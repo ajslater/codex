@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
+from uuid import UUID
 
 from codex.collection import Collection
 
@@ -154,3 +155,70 @@ def identifier_for_browse_collection(collection: str, instance: Model) -> list[A
         msg = f"unknown browse-collection: {collection!r}"
         raise ValueError(msg)
     return builder(instance)
+
+
+def watched_path_pks(model, path: str) -> tuple[int, ...]:
+    """
+    Return every ``WatchedPath`` row at ``path``, lowest pk first.
+
+    ``WatchedPath`` is unique on ``(library, path)``, not on ``path``, so
+    nested or overlapping library roots hold the same file under two
+    libraries. The sidecar keys bookmarks and comic/folder shelf items on
+    the path alone -- one file on disk -- and cannot say which library a
+    row came from, so taking the arbitrary first match dropped the user's
+    data in whichever library they actually browse. Restore into all of
+    them instead.
+    """
+    return tuple(
+        model.objects.filter(path=path).order_by("pk").values_list("pk", flat=True)
+    )
+
+
+def resolve_reading_list(model, parts: list[Any]):
+    """
+    Find a reading list by its UUID, else a global one by name.
+
+    A rebuilt database makes new lists from the tags, with new UUIDs, and a
+    backup from before reading lists named the story arc only.
+    """
+    if len(parts) > 1:
+        try:
+            uuid = UUID(str(parts[1]))
+        except ValueError:
+            uuid = None
+        if uuid and (obj := model.objects.filter(uuid=uuid).first()):
+            return obj
+    return model.objects.filter(name=parts[0], user__isnull=True).order_by("pk").first()
+
+
+def resolve_browse_collection_pks(
+    collection: str, parts: list[Any], model
+) -> tuple[int, ...]:
+    """Resolve a name-chain identifier back to main-DB PKs."""
+    match collection:
+        case Collection.COMIC | Collection.FOLDER:
+            # Path is only unique within a library -- see watched_path_pks.
+            return watched_path_pks(model, parts[0])
+        case Collection.ARC:
+            obj = resolve_reading_list(model, parts)
+        case Collection.PUBLISHER:
+            obj = model.objects.filter(name=parts[0]).first()
+        case Collection.IMPRINT:
+            obj = model.objects.filter(publisher__name=parts[0], name=parts[1]).first()
+        case Collection.SERIES:
+            obj = model.objects.filter(
+                publisher__name=parts[0],
+                imprint__name=parts[1],
+                name=parts[2],
+            ).first()
+        case Collection.VOLUME:
+            obj = model.objects.filter(
+                publisher__name=parts[0],
+                imprint__name=parts[1],
+                series__name=parts[2],
+                name=parts[3],
+                number_to=parts[4],
+            ).first()
+        case _:
+            return ()
+    return () if obj is None else (obj.pk,)

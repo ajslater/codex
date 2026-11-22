@@ -2,6 +2,8 @@
 
 from django.db.models.signals import post_delete, post_save
 
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+
 
 def _on_library_changed(*_args, **_kwargs) -> None:
     """Clear the libraries_exist cache on Library writes."""
@@ -20,6 +22,25 @@ def _on_shelf_target_deleted(sender, instance, **_kwargs) -> None:
         ShelfItem.objects.filter(
             collection=collection_code.value, target_id=instance.pk
         ).delete()
+
+
+def _on_reading_list_deleted(sender, instance, **_kwargs) -> None:
+    """Ask the librarian to sync the lists that held a deleted list."""
+    del sender
+    from codex.librarian.scribe.readinglists.live import COLLECTION_KIND
+    from codex.librarian.scribe.readinglists.tasks import ReadingListLiveSyncTask
+    from codex.models.readinglist import ReadingListSource
+
+    holders = tuple(
+        ReadingListSource.objects.filter(
+            kind=COLLECTION_KIND, collection="arcs", target_id=instance.pk
+        )
+        .values_list("reading_list_id", flat=True)
+        .distinct()
+        .order_by("reading_list_id")
+    )
+    if holders:
+        LIBRARIAN_QUEUE.put(ReadingListLiveSyncTask(list_pks=holders))
 
 
 def _ensure_user_auth(sender, instance, created, **_kwargs) -> None:
@@ -51,13 +72,14 @@ def connect_signals() -> None:
     # Imported lazily for the same reason as above.
     from django.contrib.auth import get_user_model
 
-    from codex.models import Library
+    from codex.models import Library, ReadingList
     from codex.models.shelf import SHELF_MODEL_COLLECTIONS
     from codex.settings import AUTH_FAILED_LOGIN_LOG
 
     post_save.connect(_on_library_changed, sender=Library)
     post_delete.connect(_on_library_changed, sender=Library)
     post_save.connect(_ensure_user_auth, sender=get_user_model())
+    post_delete.connect(_on_reading_list_deleted, sender=ReadingList)
 
     from django.contrib.auth.signals import user_logged_in
 

@@ -44,9 +44,19 @@ class ReadingListMatchStatus(ReadingListStatus):
     ITEM_NAME = "reading list issues"
 
 
+class ReadingListLiveStatus(ReadingListStatus):
+    """Sync the comics of the collections held in reading lists."""
+
+    CODE = "RLL"
+    VERB = "Sync"
+    _verbed = "Synced"
+    ITEM_NAME = "collections in reading lists"
+
+
 READING_LIST_STATII = (
     ReadingListSyncStatus,
     ReadingListFetchStatus,
     ReadingListImportStatus,
     ReadingListMatchStatus,
+    ReadingListLiveStatus,
 )
