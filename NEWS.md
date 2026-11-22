@@ -19,7 +19,8 @@ border-radius: 128px;
 - Signed-in users make their own reading lists from any Reading Lists menu,
   remove comics in place, and copy any list to their own.
 - A series, folder, publisher or list added to a reading list keeps it current.
-- Filter any view by reading list.
+- Filter any view by reading list, or by Reading List Kind: Mine, Curated or
+  From Tags.
 - A reading list downloads as a zip numbered in list order.
 - A reading list's OPDS feed starts with the next issue to read.
 - Remote reading list sources refresh weekly.
