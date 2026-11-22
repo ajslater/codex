@@ -172,10 +172,21 @@ export default {
       return this.$vuetify.display.xs && !this.bookmarkFilter;
     },
   },
+  watch: {
+    menu(open) {
+      /*
+       * However the menu opens or closes. The store keeps an open menu's
+       * choices across page loads; closing returns it to the filter list
+       * and drops choices gone stale.
+       */
+      this.setFilterMenuOpen(open);
+    },
+  },
   methods: {
     ...mapActions(useBrowserStore, [
       "clearFilters",
       "loadAvailableFilterChoices",
+      "setFilterMenuOpen",
       "setSettings",
     ]),
     onUpdateModelValue(bookmark) {

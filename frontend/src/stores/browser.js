@@ -92,6 +92,12 @@ export function filterShowGatedDefaults(cols, show) {
  */
 // Filters that hold one value rather than a list.
 const SCALAR_FILTERS = Object.freeze(new Set(["bookmark"]));
+/*
+ * A tick reloads the page after the last of a quick run of ticks. An
+ * aborted request still runs to the end on the server, on one of a few
+ * pooled workers, so cancelling per tick would not save the work.
+ */
+const FILTER_RELOAD_WAIT = 200;
 
 export function isDefaultBookmarkFilter(bookmark) {
   const siteDefault = useAuthStore().defaults?.browser?.bookmark ?? "";
@@ -254,6 +260,22 @@ const redirectRoute = (route) => {
   }
 };
 
+/*
+ * A page load makes the filter menu's choices out of date. With the menu
+ * closed, empty them, so its next open fetches them. With it open, keep
+ * them and mark them stale: emptying swaps the open sub-menu for a
+ * spinner, losing its search text and tab, and nothing refetches them
+ * until the menu reopens.
+ */
+const expireDynamicChoices = (state) => {
+  if (state.filterMenuOpen) {
+    state.choicesStale = true;
+  } else {
+    state.choices.dynamic = undefined;
+    state.choicesStale = false;
+  }
+};
+
 const notEmptyOrBool = (value) => {
   return (value && Object.keys(value).length > 0) || typeof value === "boolean";
 };
@@ -307,6 +329,12 @@ export const useBrowserStore = defineStore("browser", {
     },
     // LOCAL UI
     filterMode: "base",
+    // The filter menu is open; its choices outlive page loads, as stale.
+    filterMenuOpen: false,
+    choicesStale: false,
+    filterReloadTimeout: undefined,
+    // Page fetches in flight, full or in place.
+    pageFetches: 0,
     browserPageLoaded: false,
     // True once this session's stored settings arrived; stops the first-paint
     // site-default seed from ever overwriting them.
@@ -816,8 +844,6 @@ export const useBrowserStore = defineStore("browser", {
       if (data) {
         this._addSettings(data);
       }
-
-      this.filterMode = "base";
       return redirect;
     },
     async setSettings(data) {
@@ -831,6 +857,45 @@ export const useBrowserStore = defineStore("browser", {
         // ``choices.dynamic``, so a caller reloading them must wait for it.
         await this.loadBrowserPage(undefined, true);
       }
+    },
+    tickFilters(filters) {
+      /*
+       * A tick in an open filter sub-menu: the filter changes at once, so
+       * the checkbox answers, and the page reloads in place after the
+       * last of a quick run of ticks.
+       */
+      this._addSettings({ filters });
+      clearTimeout(this.filterReloadTimeout);
+      this.filterReloadTimeout = setTimeout(() => {
+        this.filterReloadTimeout = undefined;
+        void this.reloadFilteredPage();
+      }, FILTER_RELOAD_WAIT);
+    },
+    async reloadFilteredPage() {
+      if (!this.isAuthorized) {
+        return;
+      }
+      const outcome = await this._fetchBrowserPage(this.page.mtime, {
+        inPlace: true,
+      });
+      if (outcome === "loaded") {
+        API.updateSettings(this.settings);
+      }
+    },
+    setFilterMenuOpen(open) {
+      this.$patch((state) => {
+        state.filterMenuOpen = open;
+        if (open) {
+          return;
+        }
+        state.filterMode = "base";
+        if (!state.choicesStale) {
+          return;
+        }
+
+        state.choices.dynamic = undefined;
+        state.choicesStale = false;
+      });
     },
     async clearOneFilter(filterName) {
       this.$patch((state) => {
@@ -950,7 +1015,7 @@ export const useBrowserStore = defineStore("browser", {
       }
       this.$patch((state) => {
         state.browserPageLoaded = false;
-        state.choices.dynamic = undefined;
+        expireDynamicChoices(state);
       });
       const collection = liveBrowseParams().collection;
       try {
@@ -1022,18 +1087,48 @@ export const useBrowserStore = defineStore("browser", {
       if (!this.isAuthorized || !this.browserPageLoaded) {
         return;
       }
+      await this._fetchBrowserPage(getTimestamp(), { inPlace: true });
+    },
+    async _fetchBrowserPage(mtime, { inPlace = false } = {}) {
+      /*
+       * The one page fetch. Single-flight: a newer fetch aborts this one
+       * so a late-arriving response can't ``$patch`` stale state over the
+       * current route's data. In place, the breadcrumbs are left alone,
+       * as they fire the settings watchers. Resolves to "loaded",
+       * "aborted" or "failed".
+       */
       const signal = useAbortable("browser:loadBrowserPage");
+      this.pageFetches += 1;
       try {
         const response = await API.getBrowserPage(
           liveBrowseParams(),
           this._pageRequestSettings(),
-          getTimestamp(),
+          mtime,
           { signal },
         );
-        const { breadcrumbs: _breadcrumbs, ...page } = response.data;
-        this.page = Object.freeze(page);
+        const { breadcrumbs, ...page } = response.data;
+        this.$patch((state) => {
+          if (!inPlace) {
+            state.settings.breadcrumbs = Object.freeze(breadcrumbs);
+          }
+          state.page = Object.freeze(page);
+          if (
+            (state.settings.orderBy === "search_score" && !page.fts) ||
+            (state.settings.orderBy === "child_count" &&
+              page.modelCollection === "comics")
+          ) {
+            state.settings.orderBy = "sort_name";
+          }
+          expireDynamicChoices(state);
+          state.browserPageLoaded = true;
+        });
+        return "loaded";
       } catch (error) {
-        if (!isAbortError(error)) console.error(error);
+        if (isAbortError(error)) return "aborted";
+        this.handlePageError(error);
+        return "failed";
+      } finally {
+        this.pageFetches -= 1;
       }
     },
     async loadBrowserPage(mtime, shouldUpdateSettings = false) {
@@ -1053,38 +1148,8 @@ export const useBrowserStore = defineStore("browser", {
       } else {
         return this.loadSettings();
       }
-      /*
-       * Single-flight: a rapid collection switch aborts the previous
-       * fetch so its late-arriving response can't ``$patch`` stale
-       * state over the current route's data.
-       */
-      const signal = useAbortable("browser:loadBrowserPage");
-      try {
-        const response = await API.getBrowserPage(
-          liveBrowseParams(),
-          this._pageRequestSettings(),
-          mtime,
-          { signal },
-        );
-        const { breadcrumbs, ...page } = response.data;
-        this.$patch((state) => {
-          state.settings.breadcrumbs = Object.freeze(breadcrumbs);
-          state.page = Object.freeze(page);
-          if (
-            (state.settings.orderBy === "search_score" && !page.fts) ||
-            (state.settings.orderBy === "child_count" &&
-              page.modelCollection === "comics")
-          ) {
-            state.settings.orderBy = "sort_name";
-          }
-          state.choices.dynamic = undefined;
-          state.browserPageLoaded = true;
-        });
-      } catch (error) {
-        if (isAbortError(error)) return;
-        this.handlePageError(error);
-      }
-      if (shouldUpdateSettings) {
+      const outcome = await this._fetchBrowserPage(mtime);
+      if (outcome !== "aborted" && shouldUpdateSettings) {
         API.updateSettings(this.settings);
       }
     },
@@ -1097,7 +1162,10 @@ export const useBrowserStore = defineStore("browser", {
           this.page.mtime,
           { signal },
         );
-        this.choices.dynamic = response.data;
+        this.$patch((state) => {
+          state.choices.dynamic = response.data;
+          state.choicesStale = false;
+        });
         return true;
       } catch (error) {
         if (isAbortError(error)) return;
@@ -1117,6 +1185,8 @@ export const useBrowserStore = defineStore("browser", {
           this.page.mtime,
           { signal },
         );
+        // A page load with the menu closed emptied them meanwhile.
+        if (!this.choices.dynamic) return;
         this.choices.dynamic[fieldName] = Object.freeze(response.data.choices);
         return true;
       } catch (error) {
@@ -1134,6 +1204,18 @@ export const useBrowserStore = defineStore("browser", {
      * change didn't touch instead of reloading on every broadcast.
      */
     async loadMtimes() {
+      if (
+        !this.browserPageLoaded ||
+        this.pageFetches > 0 ||
+        this.filterReloadTimeout !== undefined
+      ) {
+        /*
+         * A page load is in flight or a tick is waiting: it fetches fresh
+         * data anyway, and a full load started now would fall into
+         * ``loadSettings`` and overwrite the ticks with the saved filters.
+         */
+        return true;
+      }
       const params = liveBrowseParams();
       /*
        * Dedup so concurrent callers (websocket fan-out across the
@@ -1149,7 +1231,7 @@ export const useBrowserStore = defineStore("browser", {
         const isChanged =
           head?.mtime !== this.page.mtime || head?.count !== this.page.count;
         if (isChanged) {
-          this.choices.dynamic = undefined;
+          this.$patch(expireDynamicChoices);
           this.loadBrowserPage(head?.mtime);
         }
         return true;

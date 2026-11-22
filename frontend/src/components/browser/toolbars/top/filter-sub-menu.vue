@@ -321,6 +321,8 @@ export default {
       }
     },
     async onClear() {
+      // Back to the filter list; a settings change no longer does it.
+      this.filterMode = "base";
       if (this.isAgeRating) {
         /*
          * Single setSettings call clears both keys atomically;

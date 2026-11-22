@@ -92,6 +92,16 @@ describe("BrowserFilterBySelect — closing on select", () => {
   });
 });
 
+describe("BrowserFilterBySelect — the store knows the menu is open", () => {
+  test("opening and closing tell the store", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu();
+    expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(true);
+    wrapper.vm.menu = false;
+    await flushPromises();
+    expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(false);
+  });
+});
+
 const arrow = (el, key) =>
   el.dispatchEvent(
     new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
