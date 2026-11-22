@@ -3,8 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from comicbox.formats.base.online import SOURCE_NAMES
-
+from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES
 from codex.librarian.tasks import LibrarianTask
 
 
@@ -18,7 +17,7 @@ class BulkOnlineTagTask(OnlineTagTask):
 
     comic_pks: frozenset[int]
     session_id: str
-    sources: tuple[str, ...] = SOURCE_NAMES
+    sources: tuple[str, ...] = SUPPORTED_SOURCES
     mode: str = "auto"
     prompts_mode: str = "ask"
     # How much API budget a comic may spend against a source that fans

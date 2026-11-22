@@ -1,6 +1,5 @@
 """Comicbox tagging serializers."""
 
-from comicbox.formats.base.online import SOURCE_NAMES
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
     BooleanField,
@@ -17,6 +16,7 @@ from rest_framework.serializers import (
 from codex.choices.limits import MAX_NAME_LEN
 from codex.choices.tagging import NAMED_WRITE_FORMATS, WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
+from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES, configured_sources
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -121,7 +121,9 @@ class OnlineTagStartSerializer(Serializer):
 
     collection = CharField()
     pks = ListField(child=CharField())
-    sources = ListField(child=CharField(), required=False, default=list(SOURCE_NAMES))
+    sources = ListField(
+        child=CharField(), required=False, default=list(SUPPORTED_SOURCES)
+    )
     mode = ChoiceField(
         choices=ComicboxTaggingDefaults.MatchModeChoices.values,
         required=False,
@@ -217,6 +219,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
 
     has_metron_credentials = SerializerMethodField()
     has_comicvine_credentials = SerializerMethodField()
+    configured_sources = SerializerMethodField()
 
     @staticmethod
     def get_metron_key_set(obj) -> bool:
@@ -241,6 +244,11 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     def get_has_comicvine_credentials(obj) -> bool:
         """Whether a Comic Vine API key is set."""
         return bool(obj.comicvine_key)
+
+    @staticmethod
+    def get_configured_sources(obj) -> list[str]:
+        """List the supported sources with an API key, in priority order."""
+        return list(configured_sources(obj))
 
     @staticmethod
     def validate_default_formats(value: object) -> list:
@@ -279,10 +287,12 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "comicvine_key_set",
             "has_metron_credentials",
             "has_comicvine_credentials",
+            "configured_sources",
         )
         read_only_fields = (
             "metron_key_set",
             "comicvine_key_set",
             "has_metron_credentials",
             "has_comicvine_credentials",
+            "configured_sources",
         )

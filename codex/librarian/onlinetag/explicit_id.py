@@ -26,13 +26,13 @@ from comicbox.config.online import (
     MatchMode,
     OnlineAuthSettings,
     OnlineLookupSettings,
-    OnlineSourceCredentials,
     Prompts,
 )
 from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY
 from comicbox.identifiers import ID_KEY_KEY
 
 from codex.librarian.onlinetag.issue_id import parse_issue_id
+from codex.librarian.onlinetag.sources import source_credentials
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
@@ -41,18 +41,6 @@ if TYPE_CHECKING:
 
     from comicbox.config.settings import ComicboxSettings
     from comicbox.online_session import OnlineCredentials
-
-
-def _build_auth_source(
-    source: str, credentials: OnlineCredentials
-) -> OnlineSourceCredentials:
-    """Map codex credentials onto comicbox's per-source auth for one source."""
-    if source == "metron":
-        return OnlineSourceCredentials(key=credentials.metron_key)
-    return OnlineSourceCredentials(
-        key=credentials.comicvine_key,
-        url=credentials.comicvine_url,
-    )
 
 
 def build_explicit_id_config(
@@ -83,7 +71,7 @@ def build_explicit_id_config(
     for extra_source, extra_id in extra_ids:
         ids.setdefault(extra_source, extra_id)
     sources = tuple(ids)
-    auth_sources = {s: _build_auth_source(s, credentials) for s in sources}
+    auth_sources = {s: source_credentials(s, credentials) for s in sources}
     lookup = OnlineLookupSettings(
         enabled=True,
         sources=sources,

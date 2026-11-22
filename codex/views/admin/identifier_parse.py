@@ -9,14 +9,19 @@ Two entry points share comicbox's identifier knowledge:
   feature takes — a URL, a ``source:id`` pair, a bare Comic Vine ``4000-NNN``
   code, or a bare integer — and resolves it to a numeric issue id.
 
-Only Metron and Comic Vine support id tagging, so non-issue resource types and
-other sources are rejected with operator-facing messages.
+Only the supported online sources (``onlinetag.sources``) support id tagging,
+so non-issue resource types and other sources are rejected with
+operator-facing messages.
 """
+
+from collections.abc import Sequence
+from typing import Final
 
 from comicbox.identifiers import PARSE_COMICVINE_RE
 from comicbox.identifiers.identifiers import IDENTIFIER_PARTS_MAP
 
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
+from codex.librarian.onlinetag.sources import SOURCES, SUPPORTED_SOURCES
 
 # comicbox maps Comic Vine's 4-digit resource code to a type name; an issue is
 # "issue" (code 4000). Volumes/series/etc. are not taggable issue ids.
@@ -25,6 +30,22 @@ _CV_ISSUE_CODE = "4000"
 # Default for ``configured_sources`` — hoisted out of the signature so the
 # empty-frozenset construction isn't a call in a parameter default.
 _NO_SOURCES: frozenset[str] = frozenset()
+
+
+def _joined(words: Sequence[str], conjunction: str) -> str:
+    """Join ``words`` as prose: ``a or b``, ``a, b, or c``."""
+    if len(words) <= 2:  # noqa: PLR2004
+        return f" {conjunction} ".join(words)
+    return f"{', '.join(words[:-1])}, {conjunction} {words[-1]}"
+
+
+# The supported sources as the messages below name them: "Metron or Comic
+# Vine", "metron or comicvine", "metron:ID / comicvine:ID".
+_LABELS: Final = tuple(SOURCES[name].label for name in SUPPORTED_SOURCES)
+_ANY_LABEL: Final = _joined(_LABELS, "or")
+_EVERY_LABEL: Final = _joined(_LABELS, "and")
+_ANY_NAME: Final = _joined(SUPPORTED_SOURCES, "or")
+_PREFIXES: Final = " / ".join(f"{name}:ID" for name in SUPPORTED_SOURCES)
 
 
 def parse_identifier_url(url: str) -> tuple[str, str, str] | None:
@@ -65,7 +86,7 @@ def parse_identifier_input(
     """
     raw = (raw or "").strip()
     if not raw:
-        msg = "Enter a Metron or Comic Vine issue URL or id."
+        msg = f"Enter a {_ANY_LABEL} issue URL or id."
         raise ValueError(msg)
 
     # 1) A source URL — domain identifies the source.
@@ -81,25 +102,25 @@ def parse_identifier_input(
         source = prefix.strip().lower()
         if source in KNOWN_SOURCES:
             return source, _coerce_issue_id(source, value)
-        msg = f"Unknown source {prefix!r}. Use metron or comicvine."
+        msg = f"Unknown source {prefix!r}. Use {_ANY_NAME}."
         raise ValueError(msg)
 
     # 3) A bare Comic Vine 4000-NNN code is self-identifying.
     if PARSE_COMICVINE_RE.fullmatch(raw):
         return "comicvine", _coerce_issue_id("comicvine", raw)
 
-    # 4) A bare integer is ambiguous between Metron and Comic Vine.
+    # 4) A bare integer is ambiguous between the sources.
     if raw.isdigit():
         return _resolve_bare_source(source_hint, configured_sources), int(raw)
 
-    msg = f"Couldn't parse {raw!r} as a Metron or Comic Vine id."
+    msg = f"Couldn't parse {raw!r} as a {_ANY_LABEL} id."
     raise ValueError(msg)
 
 
 def _validate_source(source: str) -> str:
     """Reject sources that don't support online id tagging."""
     if source not in KNOWN_SOURCES:
-        msg = f"{source.title()} ids aren't supported; only Metron and Comic Vine."
+        msg = f"{source.title()} ids aren't supported; only {_EVERY_LABEL}."
         raise ValueError(msg)
     return source
 
@@ -139,13 +160,13 @@ def _resolve_bare_source(
         hint = source_hint.strip().lower()
         if hint in KNOWN_SOURCES:
             return hint
-        msg = f"Unknown source {source_hint!r}. Use metron or comicvine."
+        msg = f"Unknown source {source_hint!r}. Use {_ANY_NAME}."
         raise ValueError(msg)
     known = configured_sources & KNOWN_SOURCES
     if len(known) == 1:
         return next(iter(known))
     msg = (
-        "That id could be Metron or Comic Vine — paste the issue URL or "
-        "prefix it (metron:ID / comicvine:ID)."
+        f"That id could be {_ANY_LABEL} — paste the issue URL or "
+        f"prefix it ({_PREFIXES})."
     )
     raise ValueError(msg)

@@ -26,23 +26,26 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
-from comicbox.config.online.settings import OnlineSourceCredentials
-from comicbox.formats.base.online import SOURCE_NAMES
 from comicbox.formats.base.online.retry import RetryCategory
-from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
-from comicbox.formats.metron_api.online_source import MetronOnlineSource
 
+from codex.librarian.onlinetag.sources import (
+    SOURCES,
+    SUPPORTED_SOURCES,
+    source_credentials,
+)
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Collection, Mapping
+    from collections.abc import Collection, Mapping
 
     from comicbox.formats.base.online.sources.base import OnlineSource
     from comicbox.online_session import OnlineCredentials
 
-# comicbox owns the canonical online-tag source names (metron, comicvine); derive
-# from it so codex tracks a new source instead of hand-syncing a literal.
-KNOWN_SOURCES: frozenset[str] = frozenset(SOURCE_NAMES)
+    from codex.librarian.onlinetag.sources import OnlineTagSource
+
+# The sources codex registered, not every name comicbox knows: a source
+# comicbox adds stays unknown here until codex can drive it.
+KNOWN_SOURCES: Final[frozenset[str]] = frozenset(SUPPORTED_SOURCES)
 
 #: What a probe returns: ``{window: {"limit", "remaining", "reset_epoch"}}``.
 type _Windows = Mapping[str, Mapping[str, Any]]
@@ -80,16 +83,6 @@ class ValidationResult:
     rate_limits: RateLimitInfo | None = None
 
 
-def _metron_credentials(creds: OnlineCredentials) -> OnlineSourceCredentials:
-    return OnlineSourceCredentials(key=creds.metron_key or None)
-
-
-def _comicvine_credentials(creds: OnlineCredentials) -> OnlineSourceCredentials:
-    return OnlineSourceCredentials(
-        key=creds.comicvine_key or None, url=creds.comicvine_url or None
-    )
-
-
 def _window_info(window: Mapping[str, Any] | None) -> RateLimitWindowInfo:
     if not window:
         return RateLimitWindowInfo()
@@ -98,36 +91,16 @@ def _window_info(window: Mapping[str, Any] | None) -> RateLimitWindowInfo:
     )
 
 
-def _metron_rate_limits(windows: _Windows) -> RateLimitInfo | None:
-    """Codex-shaped rate limits, or None when the response carried no headers."""
+def _rate_limits(spec: OnlineTagSource, windows: _Windows) -> RateLimitInfo | None:
+    """Codex-shaped rate limits, or None when the probe reported none it shows."""
     info = RateLimitInfo(
-        burst=_window_info(windows.get("burst")),
-        sustained=_window_info(windows.get("daily")),
+        **{
+            field: _window_info(windows.get(window))
+            for field, window in spec.rate_limit_windows.items()
+        }
     )
     return None if info == RateLimitInfo() else info
 
-
-def _no_rate_limits(_windows: _Windows) -> None:
-    """Comic Vine's pools are hourly; the UI chip speaks per-minute / per-day."""
-
-
-@dataclass(frozen=True, slots=True)
-class _Source:
-    """How codex drives one comicbox online source for a credential check."""
-
-    cls: type[OnlineSource]
-    credentials: Callable[[OnlineCredentials], OnlineSourceCredentials]
-    rate_limits: Callable[[_Windows], RateLimitInfo | None]
-
-
-_SOURCES: Final[Mapping[str, _Source]] = MappingProxyType(
-    {
-        "metron": _Source(MetronOnlineSource, _metron_credentials, _metron_rate_limits),
-        "comicvine": _Source(
-            ComicVineOnlineSource, _comicvine_credentials, _no_rate_limits
-        ),
-    }
-)
 
 # Shown when the client's exception carries no message of its own.
 _FALLBACK_ERRORS: Final[Mapping[RetryCategory | None, str]] = MappingProxyType(
@@ -149,15 +122,17 @@ def _error_message(source: OnlineSource, exc: Exception) -> str:
     return first_line or _FALLBACK_ERRORS.get(category, type(exc).__name__)
 
 
-def _validate(spec: _Source, creds: OnlineCredentials) -> ValidationResult:
-    source = spec.cls(spec.credentials(creds), COMICBOX_ONLINE_CONFIG.online)
+def _validate(spec: OnlineTagSource, creds: OnlineCredentials) -> ValidationResult:
+    source = spec.source_class()(
+        source_credentials(spec.name, creds), COMICBOX_ONLINE_CONFIG.online
+    )
     if not source.is_configured():
         return ValidationResult(ok=False, error="API key required.")
     try:
         windows = source.probe()
     except Exception as exc:
         return ValidationResult(ok=False, error=_error_message(source, exc))
-    return ValidationResult(ok=True, rate_limits=spec.rate_limits(windows or {}))
+    return ValidationResult(ok=True, rate_limits=_rate_limits(spec, windows or {}))
 
 
 def validate_credentials(
@@ -171,4 +146,4 @@ def validate_credentials(
     constrained the inputs.
     """
     targets = KNOWN_SOURCES if sources is None else (set(sources) & KNOWN_SOURCES)
-    return {name: _validate(_SOURCES[name], creds) for name in sorted(targets)}
+    return {name: _validate(SOURCES[name], creds) for name in sorted(targets)}

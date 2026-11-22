@@ -5,6 +5,7 @@ Unit tests for the credentials the session manager hands comicbox.
 configured only when it carries something that can actually authenticate.
 """
 
+from codex.librarian.onlinetag.sources import configured_sources
 from codex.models import ComicboxTaggingDefaults
 from tests.onlinetag_session_fakes import OnlineTagSessionTestCase
 
@@ -20,7 +21,7 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
         keyed = manager._build_credentials()  # noqa: SLF001
         assert keyed is not None
         assert keyed.metron_key == "t"
-        assert manager._source_has_credentials(keyed, "metron") is True  # noqa: SLF001
+        assert configured_sources(keyed) == ("metron",)
 
     def test_no_metron_credentials_at_all_is_unconfigured(self) -> None:
         ComicboxTaggingDefaults.objects.update_or_create(

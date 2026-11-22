@@ -85,6 +85,11 @@ from codex.librarian.onlinetag.session_state import (
     SessionState,
     serialize_prompt,
 )
+from codex.librarian.onlinetag.sources import (
+    SOURCES,
+    build_credentials,
+    configured_sources,
+)
 from codex.librarian.onlinetag.statuses import USER_MATCHED, USER_SKIPPED
 from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
 from codex.librarian.onlinetag.tag_pass_runner import TagPassRunner
@@ -125,10 +130,7 @@ def _online_config(effort: str) -> ComicboxSettings:
 #: The online source modules that hold process-wide clients to release
 #: at the end of a task. Named, not imported: see
 #: :func:`_release_online_connections`.
-_ONLINE_SOURCE_MODULES: Final = (
-    "comicbox.formats.metron_api.online_source",
-    "comicbox.formats.comicvine_api.online_source",
-)
+_ONLINE_SOURCE_MODULES: Final = tuple(source.module for source in SOURCES.values())
 
 
 def _release_online_connections() -> None:
@@ -212,24 +214,7 @@ class OnlineTagSessionManager:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         except ComicboxTaggingDefaults.DoesNotExist:
             return None
-        if not defaults.metron_key and not defaults.comicvine_key:
-            return None
-        # ``or None``: the encrypted fields store an unset value as "", and
-        # comicbox's credentials spell unset as None.
-        return OnlineCredentials(
-            metron_key=defaults.metron_key or None,
-            comicvine_key=defaults.comicvine_key or None,
-            comicvine_url=defaults.comicvine_url or None,
-        )
-
-    @staticmethod
-    def _source_has_credentials(credentials: OnlineCredentials, source: str) -> bool:
-        """Whether ``credentials`` actually carries auth for ``source``."""
-        if source == "metron":
-            return bool(credentials.metron_key)
-        if source == "comicvine":
-            return bool(credentials.comicvine_key)
-        return False
+        return build_credentials(defaults)
 
     # --- events --------------------------------------------------------
 
@@ -755,10 +740,9 @@ class OnlineTagSessionManager:
         from ``comic_paths`` so the search session only handles the rest.
         Skipped for sources without credentials.
         """
+        configured = configured_sources(credentials)
         usable_sources = tuple(
-            source
-            for source in task.sources
-            if self._source_has_credentials(credentials, source)
+            source for source in task.sources if source in configured
         )
         id_map = build_stored_id_map(comic_paths.keys(), usable_sources)
         if not id_map:
