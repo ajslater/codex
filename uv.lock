@@ -789,7 +789,7 @@ requires-dist = [
     { name = "asgiref", specifier = "~=3.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], specifier = "~=5.6.2" },
+    { name = "comicbox", extras = ["pdf"], editable = "/Users/aj/Code/comicbox/.claude/worktrees/vibrant-mayer-544fdb" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -870,8 +870,8 @@ wheels = [
 
 [[package]]
 name = "comicbox"
-version = "5.6.2"
-source = { registry = "https://pypi.org/simple" }
+version = "5.6.3"
+source = { editable = "/Users/aj/Code/comicbox/.claude/worktrees/vibrant-mayer-544fdb" }
 dependencies = [
     { name = "bidict" },
     { name = "case-converter" },
@@ -899,18 +899,91 @@ dependencies = [
     { name = "ruamel-yaml" },
     { name = "simplejson" },
     { name = "simyan" },
+    { name = "versedb" },
     { name = "xmlschema" },
     { name = "xmltodict" },
     { name = "zipremove" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/17/24/baa7430e6d0848ff106a2a98176fb188ade0cf412ae57427a013ce08cb64/comicbox-5.6.2.tar.gz", hash = "sha256:66ee93a62a90da3205048d5d8fef599dc75bf7a8c1ee7a7d1202b88fe749bdf8", size = 1478332, upload-time = "2026-11-18T08:57:43.632Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/11/17/ae7a61ae9513e00fa1d4074ca53d4abf7ffda122e931375a6531c15a2080/comicbox-5.6.2-py3-none-any.whl", hash = "sha256:34c97ce266a75aec435cdd70faa3c463540a025c1893f3cd673fce9dc9637456", size = 528931, upload-time = "2026-11-18T08:57:42.034Z" },
 ]
 
 [package.optional-dependencies]
 pdf = [
     { name = "comicbox-pdffile" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "bidict", specifier = "~=0.23" },
+    { name = "case-converter", specifier = "~=1.2" },
+    { name = "comicbox-pdffile", marker = "extra == 'pdf'", specifier = "~=1.1.2" },
+    { name = "comicfn2dict", specifier = "~=1.1.1" },
+    { name = "confuse", specifier = "~=2.3" },
+    { name = "glom", specifier = "~=25.12" },
+    { name = "httpx", specifier = "~=0.28" },
+    { name = "jsonschema", extras = ["format"], specifier = "~=4.20" },
+    { name = "loguru", specifier = "~=0.7" },
+    { name = "marshmallow", specifier = "~=4.3" },
+    { name = "marshmallow-union", specifier = ">=0.1.15.post1" },
+    { name = "mokkari", specifier = "~=5.2.0" },
+    { name = "nh3", specifier = ">=0.3.5" },
+    { name = "packaging", specifier = ">=24.0" },
+    { name = "pillow", specifier = ">=12.2.0" },
+    { name = "platformdirs", specifier = ">=4.9.6" },
+    { name = "py7zr", specifier = "~=1.1.0" },
+    { name = "pycountry", specifier = "~=26.2" },
+    { name = "python-dateutil", specifier = "~=4.0" },
+    { name = "questionary", specifier = ">=2.1.1" },
+    { name = "rapidfuzz", specifier = ">=3.14.5" },
+    { name = "rarfile", specifier = "~=4.0" },
+    { name = "rich", specifier = "~=15.0" },
+    { name = "rich-argparse", specifier = "~=1.7" },
+    { name = "ruamel-yaml", specifier = "~=0.18" },
+    { name = "simplejson", specifier = "~=4.0" },
+    { name = "simyan", specifier = "~=4.2" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'", specifier = "~=4.13" },
+    { name = "versedb", specifier = "~=1.0.0" },
+    { name = "xmlschema", specifier = "~=4.0" },
+    { name = "xmltodict", specifier = "~=1.0" },
+    { name = "zipremove", specifier = "~=0.1" },
+]
+provides-extras = ["pdf"]
+
+[package.metadata.requires-dev]
+build = []
+ci = [{ name = "requests", specifier = "~=2.32" }]
+dev = [
+    { name = "icecream", specifier = "~=2.1" },
+    { name = "infer-types", specifier = "~=1.0.0" },
+    { name = "marshmallow-jsonschema", specifier = ">=0.15.0" },
+    { name = "neovim", specifier = "~=0.3" },
+    { name = "pyclean", specifier = "~=3.1" },
+    { name = "pypi-cleanup", specifier = "~=0.1.10" },
+    { name = "toml-cli", specifier = "~=0.7" },
+]
+docs = [
+    { name = "mkdocstrings-python", specifier = "~=2.0" },
+    { name = "zensical", specifier = "~=0.1" },
+]
+lint = [
+    { name = "basedpyright", specifier = "~=1.38" },
+    { name = "check-jsonschema", specifier = "~=0.36" },
+    { name = "codespell", specifier = "~=2.4" },
+    { name = "complexipy", specifier = "~=9.0" },
+    { name = "djlint", specifier = "~=1.3.dev0" },
+    { name = "icecream", specifier = "~=2.1" },
+    { name = "pathspec", specifier = "~=1.1.0" },
+    { name = "radon", specifier = "~=6.0" },
+    { name = "ruff", specifier = "~=0.17" },
+    { name = "ty", specifier = "~=0.0.17" },
+    { name = "types-xmltodict", specifier = "~=1.0" },
+    { name = "vulture", specifier = "~=2.3" },
+]
+test = [
+    { name = "coverage", specifier = "~=7.0" },
+    { name = "deepdiff", specifier = "~=9.0" },
+    { name = "imagehash", specifier = ">=4.3.2" },
+    { name = "pytest", specifier = "~=9.0" },
+    { name = "pytest-cov", specifier = "~=7.0" },
+    { name = "pytest-xdist", specifier = "~=3.8" },
 ]
 
 [[package]]
@@ -2309,15 +2382,15 @@ wheels = [
 
 [[package]]
 name = "mokkari"
-version = "5.1.0"
+version = "5.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/64/74/b7aec28e3f8855fbe19c566a9c4890b62e765d8a60c47b8165b837898929/mokkari-5.1.0.tar.gz", hash = "sha256:cbb0d5f60bc005e1237dae979d69e636eb3380a70011ed3872bc921783b56999", size = 145365, upload-time = "2026-11-10T17:27:32.48Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/61/feccf762c2cb112eead59d777768ac55bb162d4277c358471b22673cdc48/mokkari-5.2.0.tar.gz", hash = "sha256:9b30aacd0768ba2fd26b363f990b6e8e98b13588181990823eec3b1423e4c66e", size = 156118, upload-time = "2026-11-21T16:11:15.34Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/0b/92b4c6ee45eece36e22bf7b71314f9b0c7b06cf41d33c012590df1e235f8/mokkari-5.1.0-py3-none-any.whl", hash = "sha256:898e8ff49fdf1a780226020116024e9c9886ba5d4c5e0dd52e642afe0e4a24b1", size = 96565, upload-time = "2026-11-10T17:27:31.307Z" },
+    { url = "https://files.pythonhosted.org/packages/90/e4/ce3d99662d0277edb79cfe78c56bb8fff6b52f8f2ce7b457b85de4cb16bc/mokkari-5.2.0-py3-none-any.whl", hash = "sha256:40940c980f6fe16230bdb5e3b98dfe076fc575e6eb7bda02deb541d8f935b500", size = 109572, upload-time = "2026-11-21T16:11:14.418Z" },
 ]
 
 [[package]]
@@ -4420,6 +4493,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e3/05/b17359e1cefb4f909b5e40b1b90a496d987258916dbbf88e842c729f510e/urllib3-2.8.0.tar.gz", hash = "sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63", size = 458972, upload-time = "2026-09-15T19:29:36.253Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/92/9d/c4e665119135114480843e7ab388fa94d8480650450e6f8e26b70d323a4c/urllib3-2.8.0-py3-none-any.whl", hash = "sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3", size = 135717, upload-time = "2026-09-15T19:29:34.577Z" },
+]
+
+[[package]]
+name = "versedb"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/47/a8/4348867f7ba1ba5101bbbd7964c3bc17cf23174f516ec462e48b96c70b31/versedb-1.0.0.tar.gz", hash = "sha256:7bc994b4e59a5ab081bb28e9c29de295913413d57003141fd4a11014339a44f3", size = 395772, upload-time = "2026-11-09T03:22:16.174Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/9a/c921bb5f0620dd1a00e07d4961ff78dc401b87b5a4df765bcfe5c0a55877/versedb-1.0.0-py3-none-any.whl", hash = "sha256:78238183a161862365008b1db1033ca0cd70cd01ec4193a38800ea4ff64e66af", size = 1328824, upload-time = "2026-11-09T03:22:13.857Z" },
 ]
 
 [[package]]

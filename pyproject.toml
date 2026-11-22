@@ -116,6 +116,11 @@ ci = []
 requires = ["uv_build~=0.13"]
 build-backend = "uv_build"
 
+# DEV ONLY, do not push: test against the unreleased comicbox checkout that
+# adds VerseDB. Remove this table and re-lock once that comicbox is on PyPI.
+[tool.uv.sources]
+comicbox = { path = "/Users/aj/Code/comicbox/.claude/worktrees/vibrant-mayer-544fdb/", editable = true }
+
 [tool.uv.build-backend]
 module-root = ""
 source-include = [
