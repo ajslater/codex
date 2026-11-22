@@ -44,15 +44,20 @@ beforeAll(() => {
 
 const wrappers = [];
 
-async function mountOpenMenu({ filters = {} } = {}) {
+async function mountOpenMenu({
+  filters = {},
+  dynamic = { characters: true },
+  choicesStale = false,
+} = {}) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: { pk: 1 } },
       browser: {
         filterMode: "base",
+        choicesStale,
         // A non-default bookmark makes the "Clear All Filters" row render.
         settings: { filters: { bookmark: "UNREAD", ...filters } },
-        choices: { dynamic: { characters: true } },
+        choices: { dynamic },
       },
     },
   });
@@ -92,12 +97,115 @@ describe("BrowserFilterBySelect — closing on select", () => {
   });
 });
 
+const CHARACTERS = Object.freeze([
+  { pk: 1, name: "Spider-Man" },
+  { pk: 2, name: "Iron Man" },
+]);
+
+async function openCharacters(options = {}) {
+  const opened = await mountOpenMenu({
+    dynamic: { characters: CHARACTERS },
+    ...options,
+  });
+  const row = [...opened.content.querySelectorAll(".v-list-item")].find(
+    (candidate) => candidate.textContent.includes("Characters"),
+  );
+  row.click();
+  await flushPromises();
+  const choice = (title) =>
+    [...opened.content.querySelectorAll("[role=menuitemcheckbox]")].find(
+      (candidate) => candidate.textContent.includes(title),
+    );
+  return { ...opened, choice };
+}
+
+const key = (el, name) =>
+  el.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: name,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+
+describe("BrowserFilterBySelect — ticking in a sub-menu", () => {
+  test("a tick applies and leaves the menu open on its sub-menu", async () => {
+    const { wrapper, browserStore, choice } = await openCharacters();
+    choice("Iron Man").click();
+    await flushPromises();
+    expect(browserStore.tickFilters).toHaveBeenCalledWith({ characters: [2] });
+    expect(browserStore.setSettings).not.toHaveBeenCalled();
+    expect(wrapper.vm.menu).toBe(true);
+    expect(browserStore.filterMode).toBe("characters");
+  });
+
+  test("a letter key on a choice row stays in the sub-menu", async () => {
+    const { content, wrapper, browserStore, choice } = await openCharacters();
+    const reached = [];
+    content.addEventListener("keydown", (event) => {
+      reached.push(event.key);
+    });
+    key(choice("Spider-Man"), "a");
+    key(choice("Spider-Man"), "ArrowDown");
+    key(choice("Spider-Man"), "Escape");
+    await flushPromises();
+    expect(reached).toEqual(["ArrowDown", "Escape"]);
+    expect(browserStore.setSettings).not.toHaveBeenCalled();
+    expect(wrapper.vm.menu).toBe(false);
+  });
+
+  test("back at the filter list, stale choices are fetched again", async () => {
+    const { content, browserStore } = await openCharacters({
+      choicesStale: true,
+    });
+    browserStore.loadAvailableFilterChoices.mockClear();
+    content.querySelector(".filterHeaderTitle").click();
+    await flushPromises();
+    expect(browserStore.filterMode).toBe("base");
+    expect(browserStore.loadAvailableFilterChoices).toHaveBeenCalledOnce();
+  });
+
+  test("back at the filter list, fresh choices are kept", async () => {
+    const { content, browserStore } = await openCharacters();
+    browserStore.loadAvailableFilterChoices.mockClear();
+    content.querySelector(".filterHeaderTitle").click();
+    await flushPromises();
+    expect(browserStore.loadAvailableFilterChoices).not.toHaveBeenCalled();
+  });
+
+  test("in a sub-menu, Clear All Filters gives way to its own Clear Filter", async () => {
+    const { content } = await openCharacters({
+      filters: { characters: [1] },
+    });
+    const titles = [...content.querySelectorAll(".clearFilter")].map((row) =>
+      row.textContent.trim(),
+    );
+    expect(titles).toEqual(["Clear Filter"]);
+  });
+
+  test("the filter list shows how many values are ticked", async () => {
+    const { content } = await mountOpenMenu({
+      filters: { characters: [1, 2] },
+      dynamic: { characters: CHARACTERS },
+    });
+    const row = content.querySelector(".filterTickedCount");
+    expect(row.textContent.trim()).toBe("2");
+  });
+});
+
 describe("BrowserFilterBySelect — the store knows the menu is open", () => {
   test("opening and closing tell the store", async () => {
     const { wrapper, browserStore } = await mountOpenMenu();
     expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(true);
     wrapper.vm.menu = false;
     await flushPromises();
+    expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(false);
+  });
+
+  test("leaving the page with the menu open tells the store it closed", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu();
+    wrapper.unmount();
+    wrappers.length = 0;
     expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(false);
   });
 });

@@ -31,8 +31,12 @@
       </v-icon>
     </template>
     <template #prepend-item>
+      <!--
+        Rows of the filter list itself. While a sub-menu is open it shows
+        only its own rows, so a first tick there adds no row above it.
+      -->
       <v-list-item
-        v-if="isFiltersClearable"
+        v-if="isFiltersClearable && isBaseMode"
         density="compact"
         variant="plain"
         class="clearFilter"
@@ -42,7 +46,7 @@
       />
     </template>
     <template #append-item>
-      <v-divider />
+      <v-divider v-if="isBaseMode" />
       <v-list-item
         v-if="dynamicChoiceNames === undefined"
         density="compact"
@@ -70,7 +74,7 @@
 
 <script>
 import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
@@ -114,11 +118,9 @@ export default {
       bookmarkFilter: (state) =>
         state.settings.filters.bookmark || state.choices.static.bookmark[0],
       filters: (state) => state.settings.filters,
+      isBaseMode: (state) => state.filterMode === "base",
       filterMenuClass: function (state) {
-        /*
-         * Let me hide bookmark menu items with css when the filterMode
-         *   changes.
-         */
+        // Hides the bookmark rows while a sub-menu is open: global.scss.
         let clsName = "filterMenu";
         if (state.filterMode !== "base") {
           clsName += "Hidden";
@@ -167,7 +169,6 @@ export default {
         return names;
       },
     }),
-    ...mapWritableState(useBrowserStore, ["filterMode"]),
     padRight() {
       return this.$vuetify.display.xs && !this.bookmarkFilter;
     },
@@ -182,22 +183,28 @@ export default {
       this.setFilterMenuOpen(open);
     },
   },
+  beforeUnmount() {
+    // Leaving with the menu open, as to the reader, closes it for the store.
+    if (this.menu) {
+      this.setFilterMenuOpen(false);
+    }
+  },
   methods: {
     ...mapActions(useBrowserStore, [
       "clearFilters",
       "loadAvailableFilterChoices",
       "setFilterMenuOpen",
       "setSettings",
+      "tickFilters",
     ]),
     onUpdateModelValue(bookmark) {
-      const data = { filters: { bookmark } };
-      this.onSubMenuSelected(data);
-    },
-    onSubMenuSelected(settings) {
-      // On sub-menu click, close the menu and reset the filter mode.
+      // A bookmark pick applies and closes the menu; closing resets it.
       this.menu = false;
-      this.setSettings(settings);
-      this.filterMode = "base";
+      this.setSettings({ filters: { bookmark } });
+    },
+    onSubMenuSelected({ filters }) {
+      // A tick: the menu stays open on its sub-menu, the page reloads behind.
+      this.tickFilters(filters);
     },
     async onClear() {
       try {

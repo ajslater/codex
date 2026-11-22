@@ -7,12 +7,18 @@
         variant="plain"
         :title="title"
         :active="isActive"
-        :append-icon="filterMenuIcon"
         @click="setUIFilterMode(name)"
-      />
+      >
+        <template #append>
+          <span v-if="tickedCount" class="filterTickedCount">{{
+            tickedCount
+          }}</span>
+          <v-icon :icon="filterMenuIcon" />
+        </template>
+      </v-list-item>
     </v-slide-x-transition>
     <v-slide-x-reverse-transition hide-on-leave>
-      <div v-if="filterMode === name">
+      <div v-if="filterMode === name" @keydown="onSubMenuKeydown">
         <header class="filterHeader">
           <v-list-item
             class="filterHeaderTitle"
@@ -20,12 +26,18 @@
             :title="lowerTitle"
             @click="setUIFilterMode('base')"
           />
+          <!--
+            Kept in place, unseen, with nothing ticked: the first tick
+            would otherwise push every row down under the pointer.
+          -->
           <v-list-item
-            v-if="isClearable"
             density="compact"
             class="clearFilter"
+            :class="{ clearFilterIdle: !isClearable }"
             title="Clear Filter"
             :append-icon="mdiCloseCircleOutline"
+            :disabled="!isClearable"
+            :aria-hidden="isClearable ? undefined : 'true'"
             @click="onClear"
           />
           <v-text-field
@@ -132,6 +144,11 @@ const FILTER_TITLE_OVERRIDES = {
 };
 // Tab values are the filter keys; "Standardized" is the default tab.
 const AGE_RATING_DEFAULT_TAB = "ageRatingMetron";
+// A tick in one Age Rating tab narrows the other tab's choices.
+const OTHER_AGE_RATING_TAB = Object.freeze({
+  ageRatingMetron: "ageRatingTagged",
+  ageRatingTagged: "ageRatingMetron",
+});
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -150,6 +167,8 @@ export default {
       mdiCloseCircleOutline,
       search: "",
       activeTab: AGE_RATING_DEFAULT_TAB,
+      // The Age Rating tab to refetch once the page reloads after a tick.
+      refreshAfterLoad: undefined,
     };
   },
   computed: {
@@ -164,6 +183,8 @@ export default {
       taggedChoices: (state) => state.choices.dynamic.ageRatingTagged,
       metronFilter: (state) => state.settings.filters.ageRatingMetron,
       taggedFilter: (state) => state.settings.filters.ageRatingTagged,
+      choicesStale: (state) => state.choicesStale,
+      page: (state) => state.page,
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     isAgeRating() {
@@ -221,6 +242,17 @@ export default {
     filterMenuIcon() {
       return this.isActive ? mdiChevronRightCircle : mdiChevronRight;
     },
+    tickedCount() {
+      if (this.isAgeRating) {
+        return (
+          (this.metronFilter?.length ?? 0) + (this.taggedFilter?.length ?? 0)
+        );
+      }
+      return this.filter?.length ?? 0;
+    },
+    isOpen() {
+      return this.filterMode === this.name;
+    },
     isClearable() {
       if (this.isAgeRating) {
         return this.metronHasSelections || this.taggedHasSelections;
@@ -263,6 +295,27 @@ export default {
         this.activeTab = AGE_RATING_DEFAULT_TAB;
       }
     },
+    page() {
+      /*
+       * The page reloaded after a tick. Under Any a filter's own value
+       * leaves its own list alone, so only the other Age Rating tab can
+       * have changed; refetch it in place.
+       */
+      const key = this.refreshAfterLoad;
+      if (!key || !this.isOpen) {
+        return;
+      }
+      this.refreshAfterLoad = undefined;
+      this.loadFilterChoices(key);
+    },
+    choices(value) {
+      this._loadIfEmptied(this.name, value);
+    },
+    taggedChoices(value) {
+      if (this.isAgeRating) {
+        this._loadIfEmptied("ageRatingTagged", value);
+      }
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, [
@@ -275,10 +328,19 @@ export default {
       this.filterMode = mode;
       this.search = "";
       this.activeTab = AGE_RATING_DEFAULT_TAB;
+      this.refreshAfterLoad = undefined;
       if (mode === "base") {
+        /*
+         * Back at the filter list: refetch which filters are on offer
+         * once, here, after ticks made them stale. It is the slow request,
+         * so it is never sent per tick. The rows stay until it answers.
+         */
+        if (this.choicesStale) {
+          this.loadAvailableFilterChoices();
+        }
         return;
       }
-      if (typeof this.choices !== "object") {
+      if (typeof this.choices !== "object" || this.choicesStale) {
         this.loadFilterChoices(mode);
       }
       /*
@@ -286,8 +348,32 @@ export default {
        * so the As-tagged panel can render without its own loading
        * state when the user expands it.
        */
-      if (this.isAgeRating && typeof this.taggedChoices !== "object") {
+      if (
+        this.isAgeRating &&
+        (typeof this.taggedChoices !== "object" || this.choicesStale)
+      ) {
         this.loadFilterChoices("ageRatingTagged");
+      }
+    },
+    _loadIfEmptied(fieldName, value) {
+      // Choices replaced while this sub-menu is open load again, in place.
+      if (this.isOpen && typeof value !== "object") {
+        this.loadFilterChoices(fieldName);
+      }
+    },
+    onSubMenuKeydown(event) {
+      /*
+       * Vuetify's select picks a bookmark for any printable key pressed
+       * in its list, and a bookmark pick closes the menu. Keep those keys
+       * in the sub-menu; Escape and the navigation keys go through.
+       */
+      const isPrintable =
+        event.key?.length === 1 &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey;
+      if (isPrintable) {
+        event.stopPropagation();
       }
     },
     onSearchKeydown(event) {
@@ -307,6 +393,7 @@ export default {
       this.$emit("selected", { filters: { [this.name]: value } });
     },
     onAgeRatingSelected(key, value) {
+      this.refreshAfterLoad = OTHER_AGE_RATING_TAB[key];
       this.$emit("selected", { filters: { [key]: value } });
     },
     async _loadSubAvailableFilterChoices() {
@@ -393,6 +480,16 @@ export default {
 
   .clearFilter:hover {
     opacity: 1;
+  }
+
+  .clearFilterIdle {
+    visibility: hidden;
+  }
+
+  .filterTickedCount {
+    margin-right: 4px;
+    color: rgb(var(--v-theme-primary));
+    font-size: smaller;
   }
 
   /*
