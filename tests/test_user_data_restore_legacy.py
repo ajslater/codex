@@ -176,6 +176,7 @@ class TaggingDefaultsRestoreTests(TestCase):
             "metron_key": "token",
             "comicvine_key": "",
             "comicvine_url": "",
+            "versedb_key": "versedb-token",
         }
         row.update(overrides)
         return row
@@ -195,6 +196,22 @@ class TaggingDefaultsRestoreTests(TestCase):
         defaults = _build_tagging_defaults(row)
         assert "metron_key" not in defaults
         assert defaults["default_match_mode"] == "auto"
+
+    def test_versedb_key_round_trips(self) -> None:
+        from codex.user_data.restore import _build_tagging_defaults
+
+        defaults = _build_tagging_defaults(self._row())
+        assert defaults["versedb_key"] == "versedb-token"
+
+    def test_sidecar_without_versedb_key_restores(self) -> None:
+        """A backup from before VerseDB has no such column; the default stands."""
+        from codex.user_data.restore import _build_tagging_defaults
+
+        row = self._row()
+        del row["versedb_key"]
+        defaults = _build_tagging_defaults(row)
+        assert "versedb_key" not in defaults
+        assert defaults["metron_key"] == "token"
 
     def test_comicvine_url_round_trips(self) -> None:
         from codex.user_data.restore import _build_tagging_defaults

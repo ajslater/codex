@@ -83,11 +83,11 @@ class OnlineTagOutcomeStats:
     no_change_paths: set[Path] = field(default_factory=set)
     deferred_paths: set[Path] = field(default_factory=set)
     errored_paths: set[Path] = field(default_factory=set)
-    # Comics a source declined to look up because the day's API quota was
-    # down to its reserve. Deliberately NOT an outcome: nobody looked at
-    # these, so they stay out of the terminal buckets and stay in the
-    # resume set for the next run, instead of being recorded as comics no
-    # source could find.
+    # Comics a source declined to look up because its daily API quota was
+    # spent or down to its reserve. Deliberately NOT an outcome: that source
+    # never looked, so unless another source settled the comic it stays out
+    # of the terminal buckets and in the resume set for the next run,
+    # instead of being recorded as a comic no source could find.
     quota_reserved_paths: set[Path] = field(default_factory=set)
 
     def record(self, event: Event) -> None:
@@ -105,20 +105,25 @@ class OnlineTagOutcomeStats:
             ):
                 self.quota_reserved_paths.add(path)
             case FileFinished(path=path, outcome=outcome) if path:
-                if outcome == "written":
-                    self.written_paths.add(path)
-                elif path not in self.quota_reserved_paths:
-                    # A comic the quota reserve skipped finishes "no_change"
-                    # like any unmatched one, but it is not a miss — it was
-                    # never searched for. Leaving it out of the bucket keeps
-                    # it queued and resumable.
-                    self.no_change_paths.add(path)
+                self._record_finished(path, outcome)
             case PromptDeferred(path=path) if path:
                 self.deferred_paths.add(path)
             case FileError(path=path) if path:
                 self.errored_paths.add(path)
             case _:
                 pass
+
+    def _record_finished(self, path: Path, outcome: str) -> None:
+        """Put a finished comic in its terminal bucket, if it has one."""
+        if outcome == "written":
+            self.written_paths.add(path)
+        elif path not in self.quota_reserved_paths or path in self.deferred_paths:
+            # A comic the quota reserve skipped finishes "no_change" like any
+            # unmatched one, but it is not a miss — it was never searched
+            # for. Leaving it out of the bucket keeps it queued and
+            # resumable. One another source deferred for review is settled
+            # all the same: it waits on that prompt, not on the next run.
+            self.no_change_paths.add(path)
 
     def _record_source_status(self, event: Event) -> None:
         """
@@ -241,6 +246,18 @@ class OnlineTagOutcomeStats:
         return len(self.errored_paths)
 
     @property
+    def left_for_next_run(self) -> int:
+        """
+        Comics a quota kept a source from, that no other source settled.
+
+        Under merge-all a comic can be quota-skipped by one source and written
+        or deferred by another; it is done, so counting it here too would
+        report one comic twice.
+        """
+        settled = self.written_paths | self.no_change_paths | self.errored_paths
+        return len(self.quota_reserved_paths - settled)
+
+    @property
     def total(self) -> int:
         """Comics that produced any outcome this session."""
         return self.matched + len(self.no_change_paths) + self.errored
@@ -267,7 +284,7 @@ class OnlineTagOutcomeStats:
         parts = [matched, f"{self.skipped} skipped"]
         if self.deferred:
             parts.append(f"{self.deferred} deferred for manual prompts")
-        if reserved := len(self.quota_reserved_paths):
+        if reserved := self.left_for_next_run:
             parts.append(f"{reserved} left for the next run (daily API quota)")
         if self.errored:
             parts.append(f"{self.errored} errored")

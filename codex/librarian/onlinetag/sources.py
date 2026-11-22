@@ -99,9 +99,19 @@ _REGISTRY: Final[Mapping[str, OnlineTagSource]] = MappingProxyType(
                 class_name="ComicVineOnlineSource",
                 key_field="comicvine_key",
                 url_field="comicvine_url",
-                # Comic Vine's pools are hourly; the chip speaks per-minute
-                # and per-day.
+                # Comic Vine keeps a pool per endpoint; no one window speaks
+                # for the account.
                 rate_limit_windows=MappingProxyType({}),
+            ),
+            OnlineTagSource(
+                name="versedb",
+                module="comicbox.formats.versedb_api.online_source",
+                class_name="VerseDBOnlineSource",
+                key_field="versedb_key",
+                # comicbox takes a versedb_url, but nobody runs a mirror.
+                url_field=None,
+                # Read off the probe response's X-RateLimit-* headers.
+                rate_limit_windows=MappingProxyType({"hourly": "hour"}),
             ),
         )
     }

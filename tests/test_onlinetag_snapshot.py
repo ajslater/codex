@@ -335,6 +335,26 @@ def test_sources_strip_reports_comic_vines_tightest_pool() -> None:
     assert by_source["comicvine"]["budget_window"] == "hour"
 
 
+def test_sources_strip_reports_versedbs_hourly_window() -> None:
+    """VerseDB's one window is hourly, and it carries no reset time."""
+    limit = 300
+    remaining = 287
+    state = _state([("/c/1.cbz", 1)], sources=("metron", "versedb"))
+    state.session = _FakeSession(  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[invalid-assignment]
+        {
+            "metron": {},
+            "versedb": {
+                "hour": {"limit": limit, "remaining": remaining, "reset_epoch": None}
+            },
+        }
+    )
+    snap = _build(state)
+    by_source = {s["source"]: s for s in snap["sources"]}
+    assert by_source["versedb"]["sustained_limit"] == limit
+    assert by_source["versedb"]["sustained_remaining"] == remaining
+    assert by_source["versedb"]["budget_window"] == "hour"
+
+
 def test_rate_limited_source_reads_as_waiting_on_the_in_flight_comic() -> None:
     """A throttled source shows Waiting on the comic it's stalling, only there."""
     future_retry = 1030.0

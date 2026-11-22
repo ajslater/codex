@@ -408,10 +408,11 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
         "metron_key": "",
         "comicvine_key": "",
         "comicvine_url": "",
+        "versedb_key": "",
     }
     # ``sqlite3.Row`` raises on a missing column, so skip what a sidecar
-    # predating a column doesn't carry (e.g. metron_key) and let the model
-    # default stand.
+    # predating a column doesn't carry (e.g. metron_key, versedb_key) and let
+    # the model default stand.
     cols = set(row.keys())
     defaults: dict[str, Any] = {
         key: row[key] or fallback for key, fallback in coalesced.items() if key in cols

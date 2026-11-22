@@ -202,6 +202,7 @@ def get_tagging_stats() -> dict[str, Any]:
         "default_format_count": len(formats) if isinstance(formats, list) else 0,
         "has_metron_credentials": bool(defaults.metron_key),
         "has_comicvine_credentials": bool(defaults.comicvine_key),
+        "has_versedb_credentials": bool(defaults.versedb_key),
         "comicvine_url_set": bool(defaults.comicvine_url),
     }
 

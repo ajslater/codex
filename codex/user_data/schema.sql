@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS tagging_defaults (
     metron_key TEXT NOT NULL DEFAULT '',
     comicvine_key TEXT NOT NULL DEFAULT '',
     comicvine_url TEXT NOT NULL DEFAULT '',
+    versedb_key TEXT NOT NULL DEFAULT '',
     updated_at TEXT
 );
 

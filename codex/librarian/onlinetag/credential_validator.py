@@ -3,7 +3,7 @@ Validate online-source credentials with comicbox's own probe.
 
 Used by the admin tagging settings page to give operators an immediate
 yes/no on whether a saved (or in-the-form) credential set actually
-works against Metron / Comic Vine — so they don't discover problems
+works against an online source — so they don't discover problems
 only when a real tagging run fails halfway through.
 
 Each source's ``probe()`` is its cheapest authenticated request, sent
@@ -18,6 +18,7 @@ A successful Metron check also reports the account's live rate limits,
 which the probe reads off the ``X-RateLimit-*`` headers of its own
 response. The daily "sustained" limit varies by Metron OpenCollective
 donor tier (5,000-25,000/day), so it is only discoverable this way.
+VerseDB's probe reads its hourly budget off the same headers.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ type _Windows = Mapping[str, Mapping[str, Any]]
 
 @dataclass(frozen=True, slots=True)
 class RateLimitWindowInfo:
-    """One rate-limit window (burst or sustained) as limit/remaining counts."""
+    """One rate-limit window (burst, hourly or sustained) as limit/remaining."""
 
     limit: int | None = None
     remaining: int | None = None
@@ -65,12 +66,13 @@ class RateLimitInfo:
     A source account's live rate limits, mirrored from the probe's windows.
 
     ``reset_epoch`` values are deliberately dropped: the burst window
-    resets within a minute (stale before an admin reads it) and the
-    sustained reset isn't worth datetime plumbing for a one-shot
-    validation chip.
+    resets within a minute (stale before an admin reads it), VerseDB
+    sends none for its hour, and the sustained reset isn't worth
+    datetime plumbing for a one-shot validation chip.
     """
 
     burst: RateLimitWindowInfo = RateLimitWindowInfo()
+    hourly: RateLimitWindowInfo = RateLimitWindowInfo()
     sustained: RateLimitWindowInfo = RateLimitWindowInfo()
 
 
@@ -106,6 +108,7 @@ def _rate_limits(spec: OnlineTagSource, windows: _Windows) -> RateLimitInfo | No
 _FALLBACK_ERRORS: Final[Mapping[RetryCategory | None, str]] = MappingProxyType(
     {
         RetryCategory.AUTH: "Authentication failed.",
+        RetryCategory.QUOTA: "Request limit reached.",
         RetryCategory.RATE_LIMIT: "Rate limited.",
     }
 )

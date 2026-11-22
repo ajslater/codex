@@ -83,7 +83,8 @@ class SessionState:
     match_mode: str = "auto"
     sources: tuple[str, ...] = ()
     # How much API budget a comic may spend against a fan-out source.
-    # Only Comic Vine fans out; it is what the time estimate turns on.
+    # Only Comic Vine fans out (Metron and VerseDB ignore effort); it is
+    # what the time estimate turns on.
     effort: str = "balanced"
 
     # Whether this scan queries every source per comic and merges
@@ -204,7 +205,7 @@ def serialize_candidate(c) -> dict[str, Any]:
             "publisher": getattr(summary, "publisher", ""),
             "cover_url": getattr(summary, "cover_url", ""),
             # The largest tier the source offers, when it offers one.
-            # Comic Vine has several; Metron sets it equal to cover_url
+            # Comic Vine and VerseDB have several; Metron sets it equal to cover_url
             # because its one image is already full size. comicbox owns
             # the "genuinely larger" guarantee, so the frontend gates
             # the hover on this being truthy and never on it differing.
@@ -212,22 +213,24 @@ def serialize_candidate(c) -> dict[str, Any]:
             # Alternative series names comicbox scored this candidate on.
             # Empty for sources whose search results don't carry them.
             "alt_series": list(getattr(summary, "alt_series", ())),
-            # The series' ordinal volume. Metron's issue rows carry one;
-            # Comic Vine's search results have no equivalent.
+            # The series' ordinal volume. Metron's and VerseDB's rows carry
+            # one; Comic Vine's search results have no equivalent.
             "volume": getattr(summary, "volume", None),
             # What tells apart candidates whose covers and titles read
             # identically: a reprint volume, a foreign or a collected
             # edition. Comic Vine fills most of these from rows it already
-            # fetched. Metron always has the start year, but gets the
-            # format, publisher and issue count only when titles collide.
+            # fetched, and VerseDB all four. Metron always has the start
+            # year, but gets the format, publisher and issue count only
+            # when titles collide.
             # Absent before comicbox 5.4, and None wherever a source has
             # nothing.
             "series_start_year": getattr(summary, "series_start_year", None),
             "series_publisher": getattr(summary, "series_publisher", None),
             "series_issue_count": getattr(summary, "series_issue_count", None),
-            # Publication format, e.g. "Trade Paperback". Metron only.
+            # Publication format, e.g. "Trade Paperback". Metron and VerseDB.
             "series_type": getattr(summary, "series_type", None),
-            # The issue's own title and one-line deck. Comic Vine only.
+            # The issue's own title and one-line deck. Comic Vine fills
+            # both, VerseDB the title.
             "issue_title": getattr(summary, "issue_title", None),
             "issue_summary": getattr(summary, "issue_summary", None),
         },

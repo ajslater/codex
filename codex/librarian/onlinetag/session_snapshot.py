@@ -215,8 +215,8 @@ def record_resolution(pk: int | None, status: str, source: str | None = None) ->
     if source:
         record["sources"][source] = status
     # Under merge_all_sources one comic can raise a prompt per source, so the
-    # file-level status is a reduction: a match from either source is the
-    # outcome that matters and outranks the other's skip.
+    # file-level status is a reduction: a match from any source is the
+    # outcome that matters and outranks the others' skips.
     seen = (*record["sources"].values(), record["status"], status)
     record["status"] = USER_MATCHED if USER_MATCHED in seen else status
     outcomes[pk] = record
@@ -454,12 +454,13 @@ def _budget_window(windows: Mapping[str, Any]) -> tuple[str, Mapping[str, Any]]:
     """
     Pick the one window worth showing out of a source's budget, and name it.
 
-    The two services meter differently. Metron reports a burst and a
+    The services meter differently. Metron reports a burst and a
     sustained window; the sustained one is the interesting one, because
     its daily limit varies by donor tier while the burst cap is the
     static per-minute rate already on screen. Comic Vine meters per
     endpoint pool and reports one window per pool it has used, all of
     them hourly, so the tightest is the one that will stop the run.
+    VerseDB reports its one hourly window.
 
     Returns ``("", {})`` for a source with no data yet.
     """

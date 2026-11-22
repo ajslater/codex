@@ -69,3 +69,54 @@ def test_shape_identifiers_empty_input():
     """``None`` and ``[]`` both shape to an empty list."""
     assert shape_identifiers(None) == []
     assert shape_identifiers([]) == []
+
+
+_VERSEDB_URL: Final = "https://versedb.com/issue/1215061/amazing-spider-man-1"
+
+
+def test_a_versedb_id_takes_its_link_from_the_comic_s_urls():
+    """Comicbox derives no VerseDB url, since its pages need a slug."""
+    rows = shape_identifiers(
+        [_identifier(1, "versedb", "comic", "1215061")],
+        ["https://example.com/elsewhere", _VERSEDB_URL],
+    )
+
+    assert rows[0]["url"] == _VERSEDB_URL
+
+
+def test_a_url_for_another_issue_is_not_borrowed():
+    """Only the page of this exact key is borrowed."""
+    rows = shape_identifiers(
+        [_identifier(1, "versedb", "comic", "999")],
+        [_VERSEDB_URL, "https://versedb.com/series/999/x"],
+    )
+
+    assert rows[0]["url"] == ""
+
+
+def test_a_url_of_another_type_is_not_borrowed():
+    """A series page with the same number is not the issue's page."""
+    rows = shape_identifiers(
+        [_identifier(1, "versedb", "series", "1215061")],
+        [_VERSEDB_URL],
+    )
+
+    assert rows[0]["url"] == ""
+
+
+def test_a_derivable_source_keeps_its_own_url():
+    """A url comicbox derived is never replaced by one from ``urls``."""
+    own = "https://metron.cloud/issue/42/"
+    rows = shape_identifiers(
+        [_identifier(1, "metron", "comic", "42", url=own)],
+        ["https://metron.cloud/issue/43/"],
+    )
+
+    assert rows[0]["url"] == own
+
+
+def test_non_string_urls_are_ignored():
+    """A malformed ``urls`` tag degrades to no link, not an exception."""
+    rows = shape_identifiers([_identifier(1, "versedb", "comic", "1215061")], [None, 7])
+
+    assert rows[0]["url"] == ""

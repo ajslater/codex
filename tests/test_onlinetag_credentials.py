@@ -56,3 +56,26 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
             },
         )
         assert self.manager._build_credentials() is None  # noqa: SLF001
+
+
+class VerseDBCredentialsTests(OnlineTagSessionTestCase):
+    """VerseDB's key reaches comicbox like the other two."""
+
+    def test_the_credentials_carry_the_versedb_key(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "t", "versedb_key": "v"}
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        assert credentials.versedb_key == "v"
+        # Codex stores no VerseDB url, so comicbox's default stands.
+        assert credentials.versedb_url is None
+        assert configured_sources(credentials) == ("metron", "versedb")
+
+    def test_a_versedb_key_alone_configures_the_install(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "", "comicvine_key": "", "versedb_key": "v"}
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        assert configured_sources(credentials) == ("versedb",)

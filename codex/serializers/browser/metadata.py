@@ -12,16 +12,18 @@ parsed out of the model-side ``Identifier.name``
 display label backend-side via the comicbox ID-source map.
 """
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any, override
 
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 from rest_framework.fields import CharField, SerializerMethodField
 from rest_framework.serializers import IntegerField, ListField, Serializer, URLField
 
+from codex.models.identifier import to_comicbox_id_type
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
 from codex.serializers.models.named import StoryArcNumberSerializer
+from codex.views.admin.identifier_parse import parse_identifier_url
 
 PREFETCH_PREFIX = "attached_"
 
@@ -131,19 +133,43 @@ def pivot_credits(credit_rows) -> dict[str, list[dict[str, Any]]]:
     return ordered
 
 
-def shape_identifiers(identifiers) -> list[dict[str, Any]]:
+def _url_from_urls(source: str, id_type: str, key: str, urls: Iterable[Any]) -> str:
+    """
+    Return the comic's own link to this identifier's page, or "".
+
+    Some sources' pages need more than the key (VerseDB's carry a slug), so
+    comicbox derives no url for them and the stored one is empty. The comic's
+    ``urls`` tag may still hold the page: take the entry that parses back to
+    this exact source, type and key. Derived here and never stored.
+    """
+    wanted = (source, to_comicbox_id_type(id_type), str(key))
+    for url in urls:
+        if isinstance(url, str) and parse_identifier_url(url) == wanted:
+            return url
+    return ""
+
+
+def shape_identifiers(
+    identifiers, urls: Iterable[Any] | None = ()
+) -> list[dict[str, Any]]:
     """
     Reshape ``[Identifier]`` → ``[{source, type, code, displayName, pk, url}]``.
 
     ``source`` is the raw source name (e.g. ``"comicvine"``) that the tag
     editor's Source select binds to; ``displayName`` is its human label
-    (e.g. ``"Comic Vine"``) shown in the read-only metadata pane.
+    (e.g. ``"Comic Vine"``) shown in the read-only metadata pane. An
+    identifier with no url of its own takes its link from the comic's
+    ``urls`` when one of them is that identifier's page.
     """
+    urls = tuple(urls or ())
     out: list[dict[str, Any]] = []
     for identifier in identifiers or ():
         source = getattr(identifier, "source", None)
         source_name = source.name if source else ""
         display_name = _SOURCE_DISPLAY_MAP.get(source_name, source_name)
+        url = identifier.url or _url_from_urls(
+            source_name, identifier.id_type, identifier.key, urls
+        )
         out.append(
             {
                 "pk": identifier.pk,
@@ -151,7 +177,7 @@ def shape_identifiers(identifiers) -> list[dict[str, Any]]:
                 "type": identifier.id_type,
                 "code": identifier.key,
                 "displayName": display_name,
-                "url": identifier.url or "",
+                "url": url,
             }
         )
     return out
@@ -260,7 +286,9 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
 
     def get_identifiers(self, obj):
         """Reshape the prefetched identifiers list."""
-        return shape_identifiers(getattr(obj, "attached_identifiers", None))
+        return shape_identifiers(
+            getattr(obj, "attached_identifiers", None), getattr(obj, "urls", None)
+        )
 
     class Meta(ComicSerializer.Meta):
         """Configure the model."""

@@ -2,13 +2,11 @@
 The online-tag source registry, and what a source codex never registered does.
 
 Codex drives only the sources registered in ``codex.librarian.onlinetag.sources``.
-comicbox can know more: comicbox 5.7 adds ``versedb`` to ``SOURCE_NAMES``
-before codex can drive it. Such a source must be inert everywhere codex takes
-a source name: refused with a 400 or a user-facing message, never a 500, and
-never handed another source's key. ``_UNREGISTERED`` names it. These tests
-hold on any comicbox, because codex has to refuse that name whether comicbox
-knows it or not; the registry's own filtering is tested on a made-up
-comicbox vocabulary.
+comicbox can know more than codex has registered (it knew ``versedb`` before
+codex could drive it). Such a source must be inert everywhere codex takes a
+source name: refused with a 400 or a user-facing message, never a 500, and
+never handed another source's key. ``_UNREGISTERED`` stands in for it; the
+registry's own filtering is tested on a made-up comicbox vocabulary.
 """
 
 import json
@@ -24,13 +22,14 @@ from comicbox.formats.base.online import SOURCE_NAMES
 from comicbox.formats.base.online.sources.base import OnlineSource
 from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
 from comicbox.formats.metron_api.online_source import MetronOnlineSource
+from comicbox.formats.versedb_api.online_source import VerseDBOnlineSource
 from comicbox.online_estimate import requests_per_comic
-from comicbox.online_session import OnlineCredentials
+from comicbox.online_session import OnlineCredentials, source_attribution
 from django.contrib.auth.models import User
 from django.test import Client, SimpleTestCase, TestCase
 
 from codex.choices.admin import TAGGING_CHOICES
-from codex.choices.onlinetag import TAGGING_ESTIMATE
+from codex.choices.onlinetag import SOURCE_ATTRIBUTION, TAGGING_ESTIMATE
 from codex.librarian.onlinetag.credential_validator import (
     KNOWN_SOURCES,
     validate_credentials,
@@ -48,15 +47,21 @@ from codex.models import ComicboxTaggingDefaults
 from codex.serializers.admin.tagging import OnlineTagStartSerializer
 from codex.views.admin.identifier_parse import parse_identifier_input
 
-#: A source comicbox may know (comicbox 5.7 does) that codex has not registered.
-_UNREGISTERED: Final = "versedb"
+#: A source comicbox might add that codex has not registered.
+_UNREGISTERED: Final = "newsource"
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _DEFAULTS_URL: Final = "/api/v4/admin/tagging-defaults"
 _VALIDATE_URL: Final = f"{_DEFAULTS_URL}/validate"
 _START_URL: Final = "/api/v4/admin/tag-sessions/start"
+_ALL_SOURCES: Final = ("metron", "comicvine", "versedb")
 _COMICVINE_PER_HOUR: Final = 200
+_VERSEDB_PER_HOUR: Final = 300
+_VERSEDB_PER_DAY: Final = 4000
 _FULL_CREDS: Final = OnlineCredentials(
-    metron_key="m", comicvine_key="c", comicvine_url="https://cv.example.com/api"
+    metron_key="m",
+    comicvine_key="c",
+    comicvine_url="https://cv.example.com/api",
+    versedb_key="v",
 )
 
 
@@ -64,22 +69,27 @@ class RegistryTests(SimpleTestCase):
     """The registry filters comicbox's names and describes each source."""
 
     def test_an_unregistered_comicbox_source_is_filtered_out(self) -> None:
-        names = ("metron", "comicvine", _UNREGISTERED)
-        assert supported_sources(names) == ("metron", "comicvine")
+        names = (*_ALL_SOURCES, _UNREGISTERED)
+        assert supported_sources(names) == _ALL_SOURCES
 
     def test_comicbox_order_is_kept(self) -> None:
-        names = ("comicvine", _UNREGISTERED, "metron")
-        assert supported_sources(names) == ("comicvine", "metron")
+        names = ("versedb", _UNREGISTERED, "comicvine", "metron")
+        assert supported_sources(names) == ("versedb", "comicvine", "metron")
 
     def test_supported_sources_derive_from_comicbox(self) -> None:
         assert supported_sources(SOURCE_NAMES) == SUPPORTED_SOURCES
-        assert SUPPORTED_SOURCES == ("metron", "comicvine")
+        assert SUPPORTED_SOURCES == _ALL_SOURCES
         assert tuple(SOURCES) == SUPPORTED_SOURCES
         assert frozenset(SUPPORTED_SOURCES) == KNOWN_SOURCES
 
     def test_credential_fields_exist_on_both_ends(self) -> None:
         """Each field is a model column and a comicbox credential of one name."""
-        assert CREDENTIAL_FIELDS == ("metron_key", "comicvine_key", "comicvine_url")
+        assert CREDENTIAL_FIELDS == (
+            "metron_key",
+            "comicvine_key",
+            "comicvine_url",
+            "versedb_key",
+        )
         for field in CREDENTIAL_FIELDS:
             ComicboxTaggingDefaults._meta.get_field(field)
             assert field in OnlineCredentials.__dataclass_fields__
@@ -89,6 +99,7 @@ class RegistryTests(SimpleTestCase):
         assert classes == {
             "metron": MetronOnlineSource,
             "comicvine": ComicVineOnlineSource,
+            "versedb": VerseDBOnlineSource,
         }
         for source in SOURCES.values():
             assert issubclass(source.source_class(), OnlineSource)
@@ -96,7 +107,7 @@ class RegistryTests(SimpleTestCase):
 
     def test_labels_are_comicbox_display_names(self) -> None:
         labels = [source.label for source in SOURCES.values()]
-        assert labels == ["Metron", "Comic Vine"]
+        assert labels == ["Metron", "Comic Vine", "VerseDB"]
 
 
 class SourceCredentialsTests(SimpleTestCase):
@@ -111,6 +122,11 @@ class SourceCredentialsTests(SimpleTestCase):
             OnlineSourceCredentials(key="c", url="https://cv.example.com/api")
         )
 
+    def test_versedb_takes_its_key_and_no_url(self) -> None:
+        """Codex stores no VerseDB url, so none is ever forwarded."""
+        creds = OnlineCredentials(versedb_key="v", versedb_url="https://x.example")
+        assert source_credentials("versedb", creds) == OnlineSourceCredentials(key="v")
+
     def test_blank_values_are_unset(self) -> None:
         creds = OnlineCredentials(comicvine_key="", comicvine_url="")
         assert source_credentials("comicvine", creds) == OnlineSourceCredentials()
@@ -122,10 +138,8 @@ class SourceCredentialsTests(SimpleTestCase):
         )
 
     def test_configured_sources_reads_comicbox_credentials(self) -> None:
-        assert configured_sources(_FULL_CREDS) == ("metron", "comicvine")
-        assert configured_sources(OnlineCredentials(comicvine_key="c")) == (
-            "comicvine",
-        )
+        assert configured_sources(_FULL_CREDS) == _ALL_SOURCES
+        assert configured_sources(OnlineCredentials(versedb_key="v")) == ("versedb",)
 
     def test_a_url_alone_configures_nothing(self) -> None:
         creds = OnlineCredentials(comicvine_url="https://cv.example.com/api")
@@ -160,15 +174,7 @@ class UnregisteredSourceIdentifierTests(SimpleTestCase):
     def test_its_prefix_is_an_unknown_source(self) -> None:
         with pytest.raises(ValueError, match="Unknown source") as exc_info:
             parse_identifier_input(f"{_UNREGISTERED}:123")
-        assert str(exc_info.value).endswith("Use metron or comicvine.")
-
-    def test_its_url_is_refused(self) -> None:
-        # comicbox 5.7 parses the domain and codex says the source isn't
-        # supported; an older comicbox doesn't know the domain, so the url
-        # falls through to an unknown ``https:`` prefix. Either way the
-        # operator is told which sources codex takes.
-        with pytest.raises(ValueError, match=r"(?i)metron"):
-            parse_identifier_input("https://versedb.com/issue/1215061/some-issue")
+        assert str(exc_info.value).endswith("Use metron, comicvine, or versedb.")
 
 
 def _make_admin() -> User:
@@ -188,7 +194,7 @@ class UnregisteredSourceEndpointTests(TestCase):
         self.client = Client()
         self.client.force_login(_make_admin())
         ComicboxTaggingDefaults.objects.update_or_create(
-            pk=1, defaults={"metron_key": "m", "comicvine_key": "c"}
+            pk=1, defaults={"metron_key": "m", "comicvine_key": "c", "versedb_key": "v"}
         )
 
     def _post(self, url: str, data: dict):
@@ -199,11 +205,12 @@ class UnregisteredSourceEndpointTests(TestCase):
         with (
             patch.object(MetronOnlineSource, "probe", return_value=None),
             patch.object(ComicVineOnlineSource, "probe", return_value=None),
+            patch.object(VerseDBOnlineSource, "probe", return_value=None),
         ):
             response = self._post(_VALIDATE_URL, {})
         assert response.status_code == HTTPStatus.OK, response.content
         results = response.json()["data"]["results"]
-        assert set(results) == {"metron", "comicvine"}
+        assert set(results) == set(_ALL_SOURCES)
         assert all(result["ok"] for result in results.values())
 
     def test_validating_an_unregistered_source_is_a_400(self) -> None:
@@ -254,13 +261,14 @@ class ConfiguredSourcesFieldTests(TestCase):
         assert self._configured() == []
 
     def test_one(self) -> None:
-        assert self._configured(comicvine_key="c") == ["comicvine"]
+        assert self._configured(versedb_key="v") == ["versedb"]
 
-    def test_two_in_comicbox_order(self) -> None:
+    def test_all_three_in_comicbox_order(self) -> None:
         # Not run priority, which defaultSources holds.
-        assert self._configured(comicvine_key="c", metron_key="m") == [
+        assert self._configured(versedb_key="v", comicvine_key="c", metron_key="m") == [
             "metron",
             "comicvine",
+            "versedb",
         ]
 
     def test_a_url_alone_is_not_configured(self) -> None:
@@ -289,4 +297,27 @@ class TaggingEstimateTests(SimpleTestCase):
         assert tuple(rates) == SUPPORTED_SOURCES
         metron = rates["metron"]
         assert metron["per_hour"] == metron["per_minute"] * 60
+        assert metron["per_day"] is None
         assert rates["comicvine"]["per_hour"] == _COMICVINE_PER_HOUR
+        assert rates["comicvine"]["per_day"] is None
+        assert rates["versedb"]["per_hour"] == _VERSEDB_PER_HOUR
+        assert rates["versedb"]["per_day"] == _VERSEDB_PER_DAY
+
+
+class SourceAttributionTests(SimpleTestCase):
+    """The credit a source's terms require is comicbox's own text and link."""
+
+    def test_only_sources_that_ask_for_a_credit_appear(self) -> None:
+        assert set(SOURCE_ATTRIBUTION) == {"versedb"}
+
+    def test_the_credit_is_comicbox_s(self) -> None:
+        for source, credit in SOURCE_ATTRIBUTION.items():
+            expected = source_attribution(source)
+            assert expected is not None
+            assert dict(credit) == {"text": expected.text, "url": expected.url}
+
+    def test_versedb_credit(self) -> None:
+        assert dict(SOURCE_ATTRIBUTION["versedb"]) == {
+            "text": "Data from VerseDB",
+            "url": "https://versedb.com",
+        }

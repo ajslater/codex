@@ -124,7 +124,7 @@ class ComicboxTaggingDefaults(BaseModel):
         How much API budget to spend per comic (mirrors comicbox.Effort).
 
         Only bites on sources that fan out per candidate, which today
-        means Comic Vine. Metron ignores it.
+        means Comic Vine. Metron and VerseDB ignore it.
 
         Unset is not the same as Balanced. Naming any value pins it, and
         comicbox reads a pin as a decision to leave alone; left unset it
@@ -168,6 +168,8 @@ class ComicboxTaggingDefaults(BaseModel):
 
     metron_key = EncryptedCharField()
     comicvine_key = EncryptedCharField()
+    # comicbox also takes a versedb_url, but no VerseDB mirror exists.
+    versedb_key = EncryptedCharField()
     # Points simyan at a Comic Vine proxy or mirror instead of the public API.
     # Not a secret, and the admin form echoes it back as a placeholder, so it
     # stays a plain URLField. Metron has no twin: mokkari hardcodes its

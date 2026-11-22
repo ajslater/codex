@@ -30,15 +30,15 @@ def _merge_credentials(
 
 
 class AdminTaggingValidateView(AdminAPIView):
-    """POST: validate Metron / Comic Vine credentials."""
+    """POST: validate online-source credentials."""
 
     def post(self, request):
         """
         Validate one or all known sources; return per-source ok/error.
 
-        Successful Metron results also carry the account's live rate
-        limits (``rate_limits``), read off the validation response's
-        ``X-RateLimit-*`` headers by mokkari.
+        Successful Metron and VerseDB results also carry the account's
+        live rate limits (``rate_limits``), read off the validation
+        response's ``X-RateLimit-*`` headers.
         """
         request_serializer = TaggingValidateRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
