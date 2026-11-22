@@ -214,7 +214,7 @@ describe("reading lists tab", () => {
     const items = () =>
       wrapper.vm.kindItems.map((item) => [item.value, item.title]);
     expect(items()).toEqual([
-      ["tags", "File Tags (1)"],
+      ["tags", "Story Arc Tags (1)"],
       ["catalog", "DieselTech Catalog (1)"],
     ]);
     // A ticked kind stays offered, so it can be unticked.

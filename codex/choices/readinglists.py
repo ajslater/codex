@@ -18,7 +18,7 @@ class ReadingListSourceKind(TextChoices):
     A closed vocabulary defined here, so telemetry may bucket counts by it.
     """
 
-    TAGS = "tags", "File Tags"
+    TAGS = "tags", "Story Arc Tags"
     UPLOAD = "upload", "Upload"
     URL = "url", "URL"
     CATALOG = "catalog", "DieselTech Catalog"

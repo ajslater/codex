@@ -496,7 +496,7 @@ class Migration(migrations.Migration):
                     "kind",
                     models.CharField(
                         choices=[
-                            ("tags", "File Tags"),
+                            ("tags", "Story Arc Tags"),
                             ("upload", "Upload"),
                             ("url", "URL"),
                             ("catalog", "DieselTech Catalog"),
