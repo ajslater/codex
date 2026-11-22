@@ -789,7 +789,7 @@ requires-dist = [
     { name = "asgiref", specifier = "~=3.12" },
     { name = "bidict", specifier = "~=0.23" },
     { name = "channels", specifier = "~=4.2" },
-    { name = "comicbox", extras = ["pdf"], editable = "/Users/aj/Code/comicbox/.claude/worktrees/vibrant-mayer-544fdb" },
+    { name = "comicbox", extras = ["pdf"], editable = "/Users/aj/Code/comicbox" },
     { name = "cryptography", specifier = ">=48.0.0" },
     { name = "dateparser", specifier = "~=1.2" },
     { name = "django", specifier = "~=6.0" },
@@ -871,7 +871,7 @@ wheels = [
 [[package]]
 name = "comicbox"
 version = "5.6.3"
-source = { editable = "/Users/aj/Code/comicbox/.claude/worktrees/vibrant-mayer-544fdb" }
+source = { editable = "/Users/aj/Code/comicbox" }
 dependencies = [
     { name = "bidict" },
     { name = "case-converter" },
