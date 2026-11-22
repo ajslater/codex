@@ -29,6 +29,7 @@ from codex.serializers.browser.choices import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
+from codex.views.browser.const import MATCH_ALL_KEY
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.browser.filters.reading_lists import (
     READING_LIST_KIND_FILTER,
@@ -491,13 +492,17 @@ class BrowserChoicesView(BrowserChoicesViewBase):
     @override
     def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[incompatible-method-override]
         """
-        Return the field's choices, its own filter left out.
+        Return the field's choices, its own filter left out under Any.
 
-        The Age Rating tabs are two fields; each leaves out its own key
-        only, so a tick in one still narrows the other.
+        Under All the filter's own ticks stay applied, so its list is what
+        still occurs with them. The Age Rating tabs are two fields; each
+        leaves out its own key only, so a tick in one still narrows the
+        other.
         """
         field_name = self._get_field_name()
-        qs = self.get_filtered_queryset(Comic, omit=(field_name,))
+        filters = self.params.get("filters") or {}
+        omit = () if field_name in (filters.get(MATCH_ALL_KEY) or ()) else (field_name,)
+        qs = self.get_filtered_queryset(Comic, omit=omit)
         ticked = self._ticked(field_name)
         if field_name == READING_LISTS_FILTER:
             choices = self._reading_list_choices(qs, ticked)

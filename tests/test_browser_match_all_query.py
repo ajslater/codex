@@ -172,3 +172,27 @@ class MatchAllGridTests(MatchAllFixture):
             **_ALL_LISTS,
         }
         assert self._grid(filters) == {"Y"}
+
+
+class MatchAllChoicesTests(MatchAllFixture):
+    """Under All a filter's own ticks narrow its list to what still occurs."""
+
+    def test_any_leaves_its_own_list_whole(self) -> None:
+        """The Phase 1 rule, unchanged under Any."""
+        filters = self.characters(self.spidey, every=False)
+        assert self.names("characters", filters) == {
+            "Spider-Man",
+            "Iron Man",
+            "Wolverine",
+            "_none_",
+        }
+
+    def test_all_offers_what_occurs_with_the_ticked(self) -> None:
+        """Spider-Man ticked under All: only his co-star is left to add."""
+        filters = self.characters(self.spidey, every=True)
+        assert self.names("characters", filters) == {"Spider-Man", "Iron Man"}
+
+    def test_a_ticked_value_is_still_listed_under_all(self) -> None:
+        """Ticked values that no comic holds together still show."""
+        filters = self.characters(self.spidey, self.wolverine, every=True)
+        assert self.names("characters", filters) == {"Spider-Man", "Wolverine"}
