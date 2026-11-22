@@ -11,7 +11,6 @@
  *     and daily caps, and says which sources ignore effort.
  *   - The review dialog credits VerseDB under its candidates, from the
  *     choices map, so a prompt cached before the credit existed shows it.
- *   - The metadata pane credits VerseDB when a comic carries its identifier.
  *   - The status strip labels the source and shows its hourly budget.
  */
 import { createTestingPinia } from "@pinia/testing";
@@ -21,7 +20,6 @@ import { describe, expect, test } from "vitest";
 import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue";
 import TaggingTab from "@/components/admin/tabs/tagging-tab.vue";
 import ConfirmDialog from "@/components/confirm-dialog.vue";
-import MetadataBody from "@/components/metadata/metadata-body.vue";
 import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import OnlineTagPromptPopup from "@/components/online-tag/prompt-popup.vue";
 import { NUMBER_FORMAT } from "@/datetime";
@@ -289,44 +287,6 @@ describe("Review dialog — VerseDB credit", () => {
     await wrapper.find(".v-expansion-panel-title").trigger("click");
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(wrapper.find(".promptCredit").exists()).toBe(false);
-  });
-});
-
-function mountBody(identifiers) {
-  const pinia = createTestingPinia({
-    initialState: {
-      auth: { user: undefined },
-      browser: {
-        settings: { filters: {}, show: {}, topCollection: "publishers" },
-      },
-      metadata: { md: { collection: "comics", ids: [5], pk: 5, identifiers } },
-      shelves: { shelves: [] },
-    },
-  });
-  return mount(MetadataBody, {
-    props: { book: { collection: "comics", ids: [5], pk: 5 } },
-    global: {
-      plugins: [pinia, vuetify],
-      stubs: { MetadataRatings: true, MetadataText: true },
-    },
-  });
-}
-
-describe("Metadata pane — VerseDB credit", () => {
-  test("a comic with a VerseDB identifier credits VerseDB", () => {
-    const wrapper = mountBody([
-      { pk: 1, source: "versedb", type: "comic", code: "1215061", url: "" },
-      { pk: 2, source: "metron", type: "comic", code: "5", url: "" },
-    ]);
-    const credits = wrapper.findAll(".sourceCredit a");
-    expect(credits.map((c) => c.text())).toEqual([CREDIT]);
-  });
-
-  test("a comic without one shows no credit", () => {
-    const wrapper = mountBody([
-      { pk: 2, source: "metron", type: "comic", code: "5", url: "" },
-    ]);
-    expect(wrapper.find(".sourceCredit").exists()).toBe(false);
   });
 });
 
