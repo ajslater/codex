@@ -79,7 +79,9 @@ describe("Tagging tab — VerseDB card", () => {
     expect(notes).toContain(
       `Free tier: ${fmt(300)} requests an hour and ${fmt(4000)} a day, about 3 per comic.`,
     );
-    expect(notes).toContain("non-commercial");
+    expect(notes).toContain("Non-commercial use only.");
+    // The budget line already says "Free tier"; the terms do not repeat it.
+    expect(notes.match(/Free/gv)).toHaveLength(1);
     expect(notes).toContain("Metron and Comic Vine win");
     const credit = panel.find(".sourceCredit a");
     expect(credit.text()).toBe(CREDIT);

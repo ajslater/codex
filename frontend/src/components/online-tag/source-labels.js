@@ -46,7 +46,7 @@ export const SOURCE_DESCRIPTORS = Object.freeze({
     customUrl: false,
     // VerseDB's free API terms, and where its tags land in a merge.
     terms:
-      "Free for non-commercial use. Its tags fill gaps: where sources disagree, Metron and Comic Vine win.",
+      "Non-commercial use only. Its tags fill gaps: where sources disagree, Metron and Comic Vine win.",
   }),
 });
 
