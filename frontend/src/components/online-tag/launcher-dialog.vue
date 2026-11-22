@@ -330,7 +330,7 @@ export default {
       return [...this.sources].sort((a, b) => rank(a) - rank(b));
     },
     configuredSources() {
-      // The supported sources with a stored API key, in priority order.
+      // The supported sources with a stored API key, in comicbox's order.
       const configured = new Set(this.taggingDefaults?.configuredSources || []);
       return SUPPORTED_SOURCES.filter((source) => configured.has(source));
     },

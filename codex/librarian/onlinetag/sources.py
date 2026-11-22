@@ -128,7 +128,7 @@ CREDENTIAL_FIELDS: Final[tuple[str, ...]] = tuple(
 
 def configured_sources(holder: object) -> tuple[str, ...]:
     """
-    Return the supported sources that have an API key, in priority order.
+    Return the supported sources that have an API key, in comicbox's order.
 
     ``holder`` is the ``ComicboxTaggingDefaults`` row, comicbox's
     ``OnlineCredentials`` or None; both name a key by the same field. A url

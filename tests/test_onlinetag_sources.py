@@ -256,7 +256,8 @@ class ConfiguredSourcesFieldTests(TestCase):
     def test_one(self) -> None:
         assert self._configured(comicvine_key="c") == ["comicvine"]
 
-    def test_two_in_priority_order(self) -> None:
+    def test_two_in_comicbox_order(self) -> None:
+        # Not run priority, which defaultSources holds.
         assert self._configured(comicvine_key="c", metron_key="m") == [
             "metron",
             "comicvine",

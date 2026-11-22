@@ -247,7 +247,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
 
     @staticmethod
     def get_configured_sources(obj) -> list[str]:
-        """List the supported sources with an API key, in priority order."""
+        """List the supported sources with an API key, in comicbox's order."""
         return list(configured_sources(obj))
 
     @staticmethod
