@@ -14,13 +14,12 @@ sort key and column become ``reading_lists``. The reverse rebuilds shelves,
 best effort.
 """
 
+import json
 import uuid
 from collections import defaultdict
 from importlib import import_module
 
 from django.conf import settings
-
-from codex.models.util import get_sort_name
 
 _ARCS = "arcs"
 _BATCH = 1000
@@ -33,6 +32,46 @@ _COMICS = "comics"
 _COLLECTION = "collection"
 _FALLBACK_LIST_NAME = "Reading List"
 _YEAR_LEN = 4
+# ``get_sort_name``'s leading articles, frozen here with the rule below.
+_ARTICLES = frozenset(
+    {
+        # en
+        "a", "an", "the",
+        # es
+        "un", "unos", "unas", "el", "los", "la", "las",
+        # fr (l' is shared with it)
+        "une", "le", "les", "l'",
+        # pt
+        "o", "os",
+        # de (den & die conflict with English)
+        "der", "dem", "des", "das",
+        # it (i conflicts with English)
+        "il", "lo", "gli",
+        # nl
+        "de", "het", "een",
+        # sw / no / da
+        "en", "ett", "ei", "et",
+        # ct
+        "els", "una", "uns", "unes", "na",
+    }
+)  # fmt: skip
+# Each item collection's identity parts, frozen from
+# ``codex.user_data.identifiers``: the name chain, a folder's path, or a
+# list's name and UUID.
+_IDENTITY_PARTS = {
+    "publishers": lambda obj: [obj.name],
+    "imprints": lambda obj: [obj.publisher.name, obj.name],
+    "series": lambda obj: [obj.publisher.name, obj.imprint.name, obj.name],
+    "volumes": lambda obj: [
+        obj.publisher.name,
+        obj.imprint.name,
+        obj.series.name,
+        obj.name,
+        obj.number_to,
+    ],
+    "folders": lambda obj: [str(obj.path)],
+    _ARCS: lambda obj: [obj.name, str(obj.uuid)],
+}
 # The collections a list holds whole, and the model each names.
 _ITEM_MODELS = {
     "publishers": "Publisher",
@@ -165,16 +204,21 @@ def _volume_str(volume) -> str:
     return f"({numbers})" if is_year else f"v{numbers}"
 
 
+def _sort_name(name: str) -> str:
+    """``get_sort_name``, frozen here: a leading article moves to the end."""
+    lower_name = name.lower()
+    name_parts = lower_name.split()
+    if len(name_parts) > 1 and (first_word := name_parts[0]) in _ARTICLES:
+        return f"{' '.join(name_parts[1:])}, {first_word}"
+    return lower_name
+
+
 def _item_identity(collection, target) -> tuple:
     """Return an item's ``ref`` and ``document``: its identity and its label."""
-    from codex.user_data.identifiers import (
-        encode_identifier,
-        identifier_for_browse_collection,
-    )
-
-    identity = encode_identifier(
-        collection, identifier_for_browse_collection(collection, target)
-    )
+    # ``encode_identifier``, frozen here: compact JSON of the collection and
+    # its parts. The live sync refreshes it while the item is bound.
+    parts = _IDENTITY_PARTS[collection](target)
+    identity = json.dumps([collection, *parts], separators=(",", ":"))
     if collection == "volumes":
         label = f"{target.series.name} {_volume_str(target)}".strip()
     else:
@@ -351,7 +395,7 @@ def shelves_to_lists(apps, _schema_editor) -> None:
         reading_list = reading_list_model.objects.create(
             user_id=shelf.user_id,
             name=names[shelf.pk],
-            sort_name=get_sort_name(names[shelf.pk]),
+            sort_name=_sort_name(names[shelf.pk]),
             uuid=uuid.uuid4(),
         )
         shelf_to_list[shelf.pk] = reading_list.pk
