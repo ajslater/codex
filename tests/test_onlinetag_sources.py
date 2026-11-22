@@ -24,12 +24,12 @@ from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
 from comicbox.formats.metron_api.online_source import MetronOnlineSource
 from comicbox.formats.versedb_api.online_source import VerseDBOnlineSource
 from comicbox.online_estimate import requests_per_comic
-from comicbox.online_session import OnlineCredentials, source_attribution
+from comicbox.online_session import OnlineCredentials
 from django.contrib.auth.models import User
 from django.test import Client, SimpleTestCase, TestCase
 
 from codex.choices.admin import TAGGING_CHOICES
-from codex.choices.onlinetag import SOURCE_ATTRIBUTION, TAGGING_ESTIMATE
+from codex.choices.onlinetag import TAGGING_ESTIMATE
 from codex.librarian.onlinetag.credential_validator import (
     KNOWN_SOURCES,
     validate_credentials,
@@ -302,22 +302,3 @@ class TaggingEstimateTests(SimpleTestCase):
         assert rates["comicvine"]["per_day"] is None
         assert rates["versedb"]["per_hour"] == _VERSEDB_PER_HOUR
         assert rates["versedb"]["per_day"] == _VERSEDB_PER_DAY
-
-
-class SourceAttributionTests(SimpleTestCase):
-    """The credit a source's terms require is comicbox's own text and link."""
-
-    def test_only_sources_that_ask_for_a_credit_appear(self) -> None:
-        assert set(SOURCE_ATTRIBUTION) == {"versedb"}
-
-    def test_the_credit_is_comicbox_s(self) -> None:
-        for source, credit in SOURCE_ATTRIBUTION.items():
-            expected = source_attribution(source)
-            assert expected is not None
-            assert dict(credit) == {"text": expected.text, "url": expected.url}
-
-    def test_versedb_credit(self) -> None:
-        assert dict(SOURCE_ATTRIBUTION["versedb"]) == {
-            "text": "Data from VerseDB",
-            "url": "https://versedb.com",
-        }

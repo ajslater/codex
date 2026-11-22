@@ -22,7 +22,7 @@ from codex.choices.browser import (
 from codex.choices.jobs import ADMIN_JOBS
 from codex.choices.limits import LIMITS
 from codex.choices.notifications import WebsocketMessages
-from codex.choices.onlinetag import SOURCE_ATTRIBUTION, TAGGING_ESTIMATE
+from codex.choices.onlinetag import TAGGING_ESTIMATE
 from codex.choices.reader import READER_CHOICES, READER_DEFAULTS
 from codex.choices.search import SEARCH_FIELDS
 from codex.choices.statii import ADMIN_STATUS_TITLES
@@ -96,7 +96,6 @@ _MAP_DUMPS = MappingProxyType(
         "reader-map.json": READER_CHOICES,
         "search-map.json": SEARCH_FIELDS,
         "series-statuses.json": SERIES_STATUSES,
-        "tagging-attribution.json": SOURCE_ATTRIBUTION,
         "tagging-estimate.json": TAGGING_ESTIMATE,
     }
 )

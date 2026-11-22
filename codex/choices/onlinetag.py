@@ -1,5 +1,5 @@
 """
-Online-tag run estimate model and source credits, derived from comicbox.
+Online-tag run estimate model, derived from comicbox.
 
 The launcher dialog (``frontend/src/components/online-tag/launcher-dialog.vue``)
 estimates a run's time and request count client-side. The per-source rates and
@@ -7,11 +7,6 @@ the per-comic request model come from comicbox (``comicbox.online_estimate``)
 so the JS estimate tracks the backend instead of hand-syncing constants.
 Emitted to ``frontend/src/choices/tagging-estimate.json`` by
 ``choices_to_json.py``. Display labels stay in the component — they're UI copy.
-
-``SOURCE_ATTRIBUTION`` is the credit a source's terms require wherever its data
-is shown, emitted to ``tagging-attribution.json``. It is comicbox's own text and
-link, not a copy: the review dialog, the Tagging tab and the metadata pane all
-read it from there.
 """
 
 from types import MappingProxyType
@@ -28,7 +23,6 @@ from comicbox.online_estimate import (
     SOURCE_RATE_PER_MINUTE,
     requests_per_comic,
 )
-from comicbox.online_session import source_attribution
 
 from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES
 
@@ -86,15 +80,5 @@ TAGGING_ESTIMATE: Final = MappingProxyType(
         "source_rates": _SOURCE_RATES,
         "requests_per_comic": _REQUESTS_PER_COMIC,
         "default_requests_per_comic": DEFAULT_REQUESTS_PER_COMIC,
-    }
-)
-
-# The credit each supported source's terms require, as comicbox words it and
-# links it. Only sources that ask for one appear.
-SOURCE_ATTRIBUTION: Final = MappingProxyType(
-    {
-        source: MappingProxyType({"text": credit.text, "url": credit.url})
-        for source in SUPPORTED_SOURCES
-        if (credit := source_attribution(source)) is not None
     }
 )

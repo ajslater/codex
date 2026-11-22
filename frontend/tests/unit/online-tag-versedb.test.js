@@ -8,8 +8,8 @@
  *   - The launcher reads `versedb:ID` and versedb.com urls as VerseDB, asks
  *     which source a bare id is among all three, warns on VerseDB's hourly
  *     and daily caps, and says which sources ignore effort.
- *   - The review dialog credits VerseDB under its candidates, from the
- *     choices map, so a prompt cached before the credit existed shows it.
+ *   - The review dialog credits VerseDB through each candidate's own
+ *     "VerseDB" link to its versedb.com page; there is no separate line.
  *   - The status strip labels the source and shows its hourly budget.
  */
 import { createTestingPinia } from "@pinia/testing";
@@ -27,8 +27,6 @@ import { useAdminStore } from "@/stores/admin";
 import { useOnlineTagStore } from "@/stores/online-tag";
 
 const ALL = Object.freeze(["metron", "comicvine", "versedb"]);
-const CREDIT = "Data from VerseDB";
-const CREDIT_URL = "https://versedb.com";
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 const fmt = (n) => NUMBER_FORMAT.format(n);
 
@@ -80,8 +78,6 @@ describe("Tagging tab — VerseDB card", () => {
     // The budget line already says "Free tier"; the terms do not repeat it.
     expect(notes.match(/Free/gv)).toHaveLength(1);
     expect(notes).toContain("Metron and Comic Vine win");
-    // A settings card shows none of VerseDB's data, so it carries no credit.
-    expect(panel.text()).not.toContain(CREDIT);
     // No mirror exists, so no custom url field.
     expect(panel.text()).not.toContain("Custom URL");
   });
@@ -229,7 +225,9 @@ describe("Launcher — VerseDB", () => {
   });
 });
 
-function mountPopup(source) {
+const VERSEDB_ISSUE_URL = "https://versedb.com/issue/1215061/s-1";
+
+function mountPopup(source, url = "") {
   const pinia = createTestingPinia();
   const wrapper = mount(OnlineTagPromptPopup, {
     global: { plugins: [vuetify, pinia], stubs: { VDialog: VDialogStub } },
@@ -247,7 +245,7 @@ function mountPopup(source) {
           issueId: 1_215_061,
           summary: { series: "S", issue: "1", year: 2020, coverUrl: "" },
           score: 0.9,
-          url: "",
+          url,
         },
       ],
     },
@@ -257,22 +255,16 @@ function mountPopup(source) {
 }
 
 describe("Review dialog — VerseDB credit", () => {
-  test("a VerseDB prompt credits VerseDB under its candidates", async () => {
-    const wrapper = mountPopup("versedb");
+  test("a VerseDB candidate links to its VerseDB page", async () => {
+    const wrapper = mountPopup("versedb", VERSEDB_ISSUE_URL);
     await wrapper.vm.$nextTick();
     await wrapper.find(".v-expansion-panel-title").trigger("click");
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const credit = wrapper.find(".promptCredit a");
-    expect(credit.text()).toBe(CREDIT);
-    expect(credit.attributes("href")).toBe(CREDIT_URL);
-  });
-
-  test("a Metron prompt carries no credit", async () => {
-    const wrapper = mountPopup("metron");
-    await wrapper.vm.$nextTick();
-    await wrapper.find(".v-expansion-panel-title").trigger("click");
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(wrapper.find(".promptCredit").exists()).toBe(false);
+    const link = wrapper.find(".candidateSourceLink");
+    expect(link.text()).toBe("VerseDB");
+    expect(link.attributes("href")).toBe(VERSEDB_ISSUE_URL);
+    // The row's link is the credit: no separate "Data from VerseDB" line.
+    expect(wrapper.text()).not.toContain("Data from VerseDB");
   });
 });
 

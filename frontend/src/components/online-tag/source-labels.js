@@ -9,11 +9,7 @@
  * A source the backend lists with no descriptor here is left out of
  * SUPPORTED_SOURCES, so the Tagging tab and the launcher never offer a source
  * they cannot describe.
- *
- * The credit a source's terms require ("Data from VerseDB") is not UI copy:
- * it comes from comicbox through tagging-attribution.json.
  */
-import TAGGING_ATTRIBUTION from "@/choices/tagging-attribution.json";
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 
 export const SOURCE_DESCRIPTORS = Object.freeze({
@@ -68,9 +64,6 @@ export const SOURCE_LABELS = Object.freeze(
 
 /** Display name for a source id, falling back to the id itself. */
 export const sourceLabel = (source) => SOURCE_LABELS[source] || source;
-
-/** The credit ``{text, url}`` a source's terms require, or undefined. */
-export const sourceAttribution = (source) => TAGGING_ATTRIBUTION[source];
 
 /** Short display name for a source id, falling back to the id itself. */
 export const sourceShortLabel = (source) =>
