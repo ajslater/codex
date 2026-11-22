@@ -78,6 +78,21 @@ describe("filter choice rows toggle", () => {
     expect(lastEmit(wrapper)).toEqual([4, 1, 7]);
   });
 
+  test("a ticked row is drawn at full strength, focused or not", () => {
+    /*
+     * Plain rows sit at 0.62 opacity unless hovered or focused, so a
+     * ticked row read fainter than the one last clicked.
+     */
+    const wrapper = mountList({ filter: [7, 4] });
+    expect(row(wrapper, "Zebra").classes()).toContain("filterChoiceTicked");
+    expect(row(wrapper, "Want to Read").classes()).toContain(
+      "filterChoiceTicked",
+    );
+    expect(row(wrapper, "Civil War").classes()).not.toContain(
+      "filterChoiceTicked",
+    );
+  });
+
   test("a ticked row is never disabled", () => {
     const wrapper = mountList({ filter: [7] });
     expect(row(wrapper, "Zebra").classes()).not.toContain(

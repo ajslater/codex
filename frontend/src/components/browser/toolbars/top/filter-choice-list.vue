@@ -14,6 +14,7 @@
         v-for="item of vuetifyItems"
         :key="item.value"
         class="filterChoice"
+        :class="{ filterChoiceTicked: item.ticked }"
         density="compact"
         variant="plain"
         role="menuitemcheckbox"
@@ -230,6 +231,14 @@ export default {
   .filterGroup {
     max-height: 80vh;
     /* has to be less than the menu height */
+  }
+
+  /*
+   * Plain rows sit at 0.62 opacity unless hovered or focused; a ticked
+   * row reads at full strength, like the one last clicked.
+   */
+  .filterChoiceTicked {
+    opacity: 1;
   }
 
   .metronName {

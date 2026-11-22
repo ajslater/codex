@@ -3,6 +3,8 @@
     <v-slide-x-transition hide-on-leave>
       <v-list-item
         v-if="filterMode === 'base'"
+        class="filterSubMenuRow"
+        :class="{ filterRowTicked: isActive }"
         density="compact"
         variant="plain"
         :title="title"
@@ -484,6 +486,11 @@ export default {
 
   .clearFilterIdle {
     visibility: hidden;
+  }
+
+  // A plain row sits at 0.62 opacity unless hovered; one with ticks doesn't.
+  .filterRowTicked {
+    opacity: 1;
   }
 
   .filterTickedCount {

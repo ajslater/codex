@@ -85,6 +85,19 @@ const TAGGED = Object.freeze([
   { pk: 9, name: "T", index: 2, metronName: "Teen" },
 ]);
 
+describe("the filter list row", () => {
+  test("a filter with ticks is drawn at full strength", async () => {
+    const { wrapper, browserStore } = mountSubmenu({
+      filters: { characters: [1] },
+      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+    });
+    browserStore.filterMode = "base";
+    await flushPromises();
+    const row = wrapper.find(".filterSubMenuRow");
+    expect(row.classes()).toContain("filterRowTicked");
+  });
+});
+
 describe("stale choices refresh in place", () => {
   test("a tick on one Age Rating tab refreshes the other after the page loads", async () => {
     const { wrapper, browserStore } = mountSubmenu({
