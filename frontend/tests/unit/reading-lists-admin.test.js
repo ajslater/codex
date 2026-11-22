@@ -174,14 +174,8 @@ describe("reading lists tab", () => {
       global: { plugins: [pinia(), vuetify] },
     });
     await flushPromises();
-    // The list from tags alone is hidden unless asked for.
-    expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([2]);
-    expect(wrapper.vm.tagsOnlyCount).toBe(1);
-    wrapper.vm.showTagsOnly = true;
+    // Nothing ticked is every list, the lists from tags included.
     expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([1, 2]);
-    wrapper.vm.kindFilter = "catalog";
-    expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([2]);
-    wrapper.vm.kindFilter = null;
     wrapper.vm.reviewOnly = true;
     expect(wrapper.vm.filteredLists.map((list) => list.pk)).toEqual([2]);
     wrapper.vm.reviewOnly = false;
@@ -192,16 +186,64 @@ describe("reading lists tab", () => {
     );
   });
 
-  test("an empty table says why", async () => {
-    API.getAdminLists.mockResolvedValue({ data: { lists: [LISTS[0]] } });
+  test("Source is a checklist: a list shows if any source is ticked", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
     API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
     const wrapper = mount(ReadingListsTab, {
       global: { plugins: [pinia(), vuetify] },
     });
     await flushPromises();
-    expect(wrapper.vm.filteredLists).toEqual([]);
-    expect(wrapper.text()).toContain("The only list comes from story arc tags");
-    wrapper.vm.showTagsOnly = true;
+    const shown = () => wrapper.vm.filteredLists.map((list) => list.pk);
+    wrapper.vm.kindFilter = ["tags"];
+    expect(shown()).toEqual([1]);
+    wrapper.vm.kindFilter = ["catalog"];
+    expect(shown()).toEqual([2]);
+    wrapper.vm.kindFilter = ["tags", "catalog"];
+    expect(shown()).toEqual([1, 2]);
+    wrapper.vm.kindFilter = [];
+    expect(shown()).toEqual([1, 2]);
+  });
+
+  test("Source offers the kinds that have lists, with their counts", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    const items = () =>
+      wrapper.vm.kindItems.map((item) => [item.value, item.title]);
+    expect(items()).toEqual([
+      ["tags", "File Tags (1)"],
+      ["catalog", "DieselTech Catalog (1)"],
+    ]);
+    // A ticked kind stays offered, so it can be unticked.
+    wrapper.vm.kindFilter = ["upload"];
+    expect(items().map(([value]) => value)).toContain("upload");
+  });
+
+  test("there is no separate Show lists from tags checkbox", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    expect(wrapper.text()).not.toContain("Show lists from tags");
+    const source = wrapper.findComponent({ name: "VSelect" });
+    expect(source.props("multiple")).toBe(true);
+  });
+
+  test("an empty table says why", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: [] } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("No reading lists yet.");
+    const store = useReadingListsStore();
+    store.lists = [LISTS[0]];
     wrapper.vm.search = "nothing like it";
     await flushPromises();
     expect(wrapper.text()).toContain("No lists match these filters.");

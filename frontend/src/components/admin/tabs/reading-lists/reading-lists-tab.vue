@@ -107,6 +107,11 @@
         clearable
         class="nameFilter"
       />
+      <!--
+        A checklist, as the browser's filters: tick any number of kinds,
+        and a list shows if any of its sources is ticked. Nothing ticked
+        is every list.
+      -->
       <v-select
         v-model="kindFilter"
         :items="kindItems"
@@ -114,8 +119,18 @@
         density="compact"
         hide-details
         clearable
+        multiple
         class="kindFilter"
-      />
+      >
+        <template #selection="{ item, index }">
+          <span v-if="index === 0" class="kindSelection">{{
+            kindName(item.value)
+          }}</span>
+          <span v-else-if="index === 1" class="kindMore">
+            +{{ kindFilter.length - 1 }}
+          </span>
+        </template>
+      </v-select>
       <v-checkbox
         v-model="missingOnly"
         label="Has missing issues"
@@ -127,13 +142,6 @@
         label="Needs review"
         density="compact"
         hide-details
-      />
-      <v-checkbox
-        v-model="showTagsOnly"
-        :label="`Show lists from tags (${tagsOnlyCount})`"
-        density="compact"
-        hide-details
-        title="Lists made from story arc tags alone follow their tags; they are hidden here unless you ask for them."
       />
     </div>
 
@@ -409,12 +417,6 @@ const WRITE_NONE_HINT =
   "Only global lists with issues in your library are written to files.";
 // The librarian jobs of reading lists: sync, fetch, import, match.
 const LIST_STATUS_TYPES = new Set(["RLS", "RLF", "RLI", "RLM"]);
-const isTagsOnly = (list) =>
-  list.sources.length > 0 &&
-  list.sources.every((source) => source.kind === "tags");
-const KIND_ITEMS = Object.freeze(
-  Object.entries(SOURCE_KINDS).map(([value, title]) => ({ value, title })),
-);
 
 export default {
   name: "AdminReadingListsTab",
@@ -444,12 +446,11 @@ export default {
       mdiSourceBranch,
       mdiTrashCanOutline,
       headers: HEADERS,
-      kindItems: KIND_ITEMS,
       search: "",
-      kindFilter: null,
+      // The source kinds ticked; none is every list.
+      kindFilter: [],
       missingOnly: false,
       reviewOnly: false,
-      showTagsOnly: false,
       showMappings: false,
       showDetails: false,
       detailsList: null,
@@ -485,20 +486,31 @@ export default {
           LIST_STATUS_TYPES.has(status.statusType),
         ),
     }),
-    tagsOnlyCount() {
-      return this.lists.filter(isTagsOnly).length;
+    kindCounts() {
+      // How many lists have a source of each kind.
+      const counts = {};
+      for (const list of this.lists) {
+        for (const kind of new Set(list.sources.map(({ kind }) => kind))) {
+          counts[kind] = (counts[kind] ?? 0) + 1;
+        }
+      }
+      return counts;
+    },
+    kindItems() {
+      // The kinds some list has, and any ticked, so it can be unticked.
+      const ticked = new Set(this.kindFilter);
+      return Object.entries(SOURCE_KINDS)
+        .filter(([value]) => this.kindCounts[value] || ticked.has(value))
+        .map(([value, title]) => ({
+          value,
+          title: `${title} (${this.kindCounts[value] ?? 0})`,
+        }));
     },
     noDataText() {
       // Say why the table is empty: no lists, or the filters hide them.
-      const count = this.lists.length;
-      if (!count) {
-        return "No reading lists yet. Add lists, or tag comics with story arcs.";
-      }
-      if (!this.showTagsOnly && this.tagsOnlyCount === count) {
-        const which = count === 1 ? "The only list comes" : "Every list comes";
-        return `${which} from story arc tags. Check Show lists from tags to see it here.`;
-      }
-      return "No lists match these filters.";
+      return this.lists.length
+        ? "No lists match these filters."
+        : "No reading lists yet. Add lists, or tag comics with story arcs.";
     },
     mappingsLabel() {
       const count = this.mappings.length;
@@ -525,14 +537,14 @@ export default {
     },
     filteredLists() {
       const search = (this.search || "").toLowerCase();
+      const kinds = new Set(this.kindFilter);
       return this.lists.filter(
         (list) =>
           (!search || list.name.toLowerCase().includes(search)) &&
-          (!this.kindFilter ||
-            list.sources.some((source) => source.kind === this.kindFilter)) &&
+          (!kinds.size ||
+            list.sources.some((source) => kinds.has(source.kind))) &&
           (!this.missingOnly || list.matched < list.total) &&
-          (!this.reviewOnly || list.needsReview > 0) &&
-          (this.showTagsOnly || !isTagsOnly(list)),
+          (!this.reviewOnly || list.needsReview > 0),
       );
     },
   },
@@ -569,6 +581,9 @@ export default {
     openDetails(item) {
       this.detailsList = item;
       this.showDetails = true;
+    },
+    kindName(kind) {
+      return SOURCE_KINDS[kind] || kind;
     },
     sourceLabel(source) {
       const label = SOURCE_KINDS[source.kind] || source.kind;
@@ -641,6 +656,17 @@ export default {
   .nameFilter,
   .kindFilter {
     max-width: 240px;
+  }
+
+  .kindSelection {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .kindMore {
+    margin-left: $space-1;
+    color: rgb(var(--v-theme-text-disabled));
   }
 
   .bulkCount,
