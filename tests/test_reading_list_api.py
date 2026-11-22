@@ -306,7 +306,7 @@ class ReadingListApiTests(ReadingListFixture):
         assert not ReadingList.objects.filter(user__isnull=True).exists()
 
     def test_add_a_selection(self) -> None:
-        """A series adds its comics in reading order, after the list's last."""
+        """A series adds the comics the list lacks, in reading order, after its last."""
         pk = self._personal_list()
         response = self.client.post(
             f"{_LISTS}/{pk}/add",
@@ -314,17 +314,13 @@ class ReadingListApiTests(ReadingListFixture):
             content_type="application/json",
         )
         assert response.status_code == _OK, response.content
-        assert _data(response)["added"] == 4  # noqa: PLR2004
+        assert _data(response)["added"] == 2  # noqa: PLR2004
         order = list(
             ReadingListEntry.objects.filter(reading_list_id=pk)
             .order_by("position")
             .values_list("comic_id", flat=True)
         )
-        assert order == [
-            self.comics[0].pk,
-            self.comics[1].pk,
-            *(comic.pk for comic in self.comics),
-        ]
+        assert order == [comic.pk for comic in self.comics]
 
     def test_personal_list_is_private(self) -> None:
         """Another user can neither see nor change it; its owner deletes it."""

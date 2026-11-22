@@ -96,7 +96,11 @@ class ReadingListWorker(WorkerStatusBase):
     def rematch_lists(self, task: ReadingListRematchTask) -> None:
         """Match missing entries again across the given lists, or every list."""
         lists = ReadingList.objects.filter(
-            Q(entries__comic__isnull=True, entries__ignored=False)
+            Q(
+                entries__comic__isnull=True,
+                entries__ignored=False,
+                entries__live_source__isnull=True,
+            )
         ).distinct()
         if task.list_pks:
             lists = lists.filter(pk__in=task.list_pks)

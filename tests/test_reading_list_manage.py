@@ -120,7 +120,7 @@ class RemoveFromListTests(ManageFixture):
         c3, c4 = self.comics[2:]
         response = self._remove(self.mine, [c3.pk])
         assert response.status_code == _OK, response.content
-        assert response.json()["data"] == {"removed": 1, "hidden": 0}
+        assert response.json()["data"] == {"removed": 1, "hidden": 0, "refused": []}
         rows = list(
             ReadingListEntry.objects.filter(reading_list=self.mine).values_list(
                 "comic_id", "position"
@@ -134,7 +134,7 @@ class RemoveFromListTests(ManageFixture):
         c1 = self.comics[0]
         ReadingListEntry.objects.filter(reading_list=self.imported).update(manual=False)
         response = self._remove(self.imported, [c1.pk])
-        assert response.json()["data"] == {"removed": 0, "hidden": 1}
+        assert response.json()["data"] == {"removed": 0, "hidden": 1, "refused": []}
         assert ReadingListEntry.objects.get(
             reading_list=self.imported, comic=c1
         ).ignored

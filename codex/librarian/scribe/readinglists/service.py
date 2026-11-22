@@ -30,11 +30,18 @@ from django.db.models import Max, Q
 from django.utils.timezone import now
 
 from codex.choices.limits import MAX_NAME_LEN
+from codex.collection import Collection
 from codex.librarian.scribe.readinglists.combine import document_of, recombine
 from codex.librarian.scribe.readinglists.documents import (
     COMICBOX_KINDS,
     ENTRIES_KEY,
     from_json,
+)
+from codex.librarian.scribe.readinglists.live import (
+    COLLECTION_KIND,
+    item_identity,
+    list_refusal,
+    reconcile_list,
 )
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.overlay import Overlay
@@ -155,7 +162,9 @@ def copy_list(
             order_locked=True,
         )
         entries = (
-            ReadingListEntry.objects.filter(reading_list=original, ignored=False)
+            ReadingListEntry.objects.filter(
+                reading_list=original, ignored=False, live_source__isnull=True
+            )
             .filter(entries_q or Q())
             .order_by("position", "pk")
         )
@@ -176,7 +185,38 @@ def copy_list(
             )
             for position, entry in enumerate(entries)
         )
+        _copy_items(original, copy)
+        reconcile_list(copy)
     return copy
+
+
+def _may_hold(reading_list: ReadingList, item: ReadingListSource) -> bool:
+    """Whether a list may hold an item's list; anything else it may."""
+    if item.collection != Collection.ARC.value or item.target_id is None:
+        return True
+    target = ReadingList.objects.filter(pk=item.target_id).first()
+    return target is None or not list_refusal(reading_list, target)
+
+
+def _copy_items(original: ReadingList, copy: ReadingList) -> None:
+    """Copy a list's collection items into its copy, where they stay live."""
+    items = ReadingListSource.objects.filter(
+        reading_list=original, kind=COLLECTION_KIND
+    ).order_by("rank", "pk")
+    copies = [
+        ReadingListSource(
+            reading_list=copy,
+            kind=COLLECTION_KIND,
+            collection=item.collection,
+            target_id=item.target_id,
+            ref=item.ref,
+            document=item.document,
+            rank=rank,
+            position=item.position,
+        )
+        for rank, item in enumerate(i for i in items if _may_hold(copy, i))
+    ]
+    ReadingListSource.objects.bulk_create(copies)
 
 
 def import_document(
@@ -268,7 +308,12 @@ def remove_source(source: ReadingListSource) -> bool:
 def rank_sources(reading_list: ReadingList, source_pks: Iterable[int]) -> None:
     """Reorder a list's sources; the first is the primary. Then recompute."""
     order = {pk: rank for rank, pk in enumerate(source_pks)}
-    sources = list(ReadingListSource.objects.filter(reading_list=reading_list))
+    # Collection items keep their own order: they are not combined.
+    sources = list(
+        ReadingListSource.objects.filter(reading_list=reading_list).exclude(
+            kind=COLLECTION_KIND
+        )
+    )
     tail = len(order)
     for source in sources:
         source.rank = order.get(source.pk, tail)
@@ -278,10 +323,61 @@ def rank_sources(reading_list: ReadingList, source_pks: Iterable[int]) -> None:
 
 def _overlay_of(reading_list: ReadingList) -> Overlay:
     return Overlay.of(
-        ReadingListEntry.objects.filter(reading_list=reading_list).order_by(
-            "position", "pk"
-        )
+        ReadingListEntry.objects.filter(
+            reading_list=reading_list, live_source__isnull=True
+        ).order_by("position", "pk")
     )
+
+
+def _move_source(
+    source: ReadingListSource, primary: ReadingList, absorbed: set[int], rank: int
+) -> bool:
+    """Move another list's source into the primary; return whether it moved."""
+    if source.kind == COLLECTION_KIND:
+        held = source.target_id is not None and ReadingListSource.objects.filter(
+            reading_list=primary,
+            kind=COLLECTION_KIND,
+            collection=source.collection,
+            target_id=source.target_id,
+        )
+        if (held and held.exists()) or source.target_id in absorbed:
+            return False
+        if not _may_hold(primary, source):
+            return False
+        # Its comics were the absorbed list's rows: sync them afresh.
+        source.revision = ""
+    elif ReadingListSource.objects.filter(
+        reading_list=primary, kind=source.kind, ref=source.ref
+    ).exists():
+        return False
+    source.reading_list = primary
+    source.rank = rank
+    source.save(update_fields=("reading_list", "rank", "revision", "updated_at"))
+    return True
+
+
+def _repoint_holders(primary: ReadingList, absorbed: set[int]) -> None:
+    """Point the lists that held an absorbed list at the primary, if allowed."""
+    ref, document = item_identity(Collection.ARC.value, primary)
+    holders = ReadingListSource.objects.filter(
+        kind=COLLECTION_KIND, collection=Collection.ARC.value, target_id__in=absorbed
+    ).select_related("reading_list")
+    for item in holders:
+        holder = item.reading_list
+        if holder.pk == primary.pk or list_refusal(holder, primary):
+            continue
+        if ReadingListSource.objects.filter(
+            reading_list=holder,
+            kind=COLLECTION_KIND,
+            collection=Collection.ARC.value,
+            target_id=primary.pk,
+        ).exists():
+            continue
+        item.target_id = primary.pk
+        item.ref = ref
+        item.document = document  # pyright: ignore[reportAttributeAccessIssue]
+        item.revision = ""
+        item.save(update_fields=("target_id", "ref", "document", "revision"))
 
 
 def combine_lists(primary: ReadingList, others: Iterable[ReadingList]) -> ReadingList:
@@ -291,28 +387,32 @@ def combine_lists(primary: ReadingList, others: Iterable[ReadingList]) -> Readin
     The others' sources join the primary's after its own, and the others
     are deleted. Every list's hand edits come along: picks, hidden entries,
     entries marked missing and hand-added entries, the primary's winning
-    where two lists edited one issue. Removing a source later undoes the
+    where two lists edited one issue. Their collection items move too,
+    except one that would make the primary hold itself, and lists that held
+    an absorbed list hold the primary. Removing a source later undoes the
     combination.
     """
+    others = [other for other in others if other.pk != primary.pk]
+    absorbed = {other.pk for other in others}
     with transaction.atomic():
+        # An item of the primary holding an absorbed list would hold itself.
+        ReadingListSource.objects.filter(
+            reading_list=primary,
+            kind=COLLECTION_KIND,
+            collection=Collection.ARC.value,
+            target_id__in=absorbed,
+        ).delete()
         rank = _next_rank(primary)
         overlay = _overlay_of(primary)
         for other in others:
-            if other.pk == primary.pk:
-                continue
             overlay.absorb(_overlay_of(other))
             for source in ReadingListSource.objects.filter(reading_list=other).order_by(
                 "rank", "pk"
             ):
-                duplicate = ReadingListSource.objects.filter(
-                    reading_list=primary, kind=source.kind, ref=source.ref
-                ).exists()
-                if duplicate:
-                    continue
-                source.reading_list = primary
-                source.rank = rank
-                source.save(update_fields=("reading_list", "rank", "updated_at"))
-                rank += 1
+                if _move_source(source, primary, absorbed, rank):
+                    rank += 1
+        _repoint_holders(primary, absorbed)
+        for other in others:
             other.delete()
         recombine(primary, overlay=overlay)
     return primary

@@ -35,6 +35,11 @@ from codex.librarian.scribe.readinglists.documents import (
     tags_document,
     to_json,
 )
+from codex.librarian.scribe.readinglists.live import (
+    COLLECTION_KIND,
+    reconcile_includers,
+    reconcile_list,
+)
 from codex.librarian.scribe.readinglists.matcher import ListMatcher
 from codex.librarian.scribe.readinglists.overlay import (
     Edit,
@@ -355,12 +360,13 @@ def _recombine_hand_made(
     header stay as they are. Only a hand-added entry whose comic went is
     matched again, in place.
     """
-    if healed := _heal_manual(entries, matcher):
-        with transaction.atomic():
+    with transaction.atomic():
+        if healed := _heal_manual(entries, matcher):
             ReadingListEntry.objects.bulk_update(
                 healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
             )
             reading_list.save(update_fields=("updated_at",))
+        reconcile_list(reading_list)
     return len(entries)
 
 
@@ -376,18 +382,22 @@ def recombine(
     the edits of every list combined.
     """
     matcher = matcher or ListMatcher()
+    # Collection items and their live entries are live.py's: a recompute
+    # neither reads nor deletes them, and syncs them after.
     sources = list(
-        ReadingListSource.objects.filter(reading_list=reading_list).order_by(
-            "rank", "pk"
-        )
+        ReadingListSource.objects.filter(reading_list=reading_list)
+        .exclude(kind=COLLECTION_KIND)
+        .order_by("rank", "pk")
     )
     entries = list(
-        ReadingListEntry.objects.filter(reading_list=reading_list).order_by(
-            "position", "pk"
-        )
+        ReadingListEntry.objects.filter(
+            reading_list=reading_list, live_source__isnull=True
+        ).order_by("position", "pk")
     )
     if not sources:
-        return _recombine_hand_made(reading_list, entries, matcher)
+        size = _recombine_hand_made(reading_list, entries, matcher)
+        reconcile_includers(reading_list)
+        return size
     if overlay is None:
         overlay = Overlay.of(entries)
     inputs = _inputs(reading_list, sources, entries)
@@ -404,10 +414,14 @@ def recombine(
             new_entries.append(_entry(reading_list, position, row))
     _heal_manual(new_entries, matcher)
     with transaction.atomic():
-        ReadingListEntry.objects.filter(reading_list=reading_list).delete()
+        ReadingListEntry.objects.filter(
+            reading_list=reading_list, live_source__isnull=True
+        ).delete()
         ReadingListEntry.objects.bulk_create(new_entries, batch_size=_BATCH)
         _update_header(reading_list, combined)
         reading_list.save()
+        reconcile_list(reading_list)
+    reconcile_includers(reading_list)
     return len(new_entries)
 
 
@@ -423,7 +437,10 @@ def rematch(reading_list: ReadingList, matcher: ListMatcher | None = None) -> in
     matcher = matcher or ListMatcher()
     missing = list(
         ReadingListEntry.objects.filter(
-            reading_list=reading_list, comic__isnull=True, ignored=False
+            reading_list=reading_list,
+            comic__isnull=True,
+            ignored=False,
+            live_source__isnull=True,
         )
         .exclude(match_tier=ReadingListMatchTier.MARKED_MISSING.value)
         .order_by("position", "pk")
@@ -439,11 +456,18 @@ def rematch(reading_list: ReadingList, matcher: ListMatcher | None = None) -> in
         entry.match_tier = match.tier
         entry.needs_review = match.needs_review
         found.append(entry)
-    ReadingListEntry.objects.bulk_update(
-        found, ("comic", "match_tier", "needs_review", "updated_at"), batch_size=_BATCH
-    )
+    with transaction.atomic():
+        ReadingListEntry.objects.bulk_update(
+            found,
+            ("comic", "match_tier", "needs_review", "updated_at"),
+            batch_size=_BATCH,
+        )
+        if found:
+            reading_list.save(update_fields=("updated_at",))
+            # A found comic is held now: an item stops delivering it.
+            reconcile_list(reading_list)
     if found:
-        reading_list.save(update_fields=("updated_at",))
+        reconcile_includers(reading_list)
     return len(found)
 
 

@@ -115,7 +115,9 @@ def rebuild_from_tags(
     """Replace a tags-only list's entries with its arc's comics."""
     members = ordered_members(comics)
     references = comic_references(pk for pk, _ in members)
-    ReadingListEntry.objects.filter(reading_list=reading_list).delete()
+    ReadingListEntry.objects.filter(
+        reading_list=reading_list, live_source__isnull=True
+    ).delete()
     ReadingListEntry.objects.bulk_create(
         (
             ReadingListEntry(

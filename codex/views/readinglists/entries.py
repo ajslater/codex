@@ -11,10 +11,17 @@ from typing import Any, Final
 
 from comicbox.readinglists import parse_issue
 from django.db import transaction
-from django.db.models import Max, Q
+from django.db.models import Count, Max, Min, Q
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from codex.librarian.scribe.readinglists.live import (
+    COLLECTION_KIND,
+    LABEL_KEY,
+    reconcile_includers,
+    reconcile_list,
+    renumber,
+)
 from codex.librarian.scribe.readinglists.matcher import library_series_index
 from codex.librarian.scribe.readinglists.references import (
     comic_references,
@@ -25,6 +32,7 @@ from codex.models.readinglist import (
     ReadingList,
     ReadingListEntry,
     ReadingListMatchTier,
+    ReadingListSource,
 )
 from codex.views.readinglists.access import (
     ReadingListAccessView,
@@ -37,7 +45,7 @@ from codex.views.readinglists.access import (
 _CANDIDATE_LIMIT: Final = 50
 _FILTERS: Final = {
     "review": Q(needs_review=True, ignored=False),
-    "missing": Q(comic__isnull=True, ignored=False),
+    "missing": Q(comic__isnull=True, ignored=False, live_source__isnull=True),
     "hidden": Q(ignored=True),
     "all": Q(),
 }
@@ -59,14 +67,43 @@ def _comic_repr(comic: Comic | None) -> dict[str, Any] | None:
     }
 
 
+def item_repr(item: ReadingListSource | None) -> dict[str, Any]:
+    """Return a collection item: its kind, its name for people, and if gone."""
+    if item is None:
+        return {"pk": None, "collection": "", "label": "", "dangling": True}
+    label = (item.document or {}).get(LABEL_KEY) or item.ref
+    return {
+        "pk": item.pk,
+        "collection": item.collection,
+        "label": label,
+        "dangling": item.target_id is None,
+    }
+
+
+def _live_refusal(entry: ReadingListEntry) -> str:
+    label = item_repr(entry.live_source)["label"]
+    return f"That issue is in this list through {label}. Remove {label} instead."
+
+
 def entry_repr(entry: ReadingListEntry) -> dict[str, Any]:
-    """Return an entry for the review screen."""
+    """
+    Return an entry for the review screen.
+
+    A live entry stores no names of its own: they come from its comic.
+    """
+    comic = entry.comic
+    series_name, issue, year = entry.series_name, entry.issue, entry.year
+    if entry.live_source_id is not None and comic is not None:  # pyright: ignore[reportAttributeAccessIssue]
+        series_name = comic.series.name if comic.series_id else ""  # pyright: ignore[reportAttributeAccessIssue]
+        issue = issue_name(comic.issue_number, comic.issue_suffix)
+        year = comic.year
     return {
         "pk": entry.pk,
         "position": entry.position,
-        "seriesName": entry.series_name,
-        "issue": entry.issue,
-        "year": entry.year,
+        "liveSource": entry.live_source_id,  # pyright: ignore[reportAttributeAccessIssue]
+        "seriesName": series_name,
+        "issue": issue,
+        "year": year,
         "entryType": entry.entry_type,
         "sourceIds": entry.source_ids,
         "matchTier": entry.match_tier,
@@ -78,13 +115,56 @@ def entry_repr(entry: ReadingListEntry) -> dict[str, Any]:
 
 
 def _renumber(reading_list: ReadingList, ordered: Iterable[ReadingListEntry]) -> None:
-    entries = []
-    for position, entry in enumerate(ordered):
-        if entry.position != position:
-            entry.position = position
-            entries.append(entry)
-    ReadingListEntry.objects.bulk_update(entries, ("position", "updated_at"))
+    renumber([entry.pk for entry in ordered])
     reading_list.save()
+
+
+def _settle(reading_list: ReadingList) -> None:
+    """After a hand edit: sync the list's items, then the lists holding it."""
+    reconcile_list(reading_list)
+    reconcile_includers(reading_list)
+
+
+def _is_sourced(reading_list: ReadingList) -> bool:
+    """Whether a list has document or tags sources: its items sit at the end."""
+    return (
+        ReadingListSource.objects.filter(reading_list=reading_list)
+        .exclude(kind=COLLECTION_KIND)
+        .exists()
+    )
+
+
+def _boundary(ordered: list[ReadingListEntry], position: int | None) -> int:
+    """Clamp an insert position, and move it out of a block to the block's start."""
+    at = len(ordered) if position is None else max(0, min(position, len(ordered)))
+    while 0 < at < len(ordered):
+        block = ordered[at].live_source_id  # pyright: ignore[reportAttributeAccessIssue]
+        if block is None or ordered[at - 1].live_source_id != block:  # pyright: ignore[reportAttributeAccessIssue]
+            break
+        at -= 1
+    return at
+
+
+def _items_repr(reading_list: ReadingList, acl_q: Q) -> list[dict[str, Any]]:
+    """Each collection item as one editor row: its count and where it starts."""
+    stats = {
+        row["live_source_id"]: row
+        for row in ReadingListEntry.objects.filter(
+            acl_q, reading_list=reading_list, live_source__isnull=False
+        )
+        .values("live_source_id")
+        .annotate(count=Count("pk"), start=Min("position"))
+    }
+    items = []
+    for item in ReadingListSource.objects.filter(
+        reading_list=reading_list, kind=COLLECTION_KIND
+    ).order_by("rank", "pk"):
+        row = item_repr(item)
+        stat = stats.get(item.pk, {})
+        row["count"] = stat.get("count", 0)
+        row["position"] = stat.get("start")
+        items.append(row)
+    return items
 
 
 def _entries(reading_list: ReadingList):
@@ -92,6 +172,15 @@ def _entries(reading_list: ReadingList):
         ReadingListEntry.objects.filter(reading_list=reading_list)
         .select_related("comic", "comic__series", "comic__volume")
         .order_by("position", "pk")
+    )
+
+
+def _order(reading_list: ReadingList) -> list[ReadingListEntry]:
+    """Return the list's entries in order, lean: for reorders and inserts."""
+    return list(
+        ReadingListEntry.objects.filter(reading_list=reading_list)
+        .order_by("position", "pk")
+        .only("pk", "position", "live_source_id")
     )
 
 
@@ -112,7 +201,8 @@ class ReadingListEntriesView(ReadingListAccessView):
             entry_repr(entry)
             for entry in _entries(reading_list).filter(acl_q & filter_q)
         ]
-        return Response({"entries": entries, "editable": True})
+        items = _items_repr(reading_list, acl_q)
+        return Response({"entries": entries, "items": items, "editable": True})
 
     def post(self, *_args, **_kwargs) -> Response:
         """
@@ -133,41 +223,49 @@ class ReadingListEntriesView(ReadingListAccessView):
 def add_comics(
     reading_list: ReadingList, pks: list[int], position: int | None = None
 ) -> int:
-    """Put comics into a list by hand, in order, at ``position`` or the end."""
+    """
+    Put comics into a list by hand, in order, at ``position`` or the end.
+
+    A comic the list already holds by hand is skipped. One a collection
+    item delivers becomes a hand entry, and the item stops delivering it.
+    An insert inside a block goes in before the block.
+    """
     if not pks:
         return 0
-    references = comic_references(pks)
+    held = set(
+        ReadingListEntry.objects.filter(
+            reading_list=reading_list, live_source__isnull=True, comic_id__in=pks
+        ).values_list("comic_id", flat=True)
+    )
+    wanted = [pk for pk in dict.fromkeys(pks) if pk not in held]
+    references = comic_references(wanted)
     comics = {
         comic.pk: comic
-        for comic in Comic.objects.filter(pk__in=pks).select_related("series")
+        for comic in Comic.objects.filter(pk__in=wanted).select_related("series")
     }
-    with transaction.atomic():
-        ordered = list(
-            ReadingListEntry.objects.filter(reading_list=reading_list).order_by(
-                "position", "pk"
-            )
+    new_entries = [
+        ReadingListEntry(
+            reading_list=reading_list,
+            comic=comic,
+            reference=references.get(pk, {}),
+            series_name=comic.series.name if comic.series_id else "",  # pyright: ignore[reportAttributeAccessIssue]
+            issue=issue_name(comic.issue_number, comic.issue_suffix),
+            year=comic.year,
+            match_tier=ReadingListMatchTier.MANUAL,
+            manual=True,
         )
-        at = len(ordered) if position is None else max(0, min(position, len(ordered)))
-        new_entries = []
-        for pk in pks:
-            comic = comics.get(pk)
-            if comic is None:
-                continue
-            new_entries.append(
-                ReadingListEntry(
-                    reading_list=reading_list,
-                    comic=comic,
-                    reference=references.get(pk, {}),
-                    series_name=comic.series.name if comic.series_id else "",  # pyright: ignore[reportAttributeAccessIssue]
-                    issue=issue_name(comic.issue_number, comic.issue_suffix),
-                    year=comic.year,
-                    match_tier=ReadingListMatchTier.MANUAL,
-                    manual=True,
-                )
-            )
+        for pk in wanted
+        if (comic := comics.get(pk)) is not None
+    ]
+    if not new_entries:
+        return 0
+    with transaction.atomic():
+        ordered = _order(reading_list)
+        at = _boundary(ordered, position)
         ReadingListEntry.objects.bulk_create(new_entries)
-        merged = ordered[:at] + new_entries + ordered[at:]
-        _renumber(reading_list, merged)
+        _renumber(reading_list, ordered[:at] + new_entries + ordered[at:])
+        reconcile_list(reading_list)
+    reconcile_includers(reading_list)
     return len(new_entries)
 
 
@@ -181,12 +279,14 @@ class ReadingListEntryView(ReadingListAccessView):
                 reading_list=reading_list,
                 pk=self.kwargs["entry_pk"],
             )
-            .select_related("comic", "comic__series", "comic__volume")
+            .select_related("comic", "comic__series", "comic__volume", "live_source")
             .first()
         )
         if entry is None:
             reason = "No such issue in this list."
             raise ValidationError(reason)
+        if entry.live_source_id is not None:  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError(_live_refusal(entry))
         return entry
 
     def _pick(self, entry: ReadingListEntry, comic_pk) -> None:
@@ -219,6 +319,7 @@ class ReadingListEntryView(ReadingListAccessView):
             entry.needs_review = bool(data["needs_review"])
         entry.save()
         reading_list.save()
+        _settle(reading_list)
         entry = self._entry(reading_list)
         return Response(entry_repr(entry))
 
@@ -226,13 +327,15 @@ class ReadingListEntryView(ReadingListAccessView):
         """Remove a hand-added entry; any other entry is hidden instead."""
         reading_list = self.get_reading_list()
         entry = self._entry(reading_list)
-        if entry.manual:
-            entry.delete()
-            _renumber(reading_list, _entries(reading_list))
-        else:
-            entry.ignored = True
-            entry.save()
-            reading_list.save()
+        with transaction.atomic():
+            if entry.manual:
+                entry.delete()
+                _renumber(reading_list, _order(reading_list))
+            else:
+                entry.ignored = True
+                entry.save()
+                reading_list.save()
+        _settle(reading_list)
         return Response({"deleted": entry.manual})
 
 
@@ -245,41 +348,108 @@ class ReadingListRemoveView(ReadingListAccessView):
     """
 
     def post(self, *_args, **_kwargs) -> Response:
-        """Remove or hide each entry of the comics; say how many of each."""
+        """
+        Remove or hide each entry of the comics; say how many of each.
+
+        A comic a collection item delivers is refused: the answer names
+        the item, so the person can remove the series instead.
+        """
         reading_list = self.get_reading_list()
         pks = to_pks(self.data_value("comics"), "comics")
         entries = ReadingListEntry.objects.filter(
             reading_list=reading_list, comic_id__in=pks
         )
+        refused = [
+            {"comic": entry.comic_id, "item": item_repr(entry.live_source)}  # pyright: ignore[reportAttributeAccessIssue]
+            for entry in entries.filter(live_source__isnull=False).select_related(
+                "live_source"
+            )
+        ]
+        own = entries.filter(live_source__isnull=True)
         with transaction.atomic():
-            removed, _ = entries.filter(manual=True).delete()
-            hidden = entries.filter(manual=False, ignored=False).update(ignored=True)
+            removed, _ = own.filter(manual=True).delete()
+            hidden = own.filter(manual=False, ignored=False).update(ignored=True)
             if removed:
-                _renumber(reading_list, _entries(reading_list))
+                _renumber(reading_list, _order(reading_list))
             else:
                 reading_list.save()
-        return Response({"removed": removed, "hidden": hidden})
+        if removed or hidden:
+            _settle(reading_list)
+        return Response({"removed": removed, "hidden": hidden, "refused": refused})
 
 
 class ReadingListReorderView(ReadingListAccessView):
-    """POST an entry's new position. A hand reorder locks the list's order."""
+    """
+    POST an entry's or a collection item's new position.
+
+    A hand reorder locks the list's order. A live entry moves only with its
+    item. On a list with document or tags sources the items stay at the
+    end; on a hand-made list an item's block moves as a unit.
+    """
+
+    @staticmethod
+    def _move_entry(
+        ordered: list[ReadingListEntry], entry_pk: int, position: int, *, sourced: bool
+    ) -> list[ReadingListEntry]:
+        moving = next((entry for entry in ordered if entry.pk == entry_pk), None)
+        if moving is None:
+            reason = "No such issue in this list."
+            raise ValidationError(reason)
+        if moving.live_source_id is not None:  # pyright: ignore[reportAttributeAccessIssue]
+            reason = "That issue moves with its collection: move the collection."
+            raise ValidationError(reason)
+        ordered.remove(moving)
+        if sourced:
+            others = sum(1 for e in ordered if e.live_source_id is None)  # pyright: ignore[reportAttributeAccessIssue]
+            position = min(position, others)
+        at = _boundary(ordered, position)
+        return [*ordered[:at], moving, *ordered[at:]]
+
+    @staticmethod
+    def _move_item(
+        reading_list: ReadingList,
+        ordered: list[ReadingListEntry],
+        item_pk: int,
+        position: int,
+    ) -> list[ReadingListEntry]:
+        item = ReadingListSource.objects.filter(
+            reading_list=reading_list, kind=COLLECTION_KIND, pk=item_pk
+        ).first()
+        if item is None:
+            reason = "No such collection in this list."
+            raise ValidationError(reason)
+        block = [e for e in ordered if e.live_source_id == item.pk]  # pyright: ignore[reportAttributeAccessIssue]
+        rest = [e for e in ordered if e.live_source_id != item.pk]  # pyright: ignore[reportAttributeAccessIssue]
+        at = _boundary(rest, position)
+        if not block:
+            # An empty block is placed by its hint: other entries before it.
+            item.position = sum(1 for e in rest[:at] if e.live_source_id is None)  # pyright: ignore[reportAttributeAccessIssue]
+            item.save(update_fields=("position",))
+        return [*rest[:at], *block, *rest[at:]]
 
     def post(self, *_args, **_kwargs) -> Response:
-        """Move ``entry`` to ``position``, 0-based, and lock the order."""
+        """Move ``entry`` or ``item`` to ``position``, 0-based; lock the order."""
         reading_list = self.get_reading_list()
-        entry_pk = to_pk(self.data_value("entry"), "entry")
         position = to_pk(self.data_value("position"), "position")
+        item_pk = self.data_value("item")
+        sourced = _is_sourced(reading_list)
         with transaction.atomic():
-            ordered = list(_entries(reading_list))
-            moving = next((entry for entry in ordered if entry.pk == entry_pk), None)
-            if moving is None:
-                reason = "No such issue in this list."
+            ordered = _order(reading_list)
+            if item_pk is None:
+                entry_pk = to_pk(self.data_value("entry"), "entry")
+                ordered = self._move_entry(ordered, entry_pk, position, sourced=sourced)
+            elif sourced:
+                reason = "Collections stay at the end of a list with sources."
                 raise ValidationError(reason)
-            ordered.remove(moving)
-            ordered.insert(max(0, min(position, len(ordered))), moving)
+            else:
+                ordered = self._move_item(
+                    reading_list, ordered, to_pk(item_pk, "item"), position
+                )
             reading_list.order_locked = True
             _renumber(reading_list, ordered)
-        return Response({"position": moving.position})
+            reconcile_list(reading_list)
+        reconcile_includers(reading_list)
+        return Response({"position": position})
 
 
 class ReadingListAcceptView(ReadingListAccessView):
@@ -306,14 +476,20 @@ class ReadingListCandidatesView(ReadingListAccessView):
     def get(self, *_args, **_kwargs) -> Response:
         """Search by ``?q=`` series name, else by the entry's own series names."""
         reading_list = self.get_reading_list()
-        entry = ReadingListEntry.objects.filter(
-            entries_acl_q(self, self.request.user),
-            reading_list=reading_list,
-            pk=self.kwargs["entry_pk"],
-        ).first()
+        entry = (
+            ReadingListEntry.objects.filter(
+                entries_acl_q(self, self.request.user),
+                reading_list=reading_list,
+                pk=self.kwargs["entry_pk"],
+            )
+            .select_related("live_source")
+            .first()
+        )
         if entry is None:
             reason = "No such issue in this list."
             raise ValidationError(reason)
+        if entry.live_source_id is not None:  # pyright: ignore[reportAttributeAccessIssue]
+            raise ValidationError(_live_refusal(entry))
         query = (self.request.GET.get("q") or "").strip()
         qs = Comic.objects.filter(self.get_acl_filter(Comic, self.request.user))
         series_pks = self._series_pks(entry, query)
