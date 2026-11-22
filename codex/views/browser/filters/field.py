@@ -8,8 +8,10 @@ from codex.models import Comic
 from codex.views.browser.const import BROWSER_FILTER_KEYS
 from codex.views.browser.filters.collection import CollectionFilterView
 from codex.views.browser.filters.reading_lists import (
+    READING_LIST_KIND_FILTER,
     READING_LISTS_FILTER,
     held_lists_filter,
+    list_kind_filter,
     reading_lists_filter,
 )
 from codex.views.settings import CREDIT_PERSON_UI_FIELD, IDENTIFIER_TYPE_UI_FIELD
@@ -31,6 +33,15 @@ _FILTER_REL_MAP = MappingProxyType(
     }
 )
 _FILTER_ATTRIBUTES: frozenset[str] = frozenset(BROWSER_FILTER_KEYS)
+# Filters by membership in visible lists, each ``(rel_prefix, values, user)``.
+_LIST_FILTERS = MappingProxyType(
+    {
+        READING_LIST_KIND_FILTER: list_kind_filter,
+        READING_LISTS_FILTER: reading_lists_filter,
+    }
+)
+_KIND_SKIPPED = frozenset({READING_LIST_KIND_FILTER})
+_GRID_SKIPPED_FILTERS = frozenset({READING_LIST_KIND_FILTER, READING_LISTS_FILTER})
 # Filters whose "None" choice is a blank string column, never NULL.
 _FILTER_BLANK_NULL_FIELDS: frozenset[str] = frozenset({"series_status"})
 
@@ -115,32 +126,49 @@ class ComicFieldFilterView(CollectionFilterView):
             filter_list = filters.get(field)
             if not filter_list:
                 continue
-            if field == READING_LISTS_FILTER:
-                comic_field_filter &= reading_lists_filter(
-                    rel_prefix, filter_list, user
-                )
+            if list_filter := _LIST_FILTERS.get(field):
+                comic_field_filter &= list_filter(rel_prefix, filter_list, user)
             else:
                 comic_field_filter &= cls._filter_by_comic_field(
                     field, rel_prefix, filter_list
                 )
         return comic_field_filter
 
-    def get_comic_field_filter(self, model, collection=None, pks=None) -> Q:
+    def _skipped_filters(
+        self, model, collection, pks, *, kind_filter: bool
+    ) -> frozenset[str]:
+        """
+        Return the filters that do not narrow by the lists' comics here.
+
+        On the grid of lists the kind and the Reading Lists filter pick the
+        lists themselves. Inside one list the kind does nothing.
+        """
+        if self.is_lists_grid(model, collection, pks):
+            return _GRID_SKIPPED_FILTERS
+        if not kind_filter or self.is_in_lists(collection, pks):
+            return _KIND_SKIPPED
+        return frozenset()
+
+    def get_comic_field_filter(
+        self, model, collection=None, pks=None, *, kind_filter=True
+    ) -> Q:
         """
         Filter the comics based on the form filters.
 
         On the grid of lists the Reading Lists filter shows the lists the
         chosen lists hold; every other filter still narrows by the lists'
-        comics. Inside one list it narrows the comics like any filter.
+        comics. Inside one list it narrows the comics like any filter, and
+        the kind does nothing. Elsewhere the kind narrows to comics on a
+        list of that kind. ``kind_filter`` off leaves the kind out.
         """
         rel_prefix = self.get_rel_prefix(model)
         filters = self.params["filters"]
         user = self.request.user
-        if not filters.get(READING_LISTS_FILTER) or not self.is_lists_grid(
-            model, collection, pks
+        skipped = self._skipped_filters(model, collection, pks, kind_filter=kind_filter)
+        others = {k: v for k, v in filters.items() if k not in skipped}
+        query = self.get_all_comic_field_filters(rel_prefix, others, user)
+        if READING_LISTS_FILTER in skipped and (
+            held := filters.get(READING_LISTS_FILTER)
         ):
-            return self.get_all_comic_field_filters(rel_prefix, filters, user)
-        others = {k: v for k, v in filters.items() if k != READING_LISTS_FILTER}
-        return self.get_all_comic_field_filters(
-            rel_prefix, others, user
-        ) & held_lists_filter(filters[READING_LISTS_FILTER], user)
+            query &= held_lists_filter(held, user)
+        return query

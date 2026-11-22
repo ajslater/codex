@@ -137,7 +137,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         big_include_filter &= self.get_collection_filter(
             collection, pks, page_mtime=page_mtime
         )
-        big_include_filter &= self.get_comic_field_filter(model, collection, pks)
+        big_include_filter &= self.get_comic_field_filter(
+            model, collection, pks, kind_filter=kind_filter
+        )
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
         big_include_filter &= self.get_retired_filter()

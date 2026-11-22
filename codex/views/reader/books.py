@@ -14,6 +14,7 @@ from codex.models.settings import SettingsReader
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.browser.filters.reading_lists import READING_LIST_KIND_FILTER
 from codex.views.const import (
     COLLECTION_RELATION,
     FOLDER_COLLECTION,
@@ -110,12 +111,28 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
             # A hidden entry is not read in its list.
             nav_filter["reading_list_entries__ignored"] = False
         query_filter = acl_filter & Q(**nav_filter)
-        if browser_filters := self.get_from_settings("filters", browser=True):
+        if browser_filters := self._browser_filters():
             # no search at this time.
             query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
                 "", browser_filters, self.request.user
             )
         return query_filter
+
+    def _browser_filters(self) -> dict:
+        """
+        Return the browser's filters for reading next and previous.
+
+        Reading through a list ignores the Reading List Kind: it picks
+        lists, and inside one list it does nothing.
+        """
+        filters = self.get_from_settings("filters", browser=True) or {}
+        if self._selected_arc_collection == STORY_ARC_COLLECTION:
+            filters = {
+                key: value
+                for key, value in filters.items()
+                if key != READING_LIST_KIND_FILTER
+            }
+        return filters
 
     def _get_comics_annotation_and_ordering(
         self, model, ordering

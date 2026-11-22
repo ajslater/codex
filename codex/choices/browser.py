@@ -279,7 +279,6 @@ _DEFAULT_SHOW = MappingProxyType(
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
-        "reading_list_kind": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )

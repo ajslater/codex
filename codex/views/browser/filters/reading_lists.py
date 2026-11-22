@@ -11,7 +11,7 @@ from typing import Final
 from django.db.models import Q, QuerySet
 
 from codex.models import Comic
-from codex.views.readinglists.access import visible_lists
+from codex.views.readinglists.access import list_kind_q, visible_lists
 
 READING_LISTS_FILTER: Final = "reading_lists"
 # Picks lists, not comics: Mine, Curated, From Tags.
@@ -23,11 +23,17 @@ _IN_LISTS: Final = "reading_list_entries__reading_list__in"
 _SHOWN: Final = "reading_list_entries__ignored"
 
 
-def listed_comics(user, pks=None) -> QuerySet[Comic]:
-    """Return the comics shown in the user's visible lists, or in ``pks``."""
+def listed_comics(user, pks=None, kinds=None) -> QuerySet[Comic]:
+    """
+    Return the comics shown in the user's visible lists.
+
+    In the lists ``pks``, or in lists of any of ``kinds``, when given.
+    """
     lists = visible_lists(user)
     if pks is not None:
         lists = lists.filter(pk__in=pks)
+    if kinds is not None:
+        lists = lists.filter(list_kind_q(kinds, user))
     return Comic.objects.filter(**{_IN_LISTS: lists.values("pk"), _SHOWN: False})
 
 
@@ -40,6 +46,16 @@ def reading_lists_filter(rel_prefix: str, filter_list, user) -> Q:
     if len(pks) != len(filter_list):
         query |= ~Q(**{f"{rel_prefix}pk__in": listed_comics(user)})
     return query
+
+
+def list_kind_filter(rel_prefix: str, kinds, user) -> Q:
+    """
+    Filter by membership in a visible list of any of ``kinds``.
+
+    An ``IN`` subquery, never a join, so a comic on two such lists is one
+    row and sums stay per comic.
+    """
+    return Q(**{f"{rel_prefix}pk__in": listed_comics(user, kinds=kinds)})
 
 
 def held_lists_filter(filter_list, user) -> Q:

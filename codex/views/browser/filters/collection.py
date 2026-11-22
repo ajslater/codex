@@ -54,21 +54,34 @@ class CollectionFilterView(BrowserParamsView):
         entries_prefix = target.removesuffix("reading_list")
         return self.reading_list_entries_filter(user, entries_prefix)
 
+    def _query_route(self, collection, pks) -> tuple:
+        """
+        Return a query's collection and pks: those given, else the route's.
+
+        As for :meth:`get_collection_filter`; the mtime probe passes its own.
+        """
+        if collection is None:
+            collection = self.kwargs.get("collection")
+        if pks is None:
+            pks = self.kwargs.get("pks")
+        return collection, pks
+
+    def is_in_lists(self, collection=None, pks=None) -> bool:
+        """Whether a query reads chosen lists: one list's page, card or files."""
+        collection, pks = self._query_route(collection, pks)
+        return collection == STORY_ARC_COLLECTION and bool(pks) and 0 not in pks
+
     def is_lists_grid(self, model, collection=None, pks=None) -> bool:
         """
         Whether a query reads the grid of lists, not one list.
 
         ReadingList is the model for one list too: its page mtime, metadata
         and download. Filters that pick lists, not comics, apply on the grid
-        only. ``collection`` and ``pks`` default to the route's, as for
-        :meth:`get_collection_filter`; the mtime probe passes its own.
+        only.
         """
         if model is not ReadingList:
             return False
-        if collection is None:
-            collection = self.kwargs.get("collection")
-        if pks is None:
-            pks = self.kwargs.get("pks")
+        collection, pks = self._query_route(collection, pks)
         return collection == STORY_ARC_COLLECTION and not (pks and 0 not in pks)
 
     def get_collection_filter(

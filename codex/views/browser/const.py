@@ -16,6 +16,7 @@ BROWSER_FILTER_KEYS = (
     "monochrome",
     "original_format",
     "reading_direction",
+    "reading_list_kind",
     "reading_lists",
     "reprints",
     "series_end_year",

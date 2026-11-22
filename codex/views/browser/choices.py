@@ -180,17 +180,26 @@ class BrowserChoicesViewBase(BrowserFilterView):
         """
         Per kind the viewer may pick, the rows that show it is offered.
 
-        On the grid of lists: the lists of that kind under every other
-        filter. The kind itself is left out, so a picked kind leaves the
-        others offered and switching is one step.
+        On the grid of lists, the lists of that kind; elsewhere, the comics
+        here on a visible list of that kind; inside one list none, as the
+        kind does nothing there. Every other filter applies and the kind
+        itself is left out, so a picked kind leaves the others offered and
+        switching is one step.
         """
-        if not self.is_lists_grid(ReadingList):
+        if self.is_in_lists():
             return {}
         user = self.request.user
-        lists = self.get_filtered_queryset(ReadingList, kind_filter=False)
+        kinds = list_kinds_for(user)
+        if self.is_lists_grid(ReadingList):
+            lists = self.get_filtered_queryset(ReadingList, kind_filter=False)
+            return {
+                kind: self.force_inner_joins(lists.filter(list_kind_q((kind,), user)))
+                for kind in kinds
+            }
+        comics = self.get_filtered_queryset(Comic, kind_filter=False)
         return {
-            kind: self.force_inner_joins(lists.filter(list_kind_q((kind,), user)))
-            for kind in list_kinds_for(user)
+            kind: comics.filter(pk__in=listed_comics(user, kinds=(kind,)))
+            for kind in kinds
         }
 
     def unlisted(self, comic_qs: QuerySet) -> QuerySet:
