@@ -43,35 +43,82 @@ afterEach(() => {
   wrappers.length = 0;
 });
 
-describe("Clear Filter", () => {
-  test("keeps its place with nothing ticked, so a first tick moves no row", () => {
+const CLEAR = ".filterHeaderTitle .clearFilterIcon";
+
+describe("Clear Filter, an icon in the title row", () => {
+  test("is there but unseen with nothing ticked, so a first tick moves nothing", () => {
     const { wrapper } = mountSubmenu({
       dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
     });
-    const clear = wrapper.find(".clearFilter");
+    const clear = wrapper.find(CLEAR);
     expect(clear.exists()).toBe(true);
-    expect(clear.classes()).toContain("clearFilterIdle");
+    expect(clear.classes()).toContain("clearFilterIconIdle");
     expect(clear.attributes("aria-hidden")).toBe("true");
+    expect(clear.attributes("disabled")).toBeDefined();
   });
 
-  test("returns to the filter list", async () => {
+  test("shows with something ticked, named Clear Filter", () => {
+    const { wrapper } = mountSubmenu({
+      filters: { characters: [1] },
+      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+    });
+    const clear = wrapper.find(CLEAR);
+    expect(clear.classes()).not.toContain("clearFilterIconIdle");
+    expect(clear.attributes("aria-label")).toBe("Clear Filter");
+    expect(clear.attributes("disabled")).toBeUndefined();
+  });
+
+  test("takes no row of its own", () => {
+    const { wrapper } = mountSubmenu({
+      filters: { characters: [1] },
+      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+    });
+    expect(wrapper.find(".clearFilter").exists()).toBe(false);
+  });
+
+  test("clears and returns to the filter list, without the row's back", async () => {
     const { wrapper, browserStore } = mountSubmenu({
       filters: { characters: [1] },
       dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
     });
-    await wrapper.find(".clearFilter").trigger("click");
+    let reachedRow = 0;
+    wrapper.find(".filterHeaderTitle").element.addEventListener("click", () => {
+      reachedRow += 1;
+    });
+    await wrapper.find(CLEAR).trigger("click");
     await flushPromises();
+    expect(reachedRow).toBe(0);
     expect(browserStore.clearOneFilter).toHaveBeenCalledWith("characters");
     expect(browserStore.filterMode).toBe("base");
   });
 
-  test("on Age Rating, clears both tabs and returns to the list", async () => {
+  test("Enter and Space on it stay with it, not the row", async () => {
+    const { wrapper } = mountSubmenu({
+      filters: { characters: [1] },
+      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+    });
+    const reached = [];
+    wrapper
+      .find(".filterHeaderTitle")
+      .element.addEventListener("keydown", (event) => {
+        reached.push(event.key);
+      });
+    const clear = wrapper.find(CLEAR);
+    await clear.trigger("keydown", { key: "Enter" });
+    await clear.trigger("keydown", { key: " " });
+    await clear.trigger("keydown", { key: "ArrowDown" });
+    expect(reached).toEqual(["ArrowDown"]);
+  });
+
+  test("on Age Rating, shows for either tab and clears both", async () => {
     const { wrapper, browserStore } = mountSubmenu({
       name: "ageRatingMetron",
-      filters: { ageRatingMetron: [3], ageRatingTagged: [] },
+      filters: { ageRatingMetron: [], ageRatingTagged: [9] },
       dynamic: { ageRatingMetron: [{ pk: 3, name: "Teen", index: 2 }] },
     });
-    await wrapper.find(".clearFilter").trigger("click");
+    const clear = wrapper.find(CLEAR);
+    expect(clear.classes()).not.toContain("clearFilterIconIdle");
+    await clear.trigger("click");
     await flushPromises();
     expect(browserStore.setSettings).toHaveBeenCalledWith({
       filters: { ageRatingMetron: [], ageRatingTagged: [] },
@@ -218,7 +265,7 @@ describe("the Match all ticked switch", () => {
       filters: { characters: [1], matchAll: ["characters"] },
       dynamic: { characters: SPIDEY },
     });
-    await wrapper.find(".clearFilter").trigger("click");
+    await wrapper.find(CLEAR).trigger("click");
     await flushPromises();
     expect(browserStore.clearOneFilter).toHaveBeenCalledWith("characters");
     expect(browserStore.setSettings).not.toHaveBeenCalled();

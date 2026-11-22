@@ -184,10 +184,11 @@ describe("BrowserFilterBySelect — ticking in a sub-menu", () => {
     const { content } = await openCharacters({
       filters: { characters: [1] },
     });
-    const titles = [...content.querySelectorAll(".clearFilter")].map((row) =>
-      row.textContent.trim(),
+    expect(content.querySelector(".clearFilter")).toBeNull();
+    const clear = content.querySelector(
+      ":scope .filterHeaderTitle .clearFilterIcon",
     );
-    expect(titles).toEqual(["Clear Filter"]);
+    expect(clear.getAttribute("aria-label")).toBe("Clear Filter");
   });
 
   test("the filter list shows how many values are ticked", async () => {

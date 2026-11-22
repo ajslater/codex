@@ -27,21 +27,30 @@
             :prepend-icon="mdiChevronLeft"
             :title="lowerTitle"
             @click="setUIFilterMode('base')"
-          />
-          <!--
-            Kept in place, unseen, with nothing ticked: the first tick
-            would otherwise push every row down under the pointer.
-          -->
-          <v-list-item
-            density="compact"
-            class="clearFilter"
-            :class="{ clearFilterIdle: !isClearable }"
-            title="Clear Filter"
-            :append-icon="mdiCloseCircleOutline"
-            :disabled="!isClearable"
-            :aria-hidden="isClearable ? undefined : 'true'"
-            @click="onClear"
-          />
+          >
+            <!--
+              Clear Filter. Always there, unseen with nothing ticked, so it
+              showing moves nothing: not the row's height, not the menu's
+              width. The row goes back when clicked, so the icon's click
+              and Enter or Space stop here.
+            -->
+            <template #append>
+              <v-btn
+                class="clearFilterIcon"
+                :class="{ clearFilterIconIdle: !isClearable }"
+                :icon="mdiCloseCircleOutline"
+                aria-label="Clear Filter"
+                title="Clear Filter"
+                color="primary"
+                variant="text"
+                :disabled="!isClearable"
+                :aria-hidden="isClearable ? undefined : 'true'"
+                @click.stop="onClear"
+                @keydown.enter.stop
+                @keydown.space.stop
+              />
+            </template>
+          </v-list-item>
           <v-text-field
             v-if="hasAnyChoices"
             v-model="search"
@@ -529,17 +538,20 @@ export default {
     width: 88%;
   }
 
-  .clearFilter {
-    color: rgb(var(--v-theme-on-primary));
-    background-color: rgb(var(--v-theme-primary));
-    opacity: 0.7;
+  /*
+   * A 48px tap target that takes the room of a 36px one: the negative
+   * margins keep the title row its own height, with a gap after the
+   * title. Vuetify caps a button at its cell's width, which the negative
+   * margin makes narrower; lift the cap.
+   */
+  .clearFilterIcon {
+    width: 48px;
+    max-width: none;
+    height: 48px;
+    margin: -6px -6px -6px 2px;
   }
 
-  .clearFilter:hover {
-    opacity: 1;
-  }
-
-  .clearFilterIdle {
+  .clearFilterIconIdle {
     visibility: hidden;
   }
 
