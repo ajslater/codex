@@ -191,7 +191,7 @@ import { useOnlineTagStore } from "@/stores/online-tag";
 
 // Match mode decides how a verdict is applied once the calls are spent,
 // so it changes no request count. Effort is what buys calls, and only
-// against Comic Vine: Metron spends the same whatever you ask.
+// against Comic Vine: Metron and VerseDB spend the same whatever you ask.
 const MATCH_MODE_HINTS = {
   ask: "Writes nothing on its own. Every match becomes a prompt to review, a clear Metron cover match first, so Prompts must be set to Ask.",
   careful:
@@ -249,6 +249,19 @@ const ID_PREFIXES = Object.freeze(
 );
 // Which configured sources a bare id might belong to: "Metron or Comic Vine".
 const SOURCE_NAME_LIST = new Intl.ListFormat("en", { type: "disjunction" });
+const SOURCE_NAME_AND_LIST = new Intl.ListFormat("en", { type: "conjunction" });
+// Sources that cost the same at every effort, so effort buys them nothing.
+// Read off comicbox's pricing rather than named: Metron and VerseDB today.
+const EFFORT_BLIND_SOURCES = Object.freeze(
+  new Set(
+    SUPPORTED_SOURCES.filter((source) => {
+      const costs = Object.values(
+        TAGGING_ESTIMATE.requestsPerComic[source] || {},
+      );
+      return costs.length > 0 && new Set(costs).size === 1;
+    }),
+  ),
+);
 // A comic's own issue identifier is stored with id_type "comic" — codex's
 // IdentifierType.ISSUE value is the table name, not "issue". Accept that (and
 // a bare "issue" defensively); skip non-issue types like publisher / series.
@@ -353,11 +366,10 @@ export default {
       // Why a source's checkbox is disabled, and where to fix it.
       const names = this.sourceItems
         .filter((s) => s.disabled)
-        .map((s) => s.title)
-        .join(", ");
-      return names
-        ? `${names} has no API key. Add one in Admin → Tagging.`
-        : "";
+        .map((s) => s.title);
+      if (names.length === 0) return "";
+      const verb = names.length === 1 ? "has" : "have";
+      return `${SOURCE_NAME_AND_LIST.format(names)} ${verb} no API key. Add one in Admin → Tagging.`;
     },
     sourcesError() {
       // Why the action button is disabled.
@@ -485,7 +497,7 @@ export default {
     unconfiguredIdWarning() {
       const sources = this.unconfiguredIdTokens;
       if (sources.length === 0) return "";
-      const names = sources.map((s) => sourceLabel(s)).join(", ");
+      const names = SOURCE_NAME_LIST.format(sources.map((s) => sourceLabel(s)));
       return `No ${names} credentials configured.`;
     },
     duplicateIdWarning() {
@@ -518,16 +530,22 @@ export default {
     },
     effortHint() {
       if (this.searchControlsDisabled) return this.pinnedControlsHint;
-      const base = EFFORT_HINTS[this.effort] || "";
-      // The request count is Comic Vine's alone; Metron costs the same
-      // whatever effort asks for.
-      if (!this.activeSources.includes("comicvine")) {
-        return base;
+      let hint = EFFORT_HINTS[this.effort] || "";
+      // The request count is Comic Vine's alone; the effort-blind sources
+      // cost the same whatever effort asks for, and the hint says so.
+      if (this.activeSources.includes("comicvine")) {
+        const requests = callsForSource("comicvine", this.effort);
+        if (requests) hint = `${hint} ~${requests} Comic Vine requests/comic.`;
       }
-      const requests = callsForSource("comicvine", this.effort);
-      return requests
-        ? `${base} ~${requests} Comic Vine requests/comic.`
-        : base;
+      const blind = this.activeSources.filter((source) =>
+        EFFORT_BLIND_SOURCES.has(source),
+      );
+      if (blind.length) {
+        const names = SOURCE_NAME_AND_LIST.format(blind.map(sourceShortLabel));
+        const verb = blind.length === 1 ? "ignores" : "ignore";
+        hint = `${hint} ${names} ${verb} it.`;
+      }
+      return hint;
     },
     promptsModeHint() {
       if (this.searchControlsDisabled) return this.pinnedControlsHint;
@@ -586,7 +604,9 @@ export default {
       for (const src of this.activeSources) {
         const rate = SOURCE_RATES[src];
         if (!rate) continue;
-        if (this.totalCalls > rate.perHour) {
+        if (rate.perDay && this.totalCalls > rate.perDay) {
+          warnings.push(`${rate.label} (${rate.perDay}/day limit)`);
+        } else if (this.totalCalls > rate.perHour) {
           warnings.push(`${rate.label} (${rate.perHour}/hr limit)`);
         } else if (this.totalCalls > rate.perMinute) {
           warnings.push(`${rate.label} (${rate.perMinute}/min limit)`);

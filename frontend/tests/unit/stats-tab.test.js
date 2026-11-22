@@ -112,6 +112,7 @@ const STATS = {
     defaultSources: { metron: 1, comicvine: 1 },
     hasMetronCredentials: true,
     hasComicvineCredentials: false,
+    hasVersedbCredentials: true,
     comicvineUrlSet: false,
   },
   auth: {
@@ -191,6 +192,7 @@ describe("AdminStatsTab", () => {
     expect(text).toContain("Single Sign On");
     expect(text).toContain("Reverse Proxy Subpath");
     expect(text).toContain("Metron Credentials");
+    expect(text).toContain("VerseDB Credentials");
   });
 
   test("renders identifier buckets as source and type", () => {

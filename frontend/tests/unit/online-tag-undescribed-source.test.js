@@ -28,13 +28,13 @@ vi.mock("@/choices/tagging-choices.json", async (importOriginal) => {
   return {
     default: {
       ...original.default,
-      sources: [...original.default.sources, "versedb"],
+      sources: [...original.default.sources, "newsource"],
     },
   };
 });
 
-const UNDESCRIBED = "versedb";
-const DESCRIBED = Object.freeze(["metron", "comicvine"]);
+const UNDESCRIBED = "newsource";
+const DESCRIBED = Object.freeze(["metron", "comicvine", "versedb"]);
 const VDialogStub = { name: "VDialog", template: "<div><slot /></div>" };
 
 function mountLauncher(configuredSources, identifiers = []) {
@@ -94,6 +94,10 @@ describe("a source with no descriptor", () => {
     expect(credentialFields("comicvine")).toEqual({
       key: "comicvineKey",
       url: "comicvineUrl",
+    });
+    expect(credentialFields("versedb")).toEqual({
+      key: "versedbKey",
+      url: undefined,
     });
   });
 

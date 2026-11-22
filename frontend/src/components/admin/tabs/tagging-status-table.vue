@@ -658,7 +658,8 @@ export default {
        * Metron's daily limit varies by donor tier and comes off its
        * X-RateLimit-* headers; Comic Vine meters hourly per endpoint
        * pool and the backend sends the tightest one, since that is what
-       * will stop the run. Empty until the source has reported.
+       * will stop the run. VerseDB reports one hourly window. Empty until
+       * the source has reported.
        */
       const window = src.budgetWindow;
       if (!window) return "";

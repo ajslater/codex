@@ -204,6 +204,10 @@
                           }}<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
                         >
                       </p>
+                      <p v-if="source.notes" class="adminHint sourceNotes">
+                        {{ source.notes }}
+                      </p>
+                      <SourceCredit :source="source.id" />
                       <v-text-field
                         v-if="source.customUrl"
                         v-model="urls[source.id]"
@@ -277,6 +281,7 @@ import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
+import TAGGING_ESTIMATE from "@/choices/tagging-estimate.json";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue";
 import TagWriteErrorsPanel from "@/components/admin/tabs/tag-write-errors-panel.vue";
@@ -288,11 +293,13 @@ import {
   namedFormats,
   WRITE_FORMAT_CHOICES,
 } from "@/components/metadata/edit-mode/write-formats";
+import SourceCredit from "@/components/online-tag/source-credit.vue";
 import {
   credentialFields,
   SOURCE_DESCRIPTORS,
   SUPPORTED_SOURCES,
 } from "@/components/online-tag/source-labels";
+import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
 const EDITABLE_FIELDS = Object.freeze([
@@ -306,6 +313,20 @@ const EDITABLE_FIELDS = Object.freeze([
   "mergeAllSources",
 ]);
 
+/*
+ * A source whose daily cap binds every account gets its budget spelled out:
+ * the free tier's hourly and daily caps and what one comic costs, all as
+ * comicbox prices them (tagging-estimate.json).
+ */
+function budgetNote(id) {
+  const rate = TAGGING_ESTIMATE.sourceRates[id];
+  const perComic = TAGGING_ESTIMATE.requestsPerComic[id]?.balanced;
+  if (!rate?.perDay || !perComic) return "";
+  const perHour = NUMBER_FORMAT.format(rate.perHour);
+  const perDay = NUMBER_FORMAT.format(rate.perDay);
+  return `Free tier: ${perHour} requests an hour and ${perDay} a day, about ${perComic} per comic.`;
+}
+
 // One row per source, with the copy its credential panel shows.
 const SOURCE_ROWS = Object.freeze(
   SUPPORTED_SOURCES.map((id) => {
@@ -315,6 +336,7 @@ const SOURCE_ROWS = Object.freeze(
       id,
       ...descriptor,
       fields: credentialFields(id),
+      notes: [budgetNote(id), descriptor.terms].filter(Boolean).join(" "),
       enableLabel: `Enable ${label}`,
       raiseLabel: `Raise ${label} priority`,
       lowerLabel: `Lower ${label} priority`,
@@ -348,6 +370,7 @@ export default {
   components: {
     AdminSection,
     ConfirmDialog,
+    SourceCredit,
     TaggingStatusTable,
     TagWriteErrorsPanel,
     ValidationChip,
@@ -372,7 +395,7 @@ export default {
       matchModeHint:
         "How aggressively to accept online matches. Ask writes nothing and prompts for every match, listing a clear Metron cover match first. Careful writes only near-certain matches and clear Metron cover matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
       effortHint:
-        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron ignores this.",
+        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron and VerseDB ignore this.",
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:
@@ -628,6 +651,10 @@ export default {
 .sourcePanel {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.sourceNotes {
+  margin-top: 0;
 }
 
 .mergeAllSourcesCard {

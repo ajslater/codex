@@ -26,6 +26,42 @@ function mountChip(result) {
 
 const fmt = (n) => NUMBER_FORMAT.format(n);
 
+describe("tagging validation chip — VerseDB", () => {
+  test("an hourly window reads as what is left this hour", () => {
+    const wrapper = mountChip({
+      ok: true,
+      rateLimits: {
+        burst: { limit: null, remaining: null },
+        hourly: { limit: 300, remaining: 287 },
+        sustained: { limit: null, remaining: null },
+      },
+    });
+    expect(wrapper.text()).toBe(
+      `Connected · ${fmt(287)} of ${fmt(300)} left this hour`,
+    );
+  });
+
+  test("an hourly limit alone reads as a rate", () => {
+    const wrapper = mountChip({
+      ok: true,
+      rateLimits: { hourly: { limit: 300, remaining: null } },
+    });
+    expect(wrapper.text()).toBe(`Connected · ${fmt(300)}/hour`);
+  });
+
+  test("an empty hourly window adds nothing to Metron's numbers", () => {
+    const wrapper = mountChip({
+      ok: true,
+      rateLimits: {
+        burst: { limit: 20, remaining: 19 },
+        hourly: { limit: null, remaining: null },
+        sustained: { limit: 25_000, remaining: 24_987 },
+      },
+    });
+    expect(wrapper.text()).not.toContain("hour");
+  });
+});
+
 describe("tagging validation chip", () => {
   test("ok without rate limits shows plain Connected", () => {
     const wrapper = mountChip({ ok: true });

@@ -62,6 +62,15 @@
         <MetadataShelvesRow :book="book" />
       </template>
     </MetadataTagsTable>
+    <!-- The credit a source's terms require where its data is shown: any
+         source this comic carries an identifier from that asks for one. -->
+    <section v-if="creditSources.length" class="mdSection">
+      <SourceCredit
+        v-for="source in creditSources"
+        :key="source"
+        :source="source"
+      />
+    </section>
     <section class="mdSection">
       <section class="inlineRow">
         <MetadataText :value="alternativeIssue" label="Alternative Issue" />
@@ -86,6 +95,8 @@ import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
 import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
+import SourceCredit from "@/components/online-tag/source-credit.vue";
+import { sourceAttribution } from "@/components/online-tag/source-labels";
 import { getDateTime } from "@/datetime";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -98,6 +109,7 @@ export default {
     MetadataShelvesRow,
     MetadataTagsTable,
     MetadataText,
+    SourceCredit,
   },
   props: {
     book: {
@@ -114,6 +126,12 @@ export default {
       twentyFourHourTime: (state) => state.settings?.twentyFourHourTime,
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
     }),
+    creditSources() {
+      const sources = (this.md?.identifiers || [])
+        .map((row) => row.source)
+        .filter((source) => source && sourceAttribution(source));
+      return [...new Set(sources)];
+    },
     readingDirectionText() {
       if (!this.md) {
         return "Unknown";

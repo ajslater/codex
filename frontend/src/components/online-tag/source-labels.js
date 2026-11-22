@@ -9,7 +9,11 @@
  * A source the backend lists with no descriptor here is left out of
  * SUPPORTED_SOURCES, so the Tagging tab and the launcher never offer a source
  * they cannot describe.
+ *
+ * The credit a source's terms require ("Data from VerseDB") is not UI copy:
+ * it comes from comicbox through tagging-attribution.json.
  */
+import TAGGING_ATTRIBUTION from "@/choices/tagging-attribution.json";
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
 
 export const SOURCE_DESCRIPTORS = Object.freeze({
@@ -32,6 +36,18 @@ export const SOURCE_DESCRIPTORS = Object.freeze({
     // simyan takes a base url, so a proxy or mirror works.
     customUrl: true,
   }),
+  versedb: Object.freeze({
+    label: "VerseDB",
+    shortLabel: "VerseDB",
+    tokenHint: "Create a personal access token at",
+    tokenUrl: "https://versedb.com/my/apps/custom/create",
+    tokenLinkText: "VerseDB Custom Apps",
+    // comicbox takes a url, but nobody runs a VerseDB mirror.
+    customUrl: false,
+    // VerseDB's free API terms, and where its tags land in a merge.
+    terms:
+      "Free for non-commercial use. Its tags fill gaps: where sources disagree, Metron and Comic Vine win.",
+  }),
 });
 
 /** The sources the backend supports and this UI can describe, in order. */
@@ -52,6 +68,9 @@ export const SOURCE_LABELS = Object.freeze(
 
 /** Display name for a source id, falling back to the id itself. */
 export const sourceLabel = (source) => SOURCE_LABELS[source] || source;
+
+/** The credit ``{text, url}`` a source's terms require, or undefined. */
+export const sourceAttribution = (source) => TAGGING_ATTRIBUTION[source];
 
 /** Short display name for a source id, falling back to the id itself. */
 export const sourceShortLabel = (source) =>

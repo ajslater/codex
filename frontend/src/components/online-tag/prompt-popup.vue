@@ -81,6 +81,10 @@
                 :candidate="candidate"
                 @pick="pick(prompt, idx)"
               />
+              <!-- The credit this source's terms require under its data.
+                 Read from the choices map, so a prompt cached before the
+                 source had one still shows it. -->
+              <SourceCredit :source="prompt.source" class="promptCredit" />
               <div v-if="coveredCount(prompt) > 1" class="promptCovers">
                 Applies to {{ coveredCount(prompt) }} comics:
                 {{ coveredNames(prompt) }}
@@ -104,6 +108,7 @@ import { mapActions, mapState, mapWritableState } from "pinia";
 
 import CandidateRow from "@/components/online-tag/candidate-row.vue";
 import FileCoverThumb from "@/components/online-tag/file-cover-thumb.vue";
+import SourceCredit from "@/components/online-tag/source-credit.vue";
 import { sourceLabel } from "@/components/online-tag/source-labels";
 import { promptComics, useOnlineTagStore } from "@/stores/online-tag";
 
@@ -116,6 +121,7 @@ export default {
   components: {
     CandidateRow,
     FileCoverThumb,
+    SourceCredit,
   },
   data() {
     return {
@@ -262,6 +268,10 @@ export default {
 .promptTagged {
   color: rgb(var(--v-theme-text-secondary));
   font-size: 0.75rem;
+}
+
+.promptCredit {
+  padding-top: 8px;
 }
 
 .promptCovers {

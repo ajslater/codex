@@ -140,8 +140,9 @@ describe("OnlineTagLauncherDialog", () => {
       );
       expect(sourceInput(wrapper, "metron").element.disabled).toBe(false);
       expect(sourceInput(wrapper, "comicvine").element.disabled).toBe(true);
+      expect(sourceInput(wrapper, "versedb").element.disabled).toBe(true);
       expect(wrapper.text()).toContain(
-        "Comic Vine has no API key. Add one in Admin → Tagging.",
+        "Comic Vine and VerseDB have no API key. Add one in Admin → Tagging.",
       );
     });
 
@@ -524,10 +525,10 @@ describe("OnlineTagLauncherDialog", () => {
     test("the id field names each source's prefix", () => {
       const { wrapper } = mountDialog();
       expect(wrapper.vm.idInputsPlaceholder).toBe(
-        "metron:ID, comicvine:ID, or issue URL",
+        "metron:ID, comicvine:ID, versedb:ID, or issue URL",
       );
       expect(wrapper.vm.idInputsHint).toBe(
-        "Enter one or more issue URLs or ids (metron:ID, comicvine:ID, 4000-ID). A source with an id is fetched directly; the rest are searched.",
+        "Enter one or more issue URLs or ids (metron:ID, comicvine:ID, versedb:ID, 4000-ID). A source with an id is fetched directly; the rest are searched.",
       );
     });
 
