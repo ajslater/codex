@@ -29,12 +29,17 @@ def _migrate(target):
     return MigrationExecutor(connection).loader.project_state(target).apps
 
 
+def _migrate_to_latest() -> None:
+    """Leave the schema where every other test expects it."""
+    _migrate(MigrationExecutor(connection).loader.graph.leaf_nodes("codex"))
+
+
 class ShelvesMigrationTests(TransactionTestCase):
     """Favorites, their filter and their sort key all carry over."""
 
     @override
     def setUp(self) -> None:
-        self.addCleanup(_migrate, _AFTER)
+        self.addCleanup(_migrate_to_latest)
         self.fan = User.objects.create(username="fan")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.plain = User.objects.create(username="plain")  # pyright: ignore[reportUninitializedInstanceVariable]
 

@@ -66,32 +66,6 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     PRIMARY KEY (username, comic_path)
 );
 
--- A user's named shelves. Shelf names are unique per user, so
--- (username, name) is the stable key the items and filters refer to.
-CREATE TABLE IF NOT EXISTS shelves (
-    username TEXT NOT NULL,
-    name TEXT NOT NULL,
-    updated_at TEXT,
-    PRIMARY KEY (username, name)
-);
-
--- One target on one shelf. The target is the polymorphic
--- (collection, identifier) pair; identifier_json is a JSON-encoded
--- name-chain tuple (see identifiers.py).
---
--- Backups written before shelves existed carry a ``favorites`` table
--- (username, collection, identifier_json) instead. It is not declared
--- here; the restore reads it when present and files those rows on a
--- shelf named "Favorites".
-CREATE TABLE IF NOT EXISTS shelf_items (
-    username TEXT NOT NULL,
-    shelf_name TEXT NOT NULL,
-    collection TEXT NOT NULL,
-    identifier_json TEXT NOT NULL,
-    updated_at TEXT,
-    PRIMARY KEY (username, shelf_name, collection, identifier_json)
-);
-
 -- Reading lists a person made, imported or edited, keyed by the list's
 -- UUID, which survives a restore. ``username`` is empty for a global list.
 -- A list that only mirrors its story-arc tags is not stored: the tag sync
@@ -124,6 +98,10 @@ CREATE TABLE IF NOT EXISTS reading_list_sources (
     ordered INTEGER NOT NULL DEFAULT 1,
     document TEXT,
     fetched_at TEXT,
+    -- A collection item's collection and placement; its ``ref`` and
+    -- ``document`` name it by identity (see identifiers.py).
+    collection TEXT NOT NULL DEFAULT '',
+    position INTEGER,
     PRIMARY KEY (list_uuid, kind, ref)
 );
 
@@ -198,8 +176,9 @@ CREATE TABLE IF NOT EXISTS settings_browser (
 
 -- 1:1 with settings_browser, keyed on the same (username, client, name).
 -- Lists of tag PKs in the main DB become JSON arrays of names here, per
--- tag table (see identifiers.py). ``shelves`` holds the names of the
--- owner's shelves the same way.
+-- tag table (see identifiers.py). ``shelves`` held the owner's shelf names
+-- before shelves folded into reading lists; an older backup's restore reads
+-- it as the names of the owner's lists, and new backups leave it empty.
 CREATE TABLE IF NOT EXISTS settings_filters (
     username TEXT NOT NULL,
     client TEXT NOT NULL,

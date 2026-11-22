@@ -4,9 +4,6 @@ import datetime as dt
 import shutil
 from typing import override
 
-import pytest
-from django.contrib.auth import get_user_model
-from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from codex.librarian.scribe.importer.const import (
@@ -23,8 +20,6 @@ from codex.models import (
     Library,
     Publisher,
     Series,
-    Shelf,
-    ShelfItem,
     Volume,
 )
 from tests.tmp_dirs import tmp_dir
@@ -83,81 +78,6 @@ class ComicTestCase(TestCase):
         assert comic.name == self.NAME
         assert comic.decade == self.DECADE
         assert comic.date == self.DATE
-
-
-class ShelfTestCase(TestCase):
-    """Test Shelf and ShelfItem models."""
-
-    TWO_ITEMS = 2
-
-    @override
-    def setUp(self):
-        """Provision two users with a shelf each and a shelvable row."""
-        user_model = get_user_model()
-        self.user = user_model.objects.create(username="shelftester")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.other_user = user_model.objects.create(username="shelftester2")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.shelf = Shelf.objects.create(user=self.user, name="Want to Read")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.other_shelf = Shelf.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
-            user=self.other_user, name="Want to Read"
-        )
-        self.publisher = Publisher.objects.create(name="ShelfPub")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.imprint = Imprint.objects.create(name="ShelfImp", publisher=self.publisher)  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.series = Series.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
-            name="ShelfSeries",
-            publisher=self.publisher,
-            imprint=self.imprint,
-        )
-
-    def test_shelf_name_unique_per_user(self):
-        """One user cannot have two shelves with the same name; two users can."""
-        with transaction.atomic(), pytest.raises(IntegrityError):
-            Shelf.objects.create(user=self.user, name="Want to Read")
-
-    def test_item_unique_per_shelf(self):
-        """Same (shelf, collection, target_id) triple must not insert twice."""
-        ShelfItem.objects.create(
-            shelf=self.shelf, collection="series", target_id=self.series.pk
-        )
-        with transaction.atomic(), pytest.raises(IntegrityError):
-            ShelfItem.objects.create(
-                shelf=self.shelf, collection="series", target_id=self.series.pk
-            )
-
-    def test_distinct_shelves_share_target(self):
-        """The same target may sit on several shelves."""
-        second = Shelf.objects.create(user=self.user, name="Second")
-        for shelf in (self.shelf, second, self.other_shelf):
-            ShelfItem.objects.create(
-                shelf=shelf, collection="series", target_id=self.series.pk
-            )
-        count = ShelfItem.objects.filter(shelf__user=self.user).count()
-        assert count == self.TWO_ITEMS
-
-    def test_distinct_collections_share_target_id(self):
-        """target_id may collide across collections (publisher#1 and series#1)."""
-        ShelfItem.objects.create(shelf=self.shelf, collection="publishers", target_id=1)
-        ShelfItem.objects.create(shelf=self.shelf, collection="series", target_id=1)
-        assert ShelfItem.objects.filter(shelf=self.shelf).count() == self.TWO_ITEMS
-
-    def test_user_delete_cascades(self):
-        """Deleting a user wipes their shelves and items."""
-        ShelfItem.objects.create(
-            shelf=self.shelf, collection="series", target_id=self.series.pk
-        )
-        self.user.delete()
-        assert not Shelf.objects.filter(pk=self.shelf.pk).exists()
-        assert not ShelfItem.objects.filter(collection="series").exists()
-
-    def test_shelf_delete_cascades(self):
-        """Deleting a shelf wipes its items only."""
-        for shelf in (self.shelf, self.other_shelf):
-            ShelfItem.objects.create(
-                shelf=shelf, collection="series", target_id=self.series.pk
-            )
-        self.shelf.delete()
-        assert list(ShelfItem.objects.values_list("shelf_id", flat=True)) == [
-            self.other_shelf.pk
-        ]
 
 
 class MissingSinceFieldTestCase(TestCase):

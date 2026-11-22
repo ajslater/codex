@@ -22,7 +22,6 @@ from typing import Any, Final
 from codex.collection import Collection
 from codex.user_data.identifiers import (
     FILTER_TAG_COLUMNS,
-    encode_identifier,
     identifier_for_browse_collection,
     tag_model_for_filter,
     tag_name_field_for_filter,
@@ -111,7 +110,7 @@ def serialize_library(library) -> tuple[str, tuple[str, ...], dict[str, Any]]:
     )
 
 
-# ── Bookmark / Shelf ─────────────────────────────────────────────────
+# ── Bookmark ─────────────────────────────────────────────────────────
 
 
 def serialize_bookmark(
@@ -140,19 +139,6 @@ def serialize_bookmark(
     )
 
 
-def serialize_shelf(shelf) -> tuple[str, tuple[str, ...], dict[str, Any]]:
-    """Shelf row keyed by ``(username, name)``."""
-    return (
-        "shelves",
-        ("username", "name"),
-        {
-            "username": shelf.user.username,
-            "name": shelf.name,
-            "updated_at": _datetime_str(getattr(shelf, "updated_at", None)),
-        },
-    )
-
-
 def serialize_api_key(api_key) -> tuple[str, tuple[str, ...], dict[str, Any]]:
     """Serialize an API key row keyed by ``(username, name)``, as hashes only."""
     return (
@@ -167,40 +153,6 @@ def serialize_api_key(api_key) -> tuple[str, tuple[str, ...], dict[str, Any]]:
             "kosync_digest": api_key.kosync_digest,
             "created_at": _datetime_str(api_key.created_at),
             "last_used_at": _datetime_str(api_key.last_used_at),
-        },
-    )
-
-
-def serialize_shelf_item(
-    item,
-) -> tuple[str, tuple[str, ...], dict[str, Any]] | None:
-    """
-    Shelf item keyed by ``(username, shelf_name, collection, identifier_json)``.
-
-    The polymorphic ``(collection, target_id)`` pair is resolved into a stable
-    name-chain identifier via :func:`identifier_for_browse_collection`.
-    Resolution may fail (target deleted between signal queue and write) —
-    return ``None`` to skip rather than crash.
-    """
-    from codex.models.collection_models import BROWSE_COLLECTION_MODELS
-
-    target_model = BROWSE_COLLECTION_MODELS.get(item.collection)
-    if target_model is None:
-        return None
-    instance = target_model.objects.filter(pk=item.target_id).first()
-    if instance is None:
-        return None
-    parts = identifier_for_browse_collection(item.collection, instance)
-    shelf = item.shelf
-    return (
-        "shelf_items",
-        ("username", "shelf_name", "collection", "identifier_json"),
-        {
-            "username": shelf.user.username,
-            "shelf_name": shelf.name,
-            "collection": item.collection,
-            "identifier_json": encode_identifier(item.collection, parts),
-            "updated_at": _datetime_str(getattr(item, "updated_at", None)),
         },
     )
 
@@ -253,7 +205,7 @@ def serialize_settings_browser(
 
 # Filter columns written apart from the tag and scalar columns.
 _SPECIAL_FILTER_COLUMNS: Final = frozenset(
-    {"bookmark", "reading_list_kind", "reading_lists", "shelves"}
+    {"bookmark", "reading_list_kind", "reading_lists"}
 )
 
 
@@ -307,7 +259,6 @@ def serialize_settings_filters(
     if browser.user_id is None:
         return None
     from codex.models.settings import SettingsBrowserFilters
-    from codex.models.shelf import Shelf
 
     data: dict[str, Any] = {
         "username": browser.user.username,
@@ -315,18 +266,6 @@ def serialize_settings_filters(
         "name": browser.name,
         "bookmark": filters.bookmark,
         "reading_list_kind": filters.reading_list_kind,
-        # Shelf pks become the owner's shelf names; pks that are not this
-        # user's shelves drop out.
-        "shelves": json.dumps(
-            list(
-                Shelf.objects.filter(user_id=browser.user_id, pk__in=filters.shelves)
-                .order_by("name")
-                .values_list("name", flat=True)
-            )
-            if filters.shelves
-            else [],
-            separators=(",", ":"),
-        ),
     }
     data["reading_lists"] = json.dumps(
         _filter_reading_list_uuids(filters, browser.user), separators=(",", ":")

@@ -7,11 +7,13 @@ every hand edit, and the series mappings. A list that only mirrors its
 story-arc tags is left out: the sync rebuilds it from the tags.
 """
 
+import json
 import sqlite3
 from typing import Any, Final, override
 
 from django.contrib.auth.models import User
 
+from codex.librarian.scribe.readinglists.live import add_item, reconcile_list
 from codex.librarian.scribe.readinglists.service import combine_lists, import_document
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.models import (
@@ -31,6 +33,14 @@ from tests.test_reading_list_combine import _document, _upload
 from tests.test_reading_lists import TMP_DIR, ReadingListFixture
 
 _PW: Final = "test-pw-hush-S106"
+_SOURCES_SQL: Final = """
+    SELECT kind, collection, ref, revision, position, document
+    FROM reading_list_sources WHERE list_uuid = ?
+"""
+_ENTRIES_SQL: Final = """
+    SELECT comic_path FROM reading_list_entries WHERE list_uuid = ?
+    ORDER BY position
+"""
 
 
 def _entries(reading_list: ReadingList) -> list[tuple[Any, ...]]:
@@ -145,6 +155,9 @@ class ReadingListBackupTests(ReadingListFixture):
         ReadingListEntry.objects.filter(reading_list=mine, comic=c1).update(
             match_tier=ReadingListMatchTier.MARKED_MISSING, comic=None
         )
+        # The series as a whole, after the hand entries: c1, c3 and c4.
+        add_item(mine, "series", c1.series_id)
+        reconcile_list(mine)
         ReadingListSeriesMapping.objects.create(
             series_key="the amazing spider man", year=1963, series=c1.series
         )
@@ -170,6 +183,46 @@ class ReadingListBackupTests(ReadingListFixture):
         del expected[other]
         assert after["mappings"] == before["mappings"]
         assert after["lists"] == expected
+
+    def test_items_are_kept_by_identity_without_their_comics(self) -> None:
+        """An item is its collection and identity; the sync rewrites its rows."""
+        self._seed()
+        mine = ReadingList.objects.get(name="Mine")
+        item = ReadingListSource.objects.get(reading_list=mine, collection="series")
+        snapshot = self._snapshot()
+        with sqlite3.connect(snapshot) as conn:
+            sources = conn.execute(
+                _SOURCES_SQL,
+                (str(mine.uuid),),
+            ).fetchall()
+            entries = conn.execute(
+                _ENTRIES_SQL,
+                (str(mine.uuid),),
+            ).fetchall()
+        assert [row[:5] for row in sources] == [
+            ("collection", "series", item.ref, "", item.position)
+        ]
+        assert json.loads(sources[0][5]) == item.document
+        # Only the hand entries: c2, and c1 marked missing.
+        assert entries == [(str(self.comics[1].path),), (None,)]
+
+    def test_restore_binds_items_and_writes_their_comics(self) -> None:
+        """The restored item finds its series by name; the sync fills it."""
+        self._seed()
+        before = _entries(ReadingList.objects.get(name="Mine"))
+        snapshot = self._snapshot()
+        ReadingList.objects.all().delete()
+        restore(sidecar_path=snapshot)
+        mine = ReadingList.objects.get(name="Mine")
+        item = ReadingListSource.objects.get(reading_list=mine, collection="series")
+        assert item.target_id == self.comics[0].series_id
+        live = ReadingListEntry.objects.filter(live_source=item).order_by("position")
+        assert list(live.values_list("comic_id", flat=True)) == [
+            self.comics[0].pk,
+            self.comics[2].pk,
+            self.comics[3].pk,
+        ]
+        assert _entries(mine) == before
 
     def test_restore_replaces_a_list_the_sync_rebuilt(self) -> None:
         """A rebuilt database's tags-only copy of an arc gives way to the backup."""
@@ -207,6 +260,25 @@ class ReadingListBackupTests(ReadingListFixture):
         report = restore(sidecar_path=snapshot)
         assert "reading_lists" not in report.written
         assert ReadingList.objects.count() == count
+
+    def test_a_backup_from_before_collection_items_restores(self) -> None:
+        """A version 5 sidecar's sources have no collection or position."""
+        self._seed()
+        snapshot = self._snapshot()
+        with sqlite3.connect(snapshot) as conn:
+            conn.executescript(
+                """
+                DELETE FROM reading_list_sources WHERE kind = 'collection';
+                ALTER TABLE reading_list_sources DROP COLUMN collection;
+                ALTER TABLE reading_list_sources DROP COLUMN position;
+                """
+            )
+        ReadingList.objects.all().delete()
+        report = restore(sidecar_path=snapshot)
+        assert report.written.get("reading_lists") == 2  # noqa: PLR2004
+        mine = ReadingList.objects.get(name="Mine")
+        assert not ReadingListSource.objects.filter(reading_list=mine).exists()
+        assert ReadingListEntry.objects.filter(reading_list=mine).count() == 2  # noqa: PLR2004
 
     def test_dry_run_writes_nothing(self) -> None:
         """A dry run resolves the rows and saves none."""

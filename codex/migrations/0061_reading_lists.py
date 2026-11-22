@@ -23,6 +23,8 @@ story-arc tag tables, which stay the importer's. In order:
    becoming "in no list", and ``story_arcs`` is dropped. The ``story_arcs``
    sort key and table column become ``reading_lists`` wherever browser
    settings store one.
+7. Shelves become personal reading lists (``_0061_shelves_to_lists``),
+   and the shelf models and the shelves filter go.
 
 Self-contained on purpose: it reads historical models only, so later
 changes to the tag sync cannot change what it did. The sort-key rename
@@ -38,6 +40,10 @@ from django.conf import settings
 from django.db import migrations, models
 
 import codex.models.fields
+from codex.migrations._0061_shelves_to_lists import (
+    lists_to_shelves,
+    shelves_to_lists,
+)
 
 _ARCS = "arcs"
 _TAGS = "tags"
@@ -1065,5 +1071,16 @@ class Migration(migrations.Migration):
                 fields=("session", "client", "reading_list"),
                 name="unique_settingsreader_session_reading_list",
             ),
+        ),
+        migrations.RunPython(shelves_to_lists, lists_to_shelves),
+        migrations.RemoveField(
+            model_name="settingsbrowserfilters",
+            name="shelves",
+        ),
+        migrations.DeleteModel(
+            name="ShelfItem",
+        ),
+        migrations.DeleteModel(
+            name="Shelf",
         ),
     ]

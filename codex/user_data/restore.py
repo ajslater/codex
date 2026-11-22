@@ -871,8 +871,15 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
         "reading_list_kind": (
             row["reading_list_kind"] or "" if "reading_list_kind" in row_keys else ""
         ),
-        "shelves": resolve_filter_shelves(row, row_keys, browser),
-        "reading_lists": _resolve_filter_reading_lists(row_keys, row, browser),
+        # An older backup's shelves are personal lists now: one filter.
+        "reading_lists": list(
+            dict.fromkeys(
+                [
+                    *_resolve_filter_reading_lists(row_keys, row, browser),
+                    *resolve_filter_shelves(row, row_keys, browser),
+                ]
+            )
+        ),
     }
     for column in SettingsBrowserFilters.FILTER_KEYS:
         if column in defaults:

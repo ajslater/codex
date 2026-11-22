@@ -227,10 +227,6 @@ class SettingsBrowserFilters(BaseModel):
         blank=True,
     )
 
-    # Shelves filter — pks of the owner's shelves. Kept apart from the
-    # dynamic tag filters because it is per-user state, not comic metadata.
-    shelves = JSONField(default=list)
-
     # Dynamic filters — each stores a list of ints.
     age_rating_metron = JSONField(default=list)
     age_rating_tagged = JSONField(default=list)
@@ -265,7 +261,6 @@ class SettingsBrowserFilters(BaseModel):
         {
             "bookmark",
             "reading_list_kind",
-            "shelves",
             "age_rating_metron",
             "age_rating_tagged",
             "characters",

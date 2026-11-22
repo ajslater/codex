@@ -113,12 +113,23 @@ def serialize_reading_list(reading_list: ReadingList) -> dict[str, Any]:
 def serialize_reading_list_source(
     list_uuid: str, source: ReadingListSource
 ) -> dict[str, Any]:
-    """Return one source row, its document as JSON."""
+    """
+    Return one source row, its document as JSON.
+
+    A collection item is named by its identity; its revision, a digest of
+    comic pks, means nothing in another database, so the first sync after a
+    restore verifies it.
+    """
+    from codex.choices.readinglists import ReadingListSourceKind
+
+    item = source.kind == ReadingListSourceKind.COLLECTION.value
     return {
         "list_uuid": list_uuid,
         "kind": source.kind,
         "ref": source.ref,
-        "revision": source.revision,
+        "revision": "" if item else source.revision,
+        "collection": source.collection,
+        "position": source.position,
         "attribution_source": source.attribution_source,
         "attribution_url": source.attribution_url,
         "rank": source.rank,
@@ -218,7 +229,10 @@ def _dump_entries(
     from codex.models.readinglist import ReadingListEntry
 
     positions: defaultdict[int, int] = defaultdict(int)
-    entries = ReadingListEntry.objects.filter(reading_list_id__in=uuids)
+    # Live entries are their items' comics: the sync writes them again.
+    entries = ReadingListEntry.objects.filter(
+        reading_list_id__in=uuids, live_source__isnull=True
+    )
     for entry in entries.select_related("comic").order_by(
         "reading_list_id", "position", "pk"
     ):

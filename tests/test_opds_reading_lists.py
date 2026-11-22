@@ -44,7 +44,7 @@ class OPDSReadingListsTestCase(KeepReadingSeedTestCase):
     def test_a_held_series_shows_its_issues(self) -> None:
         """A series held whole previews its comics."""
         reading_list = self._list()
-        add_item(reading_list, "series", self.comics[0].series_id)  # pyright: ignore[reportAttributeAccessIssue]
+        add_item(reading_list, "series", self.comics[0].series_id)
         reconcile_list(reading_list)
         self._login(self.user)
 

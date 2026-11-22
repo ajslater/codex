@@ -96,11 +96,17 @@ def _replace_sources(
     from codex.models.readinglist import ReadingListSource
 
     ReadingListSource.objects.filter(reading_list=reading_list).delete()
+    # A collection item comes back dangling, by identity: the live sync
+    # after the restore binds it to this database's row. An older sidecar
+    # gains the item columns when the store opens it.
     sources = ReadingListSource.objects.bulk_create(
         ReadingListSource(
             reading_list=reading_list,
             kind=row["kind"],
             ref=row["ref"],
+            collection=row["collection"] or "",
+            target_id=None,
+            position=row["position"],
             revision=row["revision"] or "",
             attribution_source=row["attribution_source"] or "",
             attribution_url=row["attribution_url"] or "",
@@ -273,3 +279,8 @@ def restore_reading_lists(
         uuid = row["uuid"]
         _restore_one_list(row, sources.get(uuid, []), entries.get(uuid, []), report)
     _restore_mappings(store, report, resolve_pks, dry_run=dry_run)
+    if not dry_run:
+        from codex.librarian.scribe.readinglists.live import sync_live
+
+        # Bind the restored items and write their comics, targets first.
+        sync_live(force=True)

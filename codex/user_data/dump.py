@@ -36,8 +36,6 @@ _TRACKED_TABLES: Final[tuple[str, ...]] = (
     "libraries",
     "library_groups",
     "bookmarks",
-    "shelves",
-    "shelf_items",
     "api_keys",
     "settings_browser",
     "settings_filters",
@@ -80,9 +78,13 @@ def _clear_sidecar(store: SidecarStore) -> None:
     """Truncate every tracked table inside a single transaction."""
     with store.transaction() as conn:
         # A sidecar file first written before shelves existed still holds
-        # the retired favorites table. Left in place its rows would never
-        # be refreshed again, and a later restore would resurrect them.
-        conn.execute("DROP TABLE IF EXISTS favorites")
+        # the retired favorites table, and one written before shelves folded
+        # into reading lists the shelves tables. Left in place their rows
+        # would never be refreshed again, and a later restore would
+        # resurrect them.
+        for retired in ("favorites", "shelves", "shelf_items"):
+            # Names from a static tuple, not user input.
+            conn.execute(f"DROP TABLE IF EXISTS {retired}")
         for table in _TRACKED_TABLES:
             # Table names come from a static module-level tuple, not user input.
             conn.execute(f"DELETE FROM {table}")  # noqa: S608
@@ -114,7 +116,6 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         SettingsBrowserFilters,
         SettingsBrowserLastRoute,
     )
-    from codex.models.shelf import Shelf, ShelfItem
 
     if store is None:
         store = get_store()
@@ -160,16 +161,6 @@ def dump_user_data(store: SidecarStore | None = None) -> dict[str, int]:
         store,
         Bookmark.objects.filter(user__isnull=False).select_related("user", "comic"),
         serializers.serialize_bookmark,
-    )
-    counts["shelves"] = _dump_queryset(
-        store,
-        Shelf.objects.select_related("user"),
-        serializers.serialize_shelf,
-    )
-    counts["shelf_items"] = _dump_queryset(
-        store,
-        ShelfItem.objects.select_related("shelf__user"),
-        serializers.serialize_shelf_item,
     )
     counts["api_keys"] = _dump_queryset(
         store,

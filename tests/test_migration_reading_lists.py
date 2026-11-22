@@ -135,7 +135,8 @@ class ReadingListsMigrationTests(TransactionTestCase):
         apps = _migrate(_AFTER)
 
         reading_list_model = apps.get_model("codex", "ReadingList")
-        assert sorted(reading_list_model.objects.values_list("name", flat=True)) == [
+        global_lists = reading_list_model.objects.filter(user__isnull=True)
+        assert sorted(global_lists.values_list("name", flat=True)) == [
             "Civil War",
             "Other",
         ]
@@ -151,12 +152,6 @@ class ReadingListsMigrationTests(TransactionTestCase):
         assert (source.kind, source.ref, source.revision) == ("tags", "civil war", "")
         assert source.ordered is False  # c3 has no number
 
-        items = apps.get_model("codex", "ShelfItem").objects.order_by("collection")
-        assert list(items.values_list("collection", "target_id")) == [
-            ("arcs", civil_war.pk),
-            ("series", 99),
-        ]
-
         reader: Any = apps.get_model("codex", "SettingsReader").objects.get(
             user_id=self.user.pk
         )
@@ -166,6 +161,22 @@ class ReadingListsMigrationTests(TransactionTestCase):
             browser_id=seeded["browser"].pk
         )
         assert route.pks == [civil_war.pk]
+
+    def test_the_shelf_holds_the_list_once(self) -> None:
+        """Both arcs on the shelf are one item; the gone series is dropped."""
+        seeded = self._seed(_migrate(_BEFORE))
+        c1, c2, c3 = seeded["comics"]
+        apps = _migrate(_AFTER)
+        reading_list_model = apps.get_model("codex", "ReadingList")
+        civil_war: Any = reading_list_model.objects.get(sort_name="civil war")
+        want: Any = reading_list_model.objects.get(name="Want")
+        assert want.user_id == self.user.pk
+        assert list(want.sources.values_list("kind", "collection", "target_id")) == [
+            ("collection", "arcs", civil_war.pk)
+        ]
+        assert list(
+            want.entries.order_by("position").values_list("comic_id", flat=True)
+        ) == [c3.pk, c2.pk, c1.pk]
 
     def test_story_arc_settings_become_reading_lists(self) -> None:
         """A story-arc filter, sort and column come out as reading-list ones."""

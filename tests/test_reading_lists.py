@@ -20,6 +20,7 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
 
+from codex.librarian.scribe.readinglists.live import add_item
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.models import (
     Bookmark,
@@ -37,7 +38,6 @@ from codex.models import (
     Volume,
 )
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
-from codex.models.shelf import Shelf, ShelfItem
 from codex.startup import init_admin_flags
 from codex.views.browser.cover import _resolve_collection_comic_pk
 from tests.tmp_dirs import tmp_dir
@@ -178,12 +178,10 @@ class TagSyncTests(ReadingListFixture):
         self.tag(c2, "Civil War", 2)
         sync_tag_lists()
         reading_list = ReadingList.objects.get(name="Civil War")
-        shelf = Shelf.objects.create(
+        holder = ReadingList.objects.create(
             user=User.objects.create_user(username="fan", password=_PW), name="Want"
         )
-        ShelfItem.objects.create(
-            shelf=shelf, collection="arcs", target_id=reading_list.pk
-        )
+        add_item(holder, "arcs", reading_list.pk)
         self.untag(c1)
         self.untag(c2)
         self.tag(c1, "Civil War", 2)
@@ -191,7 +189,9 @@ class TagSyncTests(ReadingListFixture):
         assert sync_tag_lists().updated == 1
         reading_list.refresh_from_db()
         assert self.order(reading_list) == [c2.pk, c1.pk]
-        assert ShelfItem.objects.filter(target_id=reading_list.pk).exists()
+        assert ReadingListSource.objects.filter(
+            reading_list=holder, collection="arcs", target_id=reading_list.pk
+        ).exists()
 
     def test_gone_arc_deletes_its_list(self) -> None:
         """A list whose arc is gone and holds nothing by hand is deleted."""

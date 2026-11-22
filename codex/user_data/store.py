@@ -34,7 +34,10 @@ if TYPE_CHECKING:
 # 5: reading_lists, reading_list_sources, reading_list_entries and
 # reading_list_series_mappings; settings_browser.show_missing_issues;
 # settings_filters.story_arcs folds into reading_lists.
-SCHEMA_VERSION: Final[int] = 5
+# 6: shelves fold into reading lists: no shelves or shelf_items table; a
+# source of kind ``collection`` names its item by identity, with its
+# ``collection`` and ``position``; live entries are not dumped.
+SCHEMA_VERSION: Final[int] = 6
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 
 # Matches main DB pragmas. ``foreign_keys=OFF`` is deliberate: the
