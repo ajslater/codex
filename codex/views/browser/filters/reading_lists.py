@@ -14,6 +14,8 @@ from codex.models import Comic
 from codex.views.readinglists.access import visible_lists
 
 READING_LISTS_FILTER: Final = "reading_lists"
+# Picks lists, not comics: Mine, Curated, From Tags.
+READING_LIST_KIND_FILTER: Final = "reading_list_kind"
 # Shelves folded into reading lists; a request still filtering by one gets
 # nothing.
 RETIRED_SHELVES_FILTER: Final = "shelves"

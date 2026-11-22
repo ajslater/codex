@@ -34,6 +34,7 @@ from codex.views.browser.columns import (
     m2m_columns,
     m2m_sort_annotations_for,
 )
+from codex.views.browser.filters.reading_lists import READING_LIST_KIND_FILTER
 from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.missing_entries import (
     READING_ORDER,
@@ -416,13 +417,18 @@ class BrowserView(BrowserTitleView):
         Whether the page shows the list's missing issues.
 
         Only in Reading Order with no search or filter: a missing issue has
-        nothing else to sort or filter by.
+        nothing else to sort or filter by. The kind picks lists, not comics,
+        and does nothing inside one list.
         """
         filters = self.params.get("filters") or {}
         return (
             reading_order
             and not self.params.get("search")
-            and not any(filters.values())
+            and not any(
+                value
+                for key, value in filters.items()
+                if key != READING_LIST_KIND_FILTER
+            )
             and bool(self.params.get("show_missing_issues", True))
         )
 

@@ -8,7 +8,10 @@ from django.db.models.query_utils import Q
 
 from codex.models import Comic, ReadingList
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
-from codex.views.browser.filters.reading_lists import RETIRED_SHELVES_FILTER
+from codex.views.browser.filters.reading_lists import (
+    READING_LIST_KIND_FILTER,
+    RETIRED_SHELVES_FILTER,
+)
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 from codex.views.readinglists.access import tags_only_q
 
@@ -102,7 +105,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             return Q(pk__in=())
         return Q()
 
-    def get_reading_list_kind_filter(self, model) -> Q:
+    def get_reading_list_kind_filter(self, model, collection=None, pks=None) -> Q:
         """
         Narrow the reading lists grid: the viewer's own, curated, from tags.
 
@@ -110,9 +113,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         Curated is every other list, a hand-made one with no source too.
         ``Exists`` rather than a join, so a list's cards and counts are not
         multiplied by its sources, and so cachalot sees the sources table.
+        One list opens whole whatever kind is picked.
         """
-        kind = (self.params.get("filters") or {}).get("reading_list_kind")
-        if model is not ReadingList or not kind:
+        kind = (self.params.get("filters") or {}).get(READING_LIST_KIND_FILTER)
+        if not kind or not self.is_lists_grid(model, collection, pks):
             return Q()
         if kind == "mine":
             user = self.request.user
@@ -141,11 +145,11 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         big_include_filter &= self.get_collection_filter(
             collection, pks, page_mtime=page_mtime
         )
-        big_include_filter &= self.get_comic_field_filter(model)
+        big_include_filter &= self.get_comic_field_filter(model, collection, pks)
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
         big_include_filter &= self.get_retired_filter()
-        big_include_filter &= self.get_reading_list_kind_filter(model)
+        big_include_filter &= self.get_reading_list_kind_filter(model, collection, pks)
         include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
             model
         )
