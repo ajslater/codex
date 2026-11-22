@@ -1,11 +1,12 @@
 """Who may see and change a reading list, and which of its entries they see."""
 
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Final
 
 from django.db.models import Exists, OuterRef, Q, QuerySet
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
+from codex.choices.browser import BROWSER_READING_LIST_KIND_CHOICES
 from codex.models import Comic
 from codex.models.readinglist import (
     ReadingList,
@@ -14,6 +15,10 @@ from codex.models.readinglist import (
     ReadingListSourceKind,
 )
 from codex.views.auth import AuthFilterGenericAPIView, GroupACLMixin
+
+# The browser's Reading List Kind filter, in menu order.
+LIST_KINDS: Final = tuple(BROWSER_READING_LIST_KIND_CHOICES)
+MINE_LIST_KIND: Final = "mine"
 
 
 def visible_lists(user) -> QuerySet:
@@ -47,6 +52,37 @@ def tags_only_q() -> Q:
     tags = Exists(sources.filter(kind=ReadingListSourceKind.TAGS.value))
     other = Exists(sources.exclude(kind=ReadingListSourceKind.TAGS.value))
     return Q(tags) & ~Q(other)
+
+
+def list_kind_q(kinds: Iterable[str], user) -> Q:
+    """
+    Return the lists of any of ``kinds``, the browser's Reading List Kind.
+
+    The one definition of the kinds, and they overlap on purpose: ``mine``
+    is the viewer's own lists, nothing for a viewer who is not signed in;
+    ``tags`` is a list made from story-arc tags alone; ``curated`` is every
+    other list, the viewer's own among them. An unknown kind matches
+    nothing.
+    """
+    query = Q(pk__in=())
+    for kind in kinds:
+        match kind:
+            case "mine" if user is not None and user.is_authenticated:
+                query |= Q(user=user)
+            case "tags":
+                query |= tags_only_q()
+            case "curated":
+                query |= ~tags_only_q()
+            case _:
+                pass
+    return query
+
+
+def list_kinds_for(user) -> tuple[str, ...]:
+    """Return the kinds a viewer may pick: no Mine for one not signed in."""
+    if user is not None and user.is_authenticated:
+        return LIST_KINDS
+    return tuple(kind for kind in LIST_KINDS if kind != MINE_LIST_KIND)
 
 
 def menu_lists_q(user) -> Q:

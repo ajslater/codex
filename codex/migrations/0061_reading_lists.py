@@ -959,17 +959,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="settingsbrowserfilters",
             name="reading_list_kind",
-            field=models.CharField(
-                blank=True,
-                choices=[
-                    ("", "All"),
-                    ("mine", "Mine"),
-                    ("curated", "Curated"),
-                    ("tags", "From Tags"),
-                ],
-                default="",
-                max_length=16,
-            ),
+            field=models.JSONField(default=list),
         ),
         migrations.AddField(
             model_name="settingsbrowserfilters",

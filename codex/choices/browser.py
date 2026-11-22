@@ -15,10 +15,11 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
         "UNREAD": "Unread",
     },
 )
-# The reading lists grid narrowed by whose lists, or where they come from.
+# Lists by whose they are, or where they come from, in menu order. They
+# overlap: Curated is every list not made from tags alone, the viewer's own
+# among them. Cleared means every list.
 BROWSER_READING_LIST_KIND_CHOICES = MappingProxyType(
     {
-        "": "All",
         "mine": "Mine",
         "curated": "Curated",
         "tags": "From Tags",
@@ -278,7 +279,7 @@ _DEFAULT_SHOW = MappingProxyType(
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
-        "reading_list_kind": "",
+        "reading_list_kind": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )

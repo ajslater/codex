@@ -30,7 +30,7 @@ class BookmarkFilterField(CodexChoiceField):
 
 
 class ReadingListKindFilterField(CodexChoiceField):
-    """Reading list kind choice field."""
+    """One reading list kind: mine, curated or tags."""
 
     class_choices = tuple(BROWSER_READING_LIST_KIND_CHOICES.keys())
 

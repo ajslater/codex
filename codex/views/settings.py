@@ -52,7 +52,7 @@ _SEEDED_BROWSER_KEYS = (
 
 
 # Filters that hold one value, not a list of pks.
-_SCALAR_FILTER_KEYS = frozenset({"bookmark", "reading_list_kind"})
+_SCALAR_FILTER_KEYS = frozenset({"bookmark"})
 
 
 class SettingsBaseView(AuthFilterGenericAPIView, ABC):

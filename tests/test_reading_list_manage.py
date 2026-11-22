@@ -1,4 +1,4 @@
-"""Managing lists in the browser: kind toggle, add-to-list menu, removing."""
+"""Managing lists in the browser: add-to-list menu, removing."""
 
 import json
 from typing import Any, Final, override
@@ -52,39 +52,17 @@ class ManageFixture(ReadingListFixture):
             )
         return reading_list
 
-    def _root(self, kind: str) -> set[str]:
+    def _root_response(self, kinds: Any):
         params = {
-            "filters": json.dumps({"readingListKind": kind}),
+            "filters": json.dumps({"readingListKind": kinds}),
             "search": "",
         }
-        response = self.client.get("/api/v4/browse/arcs/0", params)
+        return self.client.get("/api/v4/browse/arcs/0", params)
+
+    def _root(self, kinds: Any) -> set[str]:
+        response = self._root_response(kinds)
         assert response.status_code == _OK, response.content
         return {row["name"] for row in response.json()["data"]["collections"]}
-
-
-class KindToggleTests(ManageFixture):
-    """All, Mine, Curated, From Tags."""
-
-    def test_all(self) -> None:
-        """Every list the viewer sees."""
-        assert self._root("") == {"From Tags", "Imported", "Hand Made", "Mine"}
-
-    def test_curated_is_not_from_tags_only(self) -> None:
-        """Hand-made lists are curated too, and no longer vanish."""
-        assert self._root("curated") == {"Imported", "Hand Made", "Mine"}
-
-    def test_from_tags(self) -> None:
-        """Lists whose only source is their tags."""
-        assert self._root("tags") == {"From Tags"}
-
-    def test_mine(self) -> None:
-        """The viewer's own lists."""
-        assert self._root("mine") == {"Mine"}
-
-    def test_anonymous_mine_is_nothing(self) -> None:
-        """A session owns no lists."""
-        self.client.logout()
-        assert self._root("mine") == set()
 
 
 class AddToListMenuTests(ManageFixture):

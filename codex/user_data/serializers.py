@@ -204,9 +204,7 @@ def serialize_settings_browser(
 
 
 # Filter columns written apart from the tag and scalar columns.
-_SPECIAL_FILTER_COLUMNS: Final = frozenset(
-    {"bookmark", "reading_list_kind", "reading_lists"}
-)
+_SPECIAL_FILTER_COLUMNS: Final = frozenset({"bookmark", "reading_lists"})
 
 
 def _rewrite_filter_value(column: str, value: Any) -> Any:
@@ -265,7 +263,6 @@ def serialize_settings_filters(
         "client": browser.client,
         "name": browser.name,
         "bookmark": filters.bookmark,
-        "reading_list_kind": filters.reading_list_kind,
     }
     data["reading_lists"] = json.dumps(
         _filter_reading_list_uuids(filters, browser.user), separators=(",", ":")

@@ -23,7 +23,7 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = BookmarkFilterField(required=False)
-    reading_list_kind = ReadingListKindFilterField(required=False)
+    reading_list_kind = VuetifyListField(child=ReadingListKindFilterField)
     # Retired with shelves: a client still sending one gets nothing.
     shelves = VuetifyListField()
     # Dynamic filters

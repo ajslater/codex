@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from loguru import logger
 
+from codex.choices.browser import BROWSER_READING_LIST_KIND_CHOICES
 from codex.collection import Collection
 from codex.user_data.identifiers import (
     resolve_browse_collection_pks,
@@ -860,6 +861,29 @@ def _resolve_filter_reading_lists(row_keys, row, browser) -> list[int]:
     return list(dict.fromkeys([*pks, *_story_arc_list_pks(row_keys, row)]))
 
 
+def _restore_list_kinds(row_keys, row) -> list[str]:
+    """
+    Read the Reading List Kind: a list, or a development build's one value.
+
+    A development build stored one bare kind, or ``""`` for every list.
+    Unknown kinds drop.
+    """
+    raw = row["reading_list_kind"] if "reading_list_kind" in row_keys else ""
+    try:
+        value = json.loads(raw or "[]")
+    except json.JSONDecodeError:
+        value = raw
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [
+        kind
+        for kind in dict.fromkeys(value)
+        if isinstance(kind, str) and kind in BROWSER_READING_LIST_KIND_CHOICES
+    ]
+
+
 def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     """Resolve tag-name lists in the sidecar back to PK lists."""
     from codex.models.settings import SettingsBrowserFilters
@@ -868,9 +892,7 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     row_keys = row.keys()
     defaults: dict[str, Any] = {
         "bookmark": row["bookmark"] or "",
-        "reading_list_kind": (
-            row["reading_list_kind"] or "" if "reading_list_kind" in row_keys else ""
-        ),
+        "reading_list_kind": _restore_list_kinds(row_keys, row),
         # An older backup's shelves are personal lists now: one filter.
         "reading_lists": list(
             dict.fromkeys(

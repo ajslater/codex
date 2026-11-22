@@ -49,6 +49,7 @@ class BrowserFilterChoicesSerializer(Serializer):
     locations = BooleanField(read_only=True)
     original_format = BooleanField(read_only=True)
     reading_direction = BooleanField(read_only=True)
+    reading_list_kind = BooleanField(read_only=True)
     reading_lists = BooleanField(read_only=True)
     reprints = BooleanField(read_only=True)
     series_end_year = BooleanField(read_only=True)
@@ -67,7 +68,7 @@ class BrowserSettingsFilterSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
-    reading_list_kind = ReadingListKindFilterField(required=False, read_only=True)
+    reading_list_kind = VuetifyReadOnlyListField(child=ReadingListKindFilterField)
     # Dynamic filters
     age_rating_metron = VuetifyReadOnlyListField()
     age_rating_tagged = VuetifyReadOnlyListField()
@@ -173,6 +174,7 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
         "community_rating": BrowserChoicesDecimalPkSerializer,
         "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
+        "reading_list_kind": BrowserChoicesCharPkSerializer,
         "reprints": BrowserChoicesReprintPkSerializer,
         "series_status": BrowserChoicesSeriesStatusPkSerializer,
         "universe": BrowserChoicesUniversePkSerializer,

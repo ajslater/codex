@@ -13,7 +13,7 @@ from codex.views.browser.filters.reading_lists import (
     RETIRED_SHELVES_FILTER,
 )
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
-from codex.views.readinglists.access import tags_only_q
+from codex.views.readinglists.access import list_kind_q
 
 # Active filter keys whose ORM rel crosses an m2m or m2m-through relation
 # on Comic. Field-list mirrors ``codex.views.browser.const.BROWSER_FILTER_KEYS``
@@ -107,24 +107,15 @@ class BrowserFilterView(BrowserFilterBookmarkView):
 
     def get_reading_list_kind_filter(self, model, collection=None, pks=None) -> Q:
         """
-        Narrow the reading lists grid: the viewer's own, curated, from tags.
+        Narrow the grid of lists to the picked kinds; see ``list_kind_q``.
 
-        From Tags is a list whose only sources are its story-arc tags, and
-        Curated is every other list, a hand-made one with no source too.
-        ``Exists`` rather than a join, so a list's cards and counts are not
-        multiplied by its sources, and so cachalot sees the sources table.
-        One list opens whole whatever kind is picked.
+        Several kinds show a list of any of them. One list opens whole
+        whatever kind is picked.
         """
-        kind = (self.params.get("filters") or {}).get(READING_LIST_KIND_FILTER)
-        if not kind or not self.is_lists_grid(model, collection, pks):
+        kinds = (self.params.get("filters") or {}).get(READING_LIST_KIND_FILTER)
+        if not kinds or not self.is_lists_grid(model, collection, pks):
             return Q()
-        if kind == "mine":
-            user = self.request.user
-            if not user.is_authenticated:
-                return Q(pk__in=())
-            return Q(user=user)
-        tags_only = tags_only_q()
-        return ~tags_only if kind == "curated" else tags_only
+        return list_kind_q(kinds, self.request.user)
 
     def _get_query_filters(
         self,
@@ -135,6 +126,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         pks=None,
         *,
         include_missing=False,
+        kind_filter=True,
     ) -> Q:
         """Return all the filters except the collection filter."""
         big_include_filter = Q()
@@ -149,7 +141,10 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         if bookmark_filter:
             big_include_filter &= self.get_bookmark_filter(model)
         big_include_filter &= self.get_retired_filter()
-        big_include_filter &= self.get_reading_list_kind_filter(model, collection, pks)
+        if kind_filter:
+            big_include_filter &= self.get_reading_list_kind_filter(
+                model, collection, pks
+            )
         include_search_filter, exclude_search_filter, fts_q = self.get_search_filters(
             model
         )
@@ -167,12 +162,14 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         page_mtime=False,
         bookmark_filter=True,
         include_missing=False,
+        kind_filter=True,
     ) -> QuerySet:
         """
         Get a filtered queryset for the model.
 
         ``include_missing`` keeps scanner-stamped rows. Only write paths
-        and the reader pass it; see ``get_acl_filter``.
+        and the reader pass it; see ``get_acl_filter``. ``kind_filter``
+        off leaves the Reading List Kind out, for its own choices.
         """
         query_filters = self._get_query_filters(
             model,
@@ -181,6 +178,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             collection=collection,
             pks=pks,
             include_missing=include_missing,
+            kind_filter=kind_filter,
         )
         qs = model.objects.filter(query_filters)
         # Non-Comic queries traverse ``comic__`` for ACL/group/field filters,

@@ -10,10 +10,15 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
+from codex.choices.browser import (
+    BROWSER_READING_LIST_KIND_CHOICES,
+    DUMMY_NULL_NAME,
+    VUETIFY_NULL_CODE,
+)
 from codex.models import (
     Comic,
     CreditPerson,
+    ReadingList,
 )
 from codex.models.age_rating import AgeRating, AgeRatingMetron
 from codex.models.identifier import IdentifierSource
@@ -26,10 +31,16 @@ from codex.serializers.browser.choices import (
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.browser.filters.reading_lists import (
+    READING_LIST_KIND_FILTER,
     READING_LISTS_FILTER,
     listed_comics,
 )
-from codex.views.readinglists.access import visible_lists
+from codex.views.readinglists.access import (
+    LIST_KINDS,
+    list_kind_q,
+    list_kinds_for,
+    visible_lists,
+)
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
@@ -92,6 +103,8 @@ _NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
 # We only need to know whether an m2m relation has two or more distinct
 # non-null values; ``[:2]`` is enough to distinguish 0/1/>=2 cases.
 _M2M_DISTINCT_PROBE_LIMIT = 2
+# The Reading List Kind is offered when it has two kinds to choose between.
+_KINDS_TO_CHOOSE = 2
 
 
 class BrowserChoicesViewBase(BrowserFilterView):
@@ -157,6 +170,28 @@ class BrowserChoicesViewBase(BrowserFilterView):
             .distinct()
             .order_by(F("user_id").asc(nulls_last=True), "sort_name", "pk")
         )
+
+    def picked_list_kinds(self) -> frozenset[str]:
+        """Return the Reading List Kinds the viewer has picked."""
+        filters = self.params.get("filters") or {}
+        return frozenset(filters.get(READING_LIST_KIND_FILTER) or ())
+
+    def list_kind_probes(self) -> dict[str, QuerySet]:
+        """
+        Per kind the viewer may pick, the rows that show it is offered.
+
+        On the grid of lists: the lists of that kind under every other
+        filter. The kind itself is left out, so a picked kind leaves the
+        others offered and switching is one step.
+        """
+        if not self.is_lists_grid(ReadingList):
+            return {}
+        user = self.request.user
+        lists = self.get_filtered_queryset(ReadingList, kind_filter=False)
+        return {
+            kind: self.force_inner_joins(lists.filter(list_kind_q((kind,), user)))
+            for kind in list_kinds_for(user)
+        }
 
     def unlisted(self, comic_qs: QuerySet) -> QuerySet:
         """Return the comics in no list the user may see, the "None" choice."""
@@ -233,6 +268,10 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 continue
             if field_name == READING_LISTS_FILTER:
                 self._reading_lists_probes(qs, aggregates, m2m_specs)
+                continue
+            if field_name == READING_LIST_KIND_FILTER:
+                for kind, rows in self.list_kind_probes().items():
+                    aggregates[f"_kind_{kind}"] = Exists(rows.values("pk")[:1])
                 continue
             rel, m2m_model = self.get_rel_and_model(field_name)
             if m2m_model is None and field_name not in _NULL_CHOICE_FIELDS:
@@ -313,6 +352,9 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         # distinct-count probe only for the (has_rel, ¬has_null) corner.
         for field_name, rel in m2m_specs.items():
             data[field_name] = self._resolve_m2m_field(qs, field_name, rel, row)
+        if READING_LIST_KIND_FILTER not in data:
+            offered = sum(bool(row.get(f"_kind_{kind}")) for kind in LIST_KINDS)
+            data[READING_LIST_KIND_FILTER] = offered >= _KINDS_TO_CHOOSE
         return data
 
 
@@ -362,6 +404,16 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         null = _NULL_NAMED_ROW_ITERABLE if self.unlisted(qs).exists() else ()
         return chain(null, lists)
 
+    def _list_kind_choices(self) -> tuple[dict[str, str], ...]:
+        """Return the kinds with lists behind them, and any picked, in order."""
+        picked = self.picked_list_kinds()
+        probes = self.list_kind_probes()
+        return tuple(
+            {"pk": kind, "name": BROWSER_READING_LIST_KIND_CHOICES[kind]}
+            for kind in LIST_KINDS
+            if kind in picked or (kind in probes and probes[kind].exists())
+        )
+
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
         return snakecase(field_name)
@@ -373,6 +425,8 @@ class BrowserChoicesView(BrowserChoicesViewBase):
         field_name = self._get_field_name()
         if field_name == READING_LISTS_FILTER:
             return {"field_name": field_name, "choices": self._reading_list_choices(qs)}
+        if field_name == READING_LIST_KIND_FILTER:
+            return {"field_name": field_name, "choices": self._list_kind_choices()}
 
         rel, m2m_model = self.get_rel_and_model(field_name)
 

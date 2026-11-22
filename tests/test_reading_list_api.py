@@ -378,9 +378,9 @@ class ReadingListApiTests(ReadingListFixture):
         assert _data(response)["deleted"] >= 1
         assert not ReadingList.objects.filter(pk=reading_list.pk).exists()
 
-    def _grid(self, kind: str = "") -> dict[str, str]:
+    def _grid(self, *kinds: str) -> dict[str, str]:
         params = {
-            "filters": json.dumps({"readingListKind": kind}),
+            "filters": json.dumps({"readingListKind": list(kinds)}),
             "search": "",
             "show": json.dumps(
                 {"publishers": True, "imprints": True, "series": True, "volumes": True}
