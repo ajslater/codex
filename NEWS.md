@@ -34,6 +34,8 @@ border-radius: 128px;
   Links and OPDS bookmarks into a story arc change once.
 - Shelves are now your own reading lists, with the same names and contents, in
   saved views, filters, columns, backups and OPDS start pages.
+- Filters take several values: tick as many as you like while the menu stays
+  open.
 
 ### 🔥 Removed
 
@@ -45,6 +47,8 @@ border-radius: 128px;
 - The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
   row that opens each list.
 - A comic tagged twice in one story arc no longer counts its pages twice.
+- In a filter's choices, arrow keys step one row and letter keys no longer close
+  the menu.
 
 ### 🧑‍💻 Developer
 
