@@ -14,6 +14,7 @@ from codex.serializers.browser.settings import OPDSSettingsSerializer
 from codex.serializers.opds.v2.feed import OPDS2FeedSerializer
 from codex.settings import FALSY
 from codex.settings.db import get_browser_max_obj_per_page
+from codex.views.browser.const import MATCH_ALL_KEY
 from codex.views.const import EPOCH_START
 from codex.views.opds.const import BLANK_TITLE
 from codex.views.opds.start import OPDSStartViewMixin
@@ -49,7 +50,8 @@ class OPDS2FeedView(OPDS2FeedGroupsView):
 
         filter_keys: list[str] = []
         for key, value in filters.items():
-            if not value:
+            # ``match_all`` says how filters match; it filters nothing.
+            if not value or key == MATCH_ALL_KEY:
                 continue
             if key == "bookmark":
                 bf = "reading" if value == "IN_PROGRESS" else value.lower()

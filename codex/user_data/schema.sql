@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS settings_filters (
     name TEXT NOT NULL DEFAULT '',
     bookmark TEXT NOT NULL DEFAULT '',
     reading_list_kind TEXT NOT NULL DEFAULT '[]',
+    match_all TEXT NOT NULL DEFAULT '[]',
     shelves TEXT NOT NULL DEFAULT '[]',
     age_rating_metron TEXT NOT NULL DEFAULT '[]',
     age_rating_tagged TEXT NOT NULL DEFAULT '[]',

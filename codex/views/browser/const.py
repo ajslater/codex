@@ -30,3 +30,6 @@ BROWSER_FILTER_KEYS = (
     "universes",
     "year",
 )
+# The filters setting that names the filters set to match all ticked
+# values. Not a filter of comics, so not in ``BROWSER_FILTER_KEYS``.
+MATCH_ALL_KEY = "match_all"

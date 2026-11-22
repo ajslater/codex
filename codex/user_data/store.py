@@ -38,7 +38,8 @@ if TYPE_CHECKING:
 # source of kind ``collection`` names its item by identity, with its
 # ``collection`` and ``position``; live entries are not dumped;
 # settings_filters.reading_list_kind is a JSON list of kinds, like the
-# other filter columns (a development build wrote one bare kind).
+# other filter columns (a development build wrote one bare kind);
+# settings_filters.match_all is a JSON list of filter names.
 SCHEMA_VERSION: Final[int] = 6
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 

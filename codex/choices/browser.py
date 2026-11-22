@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from types import MappingProxyType
 
+from caseconverter import camelcase
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 
 from codex.views.browser.const import BROWSER_FILTER_KEYS
@@ -24,6 +25,29 @@ BROWSER_READING_LIST_KIND_CHOICES = MappingProxyType(
         "curated": "Curated",
         "tags": "From Tags",
     },
+)
+# The filters a comic can hold several values of, so "Match all ticked"
+# means something: under All a comic must hold every ticked value. Every
+# other filter holds one value per comic. The one definition; a test holds
+# it to the model. ``match_all`` in the filters setting names these.
+BROWSER_MATCH_ALL_FILTERS = (
+    "characters",
+    "credits",
+    "genres",
+    "identifier_source",
+    "locations",
+    "reading_lists",
+    "reprints",
+    "series_groups",
+    "stories",
+    "tags",
+    "teams",
+    "universes",
+)
+# The same names as the API and the frontend spell them, camelCase like
+# every filter key, to the server's. The one place they convert.
+BROWSER_MATCH_ALL_WIRE_NAMES = MappingProxyType(
+    {camelcase(name): name for name in BROWSER_MATCH_ALL_FILTERS}
 )
 BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
@@ -168,6 +192,7 @@ BROWSER_CHOICES = MappingProxyType(
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
         "SETTINGS_COLLECTION": {**_COLLECTION_NAMES},
         "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
+        "MATCH_ALL_FILTERS": tuple(BROWSER_MATCH_ALL_WIRE_NAMES),
     }
 )
 
@@ -187,6 +212,7 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
         "VIEW_MODE",
         "VUETIFY_NULL_CODE",
         "SETTINGS_COLLECTION",
+        "MATCH_ALL_FILTERS",
     }
 )
 
@@ -280,6 +306,8 @@ _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
+        # Not a filter of comics: the filters set to match all ticked.
+        "match_all": (),
     }
 )
 # ──────────────────────────────────────────────────────────────────────

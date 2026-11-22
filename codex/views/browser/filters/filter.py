@@ -7,36 +7,23 @@ from typing import Final
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
+from codex.choices.browser import BROWSER_MATCH_ALL_FILTERS
 from codex.models import Comic, ReadingList
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.browser.filters.reading_lists import (
     READING_LIST_KIND_FILTER,
+    READING_LISTS_FILTER,
     RETIRED_SHELVES_FILTER,
 )
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 from codex.views.readinglists.access import list_kind_q
 
 # Active filter keys whose ORM rel crosses an m2m or m2m-through relation
-# on Comic. Field-list mirrors ``codex.views.browser.const.BROWSER_FILTER_KEYS``
-# minus the local-column / FK keys (year, decade, country, language,
-# community_rating, monochrome, original_format, file_type, reading_direction,
-# tagger, age_rating_metron, age_rating_tagged, series_end_year,
-# series_start_year, series_status).
-_M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(
-    {
-        "characters",
-        "credits",
-        "genres",
-        "identifier_source",
-        "locations",
-        "reprints",
-        "series_groups",
-        "stories",
-        "tags",
-        "teams",
-        "universes",
-    }
-)
+# on Comic: the tag-like filters, but for the Reading Lists filter, whose
+# ``IN`` subquery never joins.
+_M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(BROWSER_MATCH_ALL_FILTERS) - {
+    READING_LISTS_FILTER
+}
 # TARGETs whose folder-group filter resolves to ``folders`` (m2m) or
 # ``comic__folders`` (download) rather than ``parent_folder`` (FK).
 # Mirrors the branches in :meth:`CollectionFilterView._get_rel_for_pks`.

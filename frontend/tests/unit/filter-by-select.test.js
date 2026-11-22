@@ -321,6 +321,14 @@ describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
     ]);
   });
 
+  test("the Any/All switch is no sub-menu", async () => {
+    const { wrapper } = await mountOpenMenu({
+      filters: { matchAll: ["characters"] },
+    });
+    expect(wrapper.vm.dynamicChoiceNames).toContain("characters");
+    expect(wrapper.vm.dynamicChoiceNames).not.toContain("matchAll");
+  });
+
   test("a picked reading list kind is an ordinary sub-menu", async () => {
     const { content, wrapper } = await mountOpenMenu({
       filters: { readingListKind: ["mine"] },

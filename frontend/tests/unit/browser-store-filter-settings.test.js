@@ -66,6 +66,17 @@ describe("browser store filter settings", () => {
     expect(store.isFiltersClearable).toBe(true);
   });
 
+  it("does not count the Any/All switch as a filter, but sends it", () => {
+    const store = storeWith({
+      filters: { bookmark: "", characters: [], matchAll: ["characters"] },
+    });
+    expect(store.isDynamicFiltersSelected).toBe(false);
+    expect(store.isFiltersClearable).toBe(false);
+    expect(store.filterOnlySettings.filters).toStrictEqual({
+      matchAll: ["characters"],
+    });
+  });
+
   it("counts a picked reading list kind like any filter", () => {
     const store = storeWith({ filters: { bookmark: "", readingListKind: [] } });
     expect(store.isDynamicFiltersSelected).toBe(false);

@@ -963,6 +963,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="settingsbrowserfilters",
+            name="match_all",
+            field=models.JSONField(default=list),
+        ),
+        migrations.AddField(
+            model_name="settingsbrowserfilters",
             name="reading_lists",
             field=models.JSONField(default=list),
         ),

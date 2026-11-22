@@ -93,6 +93,15 @@ export function filterShowGatedDefaults(cols, show) {
 // Filters that hold one value rather than a list.
 const SCALAR_FILTERS = Object.freeze(new Set(["bookmark"]));
 /*
+ * The filters set to match all ticked values, not any. A setting kept with
+ * the filters, but it filters nothing itself.
+ */
+export const MATCH_ALL_FILTER = "matchAll";
+// Filters settings that are not a filter of comics with values ticked.
+const NOT_TICKED_FILTERS = Object.freeze(
+  new Set([...SCALAR_FILTERS, MATCH_ALL_FILTER]),
+);
+/*
  * A tick reloads the page after the last of a quick run of ticks. An
  * aborted request still runs to the end on the server, on one of a few
  * pooled workers, so cancelling per tick would not save the work.
@@ -410,7 +419,7 @@ export const useBrowserStore = defineStore("browser", {
        * indicator.
        */
       for (const [name, array] of Object.entries(state.settings.filters)) {
-        if (array?.length > 0 && !SCALAR_FILTERS.has(name)) {
+        if (array?.length > 0 && !NOT_TICKED_FILTERS.has(name)) {
           return true;
         }
       }

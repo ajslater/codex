@@ -220,6 +220,9 @@ class SettingsBrowserFilters(BaseModel):
 
     # Reading list kinds: mine, curated, tags.
     reading_list_kind = JSONField(default=list)
+    # The tag-like filters set to match all ticked values, not any. Not a
+    # filter of comics; see ``BROWSER_MATCH_ALL_FILTERS``.
+    match_all = JSONField(default=list)
 
     # Dynamic filters — each stores a list of ints.
     age_rating_metron = JSONField(default=list)
@@ -255,6 +258,7 @@ class SettingsBrowserFilters(BaseModel):
         {
             "bookmark",
             "reading_list_kind",
+            "match_all",
             "age_rating_metron",
             "age_rating_tagged",
             "characters",

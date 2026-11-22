@@ -20,6 +20,7 @@ from codex.serializers.fields import (
 )
 from codex.serializers.fields.browser import (
     BookmarkFilterField,
+    MatchAllFilterField,
     ReadingListKindFilterField,
 )
 from codex.serializers.fields.vuetify import (
@@ -69,6 +70,7 @@ class BrowserSettingsFilterSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
     reading_list_kind = VuetifyReadOnlyListField(child=ReadingListKindFilterField)
+    match_all = VuetifyReadOnlyListField(child=MatchAllFilterField)
     # Dynamic filters
     age_rating_metron = VuetifyReadOnlyListField()
     age_rating_tagged = VuetifyReadOnlyListField()

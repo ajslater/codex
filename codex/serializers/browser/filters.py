@@ -9,6 +9,7 @@ from codex.serializers.fields import (
 )
 from codex.serializers.fields.browser import (
     BookmarkFilterField,
+    MatchAllFilterField,
     ReadingListKindFilterField,
 )
 from codex.serializers.fields.vuetify import (
@@ -24,6 +25,8 @@ class BrowserSettingsFilterInputSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False)
     reading_list_kind = VuetifyListField(child=ReadingListKindFilterField)
+    # Not a filter of comics: the tag-like filters set to match all ticked.
+    match_all = VuetifyListField(child=MatchAllFilterField)
     # Retired with shelves: a client still sending one gets nothing.
     shelves = VuetifyListField()
     # Dynamic filters

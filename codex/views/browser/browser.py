@@ -34,6 +34,7 @@ from codex.views.browser.columns import (
     m2m_columns,
     m2m_sort_annotations_for,
 )
+from codex.views.browser.const import MATCH_ALL_KEY
 from codex.views.browser.filters.reading_lists import READING_LIST_KIND_FILTER
 from codex.views.browser.intersections import compute_collection_intersections
 from codex.views.browser.missing_entries import (
@@ -56,6 +57,8 @@ from codex.views.const import (
 from codex.views.readinglists.access import can_edit
 
 _LIBRARIES_EXIST_CACHE_KEY = "codex:libraries_exist"
+# Filters settings that do not narrow one list's comics.
+_NOT_COMIC_FILTERS = frozenset({READING_LIST_KIND_FILTER, MATCH_ALL_KEY})
 _LIBRARIES_EXIST_TTL_SECONDS = 60
 
 
@@ -418,16 +421,14 @@ class BrowserView(BrowserTitleView):
 
         Only in Reading Order with no search or filter: a missing issue has
         nothing else to sort or filter by. The kind picks lists, not comics,
-        and does nothing inside one list.
+        and does nothing inside one list; ``match_all`` filters nothing.
         """
         filters = self.params.get("filters") or {}
         return (
             reading_order
             and not self.params.get("search")
             and not any(
-                value
-                for key, value in filters.items()
-                if key != READING_LIST_KIND_FILTER
+                value for key, value in filters.items() if key not in _NOT_COMIC_FILTERS
             )
             and bool(self.params.get("show_missing_issues", True))
         )

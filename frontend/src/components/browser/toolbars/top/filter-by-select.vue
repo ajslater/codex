@@ -79,7 +79,7 @@ import { mapActions, mapState } from "pinia";
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useBrowserStore } from "@/stores/browser";
+import { MATCH_ALL_FILTER, useBrowserStore } from "@/stores/browser";
 
 const ARROW_STEPS = Object.freeze({ ArrowDown: 1, ArrowUp: -1 });
 /*
@@ -142,6 +142,7 @@ export default {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
             if (
               filterKey !== "bookmark" &&
+              filterKey !== MATCH_ALL_FILTER &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {
