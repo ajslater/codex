@@ -86,9 +86,11 @@ def entries_acl_q(acl: GroupACLMixin, user) -> Q:
 
     A missing issue has no comic to hide, so everyone who sees the list
     sees it. An entry whose comic is hidden from the user is no part of
-    the list for them.
+    the list for them, and a live entry whose comic went is no part of it
+    for anyone.
     """
-    return Q(comic__isnull=True) | acl.get_acl_filter(ReadingListEntry, user)
+    comicless = Q(comic__isnull=True, live_source__isnull=True)
+    return comicless | acl.get_acl_filter(ReadingListEntry, user)
 
 
 def shown_entries_q(acl: GroupACLMixin, user) -> Q:

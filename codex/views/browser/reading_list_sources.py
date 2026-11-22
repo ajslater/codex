@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from django.db.models import Count, Q, QuerySet
 
-from codex.choices.readinglists import SOURCE_SHORT_LABELS
+from codex.choices.readinglists import SOURCE_SHORT_LABELS, ReadingListSourceKind
 from codex.models.readinglist import ReadingListEntry, ReadingListSource
 from codex.views.readinglists.access import shown_entries_q
 
@@ -27,6 +27,7 @@ def attach_list_sources(collection_qs: QuerySet) -> None:
     labels: defaultdict[int, list[str]] = defaultdict(list)
     sources = (
         ReadingListSource.objects.filter(reading_list_id__in=[row.pk for row in rows])
+        .exclude(kind=ReadingListSourceKind.COLLECTION)
         .order_by("rank", "pk")
         .values_list("reading_list_id", "kind", "attribution_source")
     )

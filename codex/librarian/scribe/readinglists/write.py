@@ -15,6 +15,7 @@ from comicbox.readinglists.arcs import arc_patch
 
 from codex.models import StoryArc
 from codex.models.readinglist import (
+    DANGLING_Q,
     ReadingList,
     ReadingListEntry,
     ReadingListSource,
@@ -72,6 +73,7 @@ def arc_write(reading_list: ReadingList) -> ArcWrite:
     ordered = _is_ordered(reading_list)
     comic_pks = (
         ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
+        .exclude(DANGLING_Q)
         .order_by("position", "pk")
         .values_list("comic_id", flat=True)
     )

@@ -29,6 +29,7 @@ from codex.librarian.scribe.readinglists.references import (
 )
 from codex.models import Comic
 from codex.models.readinglist import (
+    MISSING_Q,
     ReadingList,
     ReadingListEntry,
     ReadingListMatchTier,
@@ -45,7 +46,7 @@ from codex.views.readinglists.access import (
 _CANDIDATE_LIMIT: Final = 50
 _FILTERS: Final = {
     "review": Q(needs_review=True, ignored=False),
-    "missing": Q(comic__isnull=True, ignored=False, live_source__isnull=True),
+    "missing": MISSING_Q,
     "hidden": Q(ignored=True),
     "all": Q(),
 }

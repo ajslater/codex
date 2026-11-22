@@ -35,6 +35,8 @@ from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS, from_j
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.librarian.scribe.readinglists.service import copy_list
 from codex.models.readinglist import (
+    DANGLING_Q,
+    MISSING_Q,
     ReadingList,
     ReadingListEntry,
     ReadingListSource,
@@ -102,8 +104,11 @@ def _export_entries(reading_list: ReadingList, shown_q: Q) -> list[dict[str, Any
 
 def _export_sources(reading_list: ReadingList) -> list[dict[str, str]]:
     sources = []
-    for source in ReadingListSource.objects.filter(reading_list=reading_list).order_by(
-        "rank", "pk"
+    # A collection item's identity holds names and folder paths: it stays home.
+    for source in (
+        ReadingListSource.objects.filter(reading_list=reading_list)
+        .exclude(kind=ReadingListSourceKind.COLLECTION)
+        .order_by("rank", "pk")
     ):
         exported = {SOURCE_KIND_KEY: COMICBOX_KINDS.get(source.kind, source.kind)}
         if source.kind not in _KEYLESS_KINDS:
@@ -158,13 +163,21 @@ def _validated_name(data) -> str:
     return name
 
 
+# The entries a list's count counts: shown, never a dangling live entry.
+_COUNTED: Final = Q(entries__ignored=False) & ~Q(
+    entries__comic__isnull=True, entries__live_source__isnull=False
+)
+
+
 def _entry_count(reading_list: ReadingList) -> int:
     """Count the entries a list shows: the menu's annotation, else a query."""
     count = getattr(reading_list, "count", None)
     if count is None:
-        count = ReadingListEntry.objects.filter(
-            reading_list=reading_list, ignored=False
-        ).count()
+        count = (
+            ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
+            .exclude(DANGLING_Q)
+            .count()
+        )
     return count
 
 
@@ -189,7 +202,7 @@ class ReadingListsView(ReadingListAccessView):
         user = self.request.user
         lists = (
             ReadingList.objects.filter(menu_lists_q(user))
-            .annotate(count=Count("entries", filter=Q(entries__ignored=False)))
+            .annotate(count=Count("entries", filter=_COUNTED))
             .order_by("user_id", "sort_name", "pk")
         )
         return Response({"lists": [list_repr(rl, user) for rl in lists]})
@@ -279,7 +292,7 @@ class ReadingListExportView(ReadingListAccessView):
         missing = self.request.GET.get("missing") in _TRUE_VALUES
         if missing:
             # Export Missing: only the issues the library lacks, to hunt for.
-            shown_q &= Q(comic__isnull=True)
+            shown_q &= MISSING_Q
         fmt = self.request.GET.get("fmt", "cbl")
         if fmt not in EXPORT_FORMATS:
             reason = f"Unknown format {fmt!r}. Known: {', '.join(EXPORT_FORMATS)}."

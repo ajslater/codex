@@ -46,7 +46,9 @@ from codex.models.comic import Comic
 from codex.models.fields import CleaningCharField, CleaningTextField
 
 __all__ = (
+    "DANGLING_Q",
     "ITEM_COLLECTIONS",
+    "MISSING_Q",
     "ReadingList",
     "ReadingListEntry",
     "ReadingListMatchTier",
@@ -70,6 +72,11 @@ ITEM_COLLECTIONS: Final = (
     Collection.FOLDER,
     Collection.ARC,
 )
+# Missing is defined once: no comic, not hidden, and not a live entry. A
+# live entry whose comic went is dangling until the sweep drops it: it is
+# never missing and never shown.
+MISSING_Q: Final = Q(comic__isnull=True, ignored=False, live_source__isnull=True)
+DANGLING_Q: Final = Q(comic__isnull=True, live_source__isnull=False)
 _ITEM_COLLECTION_CHOICES: Final = tuple(
     (collection.value, COLLECTION_LABELS[collection]) for collection in ITEM_COLLECTIONS
 )

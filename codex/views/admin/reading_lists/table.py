@@ -96,7 +96,10 @@ def completable_arc(sources: list[ReadingListSource], pointers) -> dict | None:
 
 
 def _annotated_lists():
-    shown = Q(entries__ignored=False)
+    # Shown entries: not hidden, never a live entry whose comic went.
+    shown = Q(entries__ignored=False) & ~Q(
+        entries__comic__isnull=True, entries__live_source__isnull=False
+    )
     return (
         ReadingList.objects.select_related("user")
         .annotate(
@@ -113,13 +116,22 @@ def _annotated_lists():
 
 
 def list_row(reading_list, sources, pointers) -> dict[str, Any]:
-    """Return a row of the admin lists table."""
+    """
+    Return a row of the admin lists table.
+
+    Its sources are chips; its collection items are counted apart, being
+    the list's own contents and no source to refresh or rank.
+    """
+    collection = ReadingListSourceKind.COLLECTION.value
+    items = sum(1 for source in sources if source.kind == collection)
+    sources = [source for source in sources if source.kind != collection]
     return {
         "pk": reading_list.pk,
         "name": reading_list.name,
         "description": reading_list.description,
         "list_type": reading_list.list_type,
         "sources": [source_repr(source) for source in sources],
+        "items": items,
         "total": reading_list.total,
         "matched": reading_list.matched,
         "needs_review": reading_list.review,

@@ -112,8 +112,10 @@ def _source_label(source: ReadingListSource) -> str:
 
 
 def _sources(reading_list: ReadingList) -> list[dict[str, str]]:
-    sources = ReadingListSource.objects.filter(reading_list=reading_list).order_by(
-        "rank", "pk"
+    sources = (
+        ReadingListSource.objects.filter(reading_list=reading_list)
+        .exclude(kind=ReadingListSourceKind.COLLECTION)
+        .order_by("rank", "pk")
     )
     return [
         {
@@ -142,6 +144,9 @@ def list_details(acl, request, reading_list: ReadingList) -> dict[str, Any]:
         "start_year": reading_list.start_year,
         "end_year": reading_list.end_year,
         "sources": _sources(reading_list),
+        "items": ReadingListSource.objects.filter(
+            reading_list=reading_list, kind=ReadingListSourceKind.COLLECTION
+        ).count(),
         "total": len(comics),
         "in_library": len(present),
         "missing": len(comics) - len(present),

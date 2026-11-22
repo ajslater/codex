@@ -20,7 +20,7 @@ from typing import Any, Final
 from django.core.paginator import EmptyPage, Paginator
 from django.db.models import Max, Min
 
-from codex.models.readinglist import ReadingListEntry
+from codex.models.readinglist import MISSING_Q, ReadingListEntry
 from codex.views.readinglists.access import shown_entries_q
 
 READING_ORDER: Final = "story_arc_number"
@@ -97,7 +97,7 @@ def page_missing_entries(
 ) -> tuple[list[dict[str, Any]], int]:
     """Return the missing issues on the page, in page order, and the list's total."""
     missing = ReadingListEntry.objects.filter(
-        shown_entries_q(acl, user), reading_list_id=list_pk, comic__isnull=True
+        shown_entries_q(acl, user), MISSING_Q, reading_list_id=list_pk
     ).order_by("-position" if reverse else "position", "pk")
     entries = list(missing.only(*_FIELDS))
     if bounds is None:

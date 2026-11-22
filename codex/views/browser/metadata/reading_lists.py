@@ -4,16 +4,16 @@ from typing import Any
 
 from django.db.models import Count, Min, Q, QuerySet
 
-from codex.models.readinglist import ReadingListEntry
+from codex.models.readinglist import DANGLING_Q, ReadingListEntry
 from codex.views.auth import GroupACLMixin
 
 
 def _visible_entries(user) -> QuerySet:
-    """Entries of lists the user may see that nobody hid."""
+    """Entries of lists the user may see that nobody hid, none dangling."""
     return ReadingListEntry.objects.filter(
         GroupACLMixin.reading_list_visibility_filter(user, "reading_list__"),
         ignored=False,
-    )
+    ).exclude(DANGLING_Q)
 
 
 def selection_reading_lists(
