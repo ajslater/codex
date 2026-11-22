@@ -108,9 +108,9 @@
         class="nameFilter"
       />
       <!--
-        A checklist, as the browser's filters: tick any number of kinds,
-        and a list shows if any of its sources is ticked. Nothing ticked
-        is every list.
+        Checklists, as the browser's filters: tick any number of rows, and
+        a list shows if it matches any of them. Nothing ticked is every
+        list.
       -->
       <v-select
         v-model="kindFilter"
@@ -120,14 +120,33 @@
         hide-details
         clearable
         multiple
-        class="kindFilter"
+        class="checklistFilter"
       >
         <template #selection="{ item, index }">
-          <span v-if="index === 0" class="kindSelection">{{
-            kindName(item.value)
+          <span v-if="index === 0" class="checklistSelection">{{
+            item.name
           }}</span>
-          <span v-else-if="index === 1" class="kindMore">
+          <span v-else-if="index === 1" class="checklistMore">
             +{{ kindFilter.length - 1 }}
+          </span>
+        </template>
+      </v-select>
+      <v-select
+        v-model="ownerFilter"
+        :items="ownerItems"
+        label="Visibility"
+        density="compact"
+        hide-details
+        clearable
+        multiple
+        class="checklistFilter"
+      >
+        <template #selection="{ item, index }">
+          <span v-if="index === 0" class="checklistSelection">{{
+            item.name
+          }}</span>
+          <span v-else-if="index === 1" class="checklistMore">
+            +{{ ownerFilter.length - 1 }}
           </span>
         </template>
       </v-select>
@@ -404,6 +423,21 @@ import {
   useReadingListsStore,
 } from "@/stores/reading-lists";
 
+// The Source row for lists with no source, made by hand or of items only.
+const NO_SOURCE = "none";
+// The Visibility row for global lists: a colon is in no username.
+const GLOBAL_OWNER = ":global";
+const ownerOf = (list) => list.owner ?? GLOBAL_OWNER;
+// Checklist rows: those with lists, then any ticked, so it can be unticked.
+const checklistItems = (names, counts, ticked) =>
+  Object.entries(names)
+    .filter(([value]) => counts[value] || ticked.has(value))
+    .map(([value, name]) => ({
+      value,
+      name,
+      title: `${name} (${counts[value] ?? 0})`,
+    }));
+
 const HEADERS = Object.freeze([
   { title: "Name", key: "name" },
   { title: "Sources", key: "sources", sortable: false },
@@ -447,8 +481,9 @@ export default {
       mdiTrashCanOutline,
       headers: HEADERS,
       search: "",
-      // The source kinds ticked; none is every list.
+      // The source kinds and the owners ticked; none is every list.
       kindFilter: [],
+      ownerFilter: [],
       missingOnly: false,
       reviewOnly: false,
       showMappings: false,
@@ -487,24 +522,39 @@ export default {
         ),
     }),
     kindCounts() {
-      // How many lists have a source of each kind.
+      // How many lists have a source of each kind, or none.
       const counts = {};
       for (const list of this.lists) {
-        for (const kind of new Set(list.sources.map(({ kind }) => kind))) {
+        const kinds = new Set(list.sources.map(({ kind }) => kind));
+        if (!kinds.size) kinds.add(NO_SOURCE);
+        for (const kind of kinds) {
           counts[kind] = (counts[kind] ?? 0) + 1;
         }
       }
       return counts;
     },
     kindItems() {
-      // The kinds some list has, and any ticked, so it can be unticked.
-      const ticked = new Set(this.kindFilter);
-      return Object.entries(SOURCE_KINDS)
-        .filter(([value]) => this.kindCounts[value] || ticked.has(value))
-        .map(([value, title]) => ({
-          value,
-          title: `${title} (${this.kindCounts[value] ?? 0})`,
-        }));
+      const names = { [NO_SOURCE]: "None", ...SOURCE_KINDS };
+      return checklistItems(names, this.kindCounts, new Set(this.kindFilter));
+    },
+    ownerCounts() {
+      const counts = {};
+      for (const list of this.lists) {
+        const owner = ownerOf(list);
+        counts[owner] = (counts[owner] ?? 0) + 1;
+      }
+      return counts;
+    },
+    ownerItems() {
+      // Global first, then each owner by name.
+      const ticked = new Set(this.ownerFilter);
+      const owners = new Set([...Object.keys(this.ownerCounts), ...ticked]);
+      owners.delete(GLOBAL_OWNER);
+      const names = { [GLOBAL_OWNER]: "Global" };
+      for (const owner of [...owners].sort()) {
+        names[owner] = owner;
+      }
+      return checklistItems(names, this.ownerCounts, ticked);
     },
     noDataText() {
       // Say why the table is empty: no lists, or the filters hide them.
@@ -538,11 +588,16 @@ export default {
     filteredLists() {
       const search = (this.search || "").toLowerCase();
       const kinds = new Set(this.kindFilter);
+      const owners = new Set(this.ownerFilter);
+      const hasKind = (list) =>
+        list.sources.length
+          ? list.sources.some((source) => kinds.has(source.kind))
+          : kinds.has(NO_SOURCE);
       return this.lists.filter(
         (list) =>
           (!search || list.name.toLowerCase().includes(search)) &&
-          (!kinds.size ||
-            list.sources.some((source) => kinds.has(source.kind))) &&
+          (!kinds.size || hasKind(list)) &&
+          (!owners.size || owners.has(ownerOf(list))) &&
           (!this.missingOnly || list.matched < list.total) &&
           (!this.reviewOnly || list.needsReview > 0),
       );
@@ -581,9 +636,6 @@ export default {
     openDetails(item) {
       this.detailsList = item;
       this.showDetails = true;
-    },
-    kindName(kind) {
-      return SOURCE_KINDS[kind] || kind;
     },
     sourceLabel(source) {
       const label = SOURCE_KINDS[source.kind] || source.kind;
@@ -653,18 +705,21 @@ export default {
     margin-bottom: $space-2;
   }
 
+  // Wrap rather than squeeze: three fields on a phone row left Name unreadable.
   .nameFilter,
-  .kindFilter {
+  .checklistFilter {
+    flex: 1 1 160px;
+    min-width: 160px;
     max-width: 240px;
   }
 
-  .kindSelection {
+  .checklistSelection {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .kindMore {
+  .checklistMore {
     margin-left: $space-1;
     color: rgb(var(--v-theme-text-disabled));
   }

@@ -72,6 +72,31 @@ const LISTS = Object.freeze([
   },
 ]);
 
+// A hand-made list of the admin's with no source, and another user's upload.
+const MORE_LISTS = Object.freeze([
+  ...LISTS,
+  {
+    pk: 3,
+    name: "Hand Made",
+    listType: "",
+    sources: [],
+    total: 2,
+    matched: 2,
+    needsReview: 0,
+    owner: "admin",
+  },
+  {
+    pk: 4,
+    name: "Alice's Upload",
+    listType: "",
+    sources: [{ pk: 12, kind: "upload", attribution: "" }],
+    total: 4,
+    matched: 4,
+    needsReview: 0,
+    owner: "alice",
+  },
+]);
+
 // An open v-dialog reads visualViewport, which jsdom lacks.
 const STUBS = Object.freeze({ VDialog: { template: "<div><slot /></div>" } });
 
@@ -220,6 +245,55 @@ describe("reading lists tab", () => {
     // A ticked kind stays offered, so it can be unticked.
     wrapper.vm.kindFilter = ["upload"];
     expect(items().map(([value]) => value)).toContain("upload");
+  });
+
+  test("Source offers None, for lists with no source", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: MORE_LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    const shown = () => wrapper.vm.filteredLists.map((list) => list.pk);
+    expect(wrapper.vm.kindItems[0]).toMatchObject({
+      value: "none",
+      title: "None (1)",
+      name: "None",
+    });
+    wrapper.vm.kindFilter = ["none"];
+    expect(shown()).toEqual([3]);
+    wrapper.vm.kindFilter = ["none", "tags"];
+    expect(shown()).toEqual([1, 3]);
+  });
+
+  test("Visibility is a checklist of Global and each owner", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: MORE_LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    const shown = () => wrapper.vm.filteredLists.map((list) => list.pk);
+    expect(
+      wrapper.vm.ownerItems.map((item) => [item.value, item.title]),
+    ).toEqual([
+      [":global", "Global (2)"],
+      ["admin", "admin (1)"],
+      ["alice", "alice (1)"],
+    ]);
+    wrapper.vm.ownerFilter = [":global"];
+    expect(shown()).toEqual([1, 2]);
+    wrapper.vm.ownerFilter = ["admin"];
+    expect(shown()).toEqual([3]);
+    wrapper.vm.ownerFilter = [":global", "alice"];
+    expect(shown()).toEqual([1, 2, 4]);
+    // Source and Visibility both apply.
+    wrapper.vm.kindFilter = ["upload"];
+    wrapper.vm.ownerFilter = [":global"];
+    expect(shown()).toEqual([]);
+    wrapper.vm.kindFilter = [];
+    wrapper.vm.ownerFilter = [];
+    expect(shown()).toEqual([1, 2, 3, 4]);
   });
 
   test("there is no separate Show lists from tags checkbox", async () => {
