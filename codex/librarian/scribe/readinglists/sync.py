@@ -15,7 +15,7 @@ digest changed:
 - An arc that is gone loses its source. A list left with no source and no
   hand-added entry is deleted.
 
-Lists are never recreated, so shelf items, custom covers and reader
+Lists are never recreated, so list items, custom covers and reader
 settings that point at one survive.
 """
 

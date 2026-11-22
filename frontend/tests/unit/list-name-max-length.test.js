@@ -1,5 +1,5 @@
 /*
- * The shelf name limit comes from the server's limits, not a copy.
+ * The list name limit comes from the server's limits, not a copy.
  *
  * ``limits.json`` is mocked to a length no hardcoded copy would match, so
  * the create input and the rename field both have to read it.
@@ -13,14 +13,14 @@ vi.mock(import("@/choices/limits.json"), async (importOriginal) => {
   return { default: { ...original.default, maxNameLen: 12 } };
 });
 
-import BrowserSettingsShelves from "@/components/browser/drawer/browser-settings-shelves.vue";
+import BrowserSettingsReadingLists from "@/components/browser/drawer/browser-settings-reading-lists.vue";
+import ListNameInput from "@/components/list-name-input.vue";
 import NameListEditor from "@/components/name-list-editor.vue";
-import ShelfNameInput from "@/components/shelf-name-input.vue";
 import vuetify from "@/plugins/vuetify";
 
-describe("shelf name max length", () => {
+describe("list name max length", () => {
   test("the name input takes the server's limit", async () => {
-    const wrapper = mount(ShelfNameInput, {
+    const wrapper = mount(ListNameInput, {
       global: { plugins: [vuetify] },
       props: { autofocus: false },
     });
@@ -33,10 +33,13 @@ describe("shelf name max length", () => {
 
   test("the rename field takes it too", () => {
     const pinia = createTestingPinia({
-      initialState: { auth: { user: { id: 1 } }, shelves: { shelves: [] } },
+      initialState: {
+        auth: { user: { id: 1 } },
+        readingLists: { myLists: [], myListsLoaded: true },
+      },
     });
-    const wrapper = mount(BrowserSettingsShelves, {
-      global: { plugins: [pinia, vuetify] },
+    const wrapper = mount(BrowserSettingsReadingLists, {
+      global: { plugins: [pinia, vuetify], stubs: { ReviewDialog: true } },
     });
     expect(wrapper.findComponent(NameListEditor).props("maxLength")).toBe(12);
   });

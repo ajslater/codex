@@ -1,19 +1,19 @@
 /*
- * Personal reading lists: the "Reading Lists" section of the shelf menu
- * (``reading-list-menu-section.vue``) and the settings drawer's "Reading
- * Lists" block (``browser-settings-reading-lists.vue``). The menu adds a
- * selection to a list or to a new one; the drawer lists only the user's
- * own lists and opens, edits, renames, duplicates and deletes them. Real
- * Vuetify is mounted; store actions are stubbed by createTestingPinia so
- * calls can be asserted.
+ * The settings drawer's "Reading Lists" block
+ * (``browser-settings-reading-lists.vue``): only the user's own lists,
+ * opened, edited, renamed, duplicated and deleted from each row's menu,
+ * and new ones made with the list name input. The list menu has its own
+ * tests. Real Vuetify is mounted; store actions are stubbed by
+ * createTestingPinia so calls can be asserted.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
+import { APIError } from "@/api/v4/base";
 import BrowserSettingsReadingLists from "@/components/browser/drawer/browser-settings-reading-lists.vue";
+import ListNameInput from "@/components/list-name-input.vue";
 import NameListEditor from "@/components/name-list-editor.vue";
-import ReadingListMenuSection from "@/components/reading-list-menu-section.vue";
 import vuetify from "@/plugins/vuetify";
 import { useBrowserStore } from "@/stores/browser";
 import { useReadingListsStore } from "@/stores/reading-lists";
@@ -36,8 +36,6 @@ const LISTS = () => [
   { pk: 2, name: "My Spidey", personal: true, count: 3, editable: true },
 ];
 
-const TARGETS = Object.freeze({ series: [4], comics: [42] });
-
 const wrappers = [];
 
 function mountWith(component, { loggedIn = true, lists = LISTS(), props }) {
@@ -59,9 +57,6 @@ function mountWith(component, { loggedIn = true, lists = LISTS(), props }) {
   wrappers.push(wrapper);
   return { wrapper, store: useReadingListsStore() };
 }
-
-const mountSection = () =>
-  mountWith(ReadingListMenuSection, { props: { targets: TARGETS } });
 
 const mountBlock = (options = {}) =>
   mountWith(BrowserSettingsReadingLists, options);
@@ -87,95 +82,6 @@ afterEach(() => {
     wrapper.unmount();
   }
   wrappers.length = 0;
-});
-
-describe("ReadingListMenuSection", () => {
-  test("lists every list the user may add to, global ones marked", () => {
-    const { wrapper } = mountSection();
-    const rows = wrapper.findAll(".v-list-item");
-    const titles = rows.map((row) => row.find(".v-list-item-title").text());
-    expect(titles).toEqual(["Civil War", "My Spidey", "New reading list…"]);
-    expect(rows[0].text()).toContain("Global");
-    expect(rows[1].text()).not.toContain("Global");
-  });
-
-  test("a list is not offered as a place to add itself", () => {
-    const { wrapper } = mountWith(ReadingListMenuSection, {
-      props: { targets: { arcs: [1] } },
-    });
-    const titles = wrapper
-      .findAll(".readingListMenuList .v-list-item-title")
-      .map((title) => title.text());
-    expect(titles).toEqual(["My Spidey", "New reading list…"]);
-  });
-
-  test("no find field for a short menu", () => {
-    const { wrapper } = mountSection();
-    expect(wrapper.find(".listFilter").exists()).toBe(false);
-  });
-
-  test("past eight lists, a field finds one by name", async () => {
-    const lists = Array.from({ length: 10 }, (_, i) => ({
-      pk: i + 1,
-      name: i === 6 ? "Secret Wars" : `List ${i + 1}`,
-      personal: true,
-      count: 1,
-      editable: true,
-    }));
-    const { wrapper } = mountWith(ReadingListMenuSection, {
-      lists,
-      props: { targets: TARGETS },
-    });
-    expect(wrapper.find(".listFilter").exists()).toBe(true);
-    wrapper.vm.query = "secret";
-    await wrapper.vm.$nextTick();
-    const titles = wrapper
-      .findAll(".readingListMenuList .v-list-item-title")
-      .map((title) => title.text());
-    expect(titles).toEqual(["Secret Wars", "New reading list…"]);
-  });
-
-  test("a row click adds the targets and closes the menu", async () => {
-    const { wrapper, store } = mountSection();
-    await wrapper.findAll(".v-list-item")[1].trigger("click");
-    await flushPromises();
-    expect(store.addTargets).toHaveBeenCalledWith(2, TARGETS);
-    expect(wrapper.emitted("done")).toHaveLength(1);
-  });
-
-  test("a new list is created, then the targets added to it", async () => {
-    const { wrapper, store } = mountSection();
-    store.createList.mockResolvedValue({ pk: 9, name: "Fresh" });
-    wrapper.vm.creating = true;
-    wrapper.vm.name = "  Fresh ";
-    await wrapper.vm.create();
-    expect(store.createList).toHaveBeenCalledWith("Fresh");
-    expect(store.addTargets).toHaveBeenCalledWith(9, TARGETS);
-    expect(wrapper.vm.creating).toBe(false);
-    expect(wrapper.emitted("done")).toHaveLength(1);
-  });
-
-  test("a failed create adds nothing and stays open", async () => {
-    const { wrapper, store } = mountSection();
-    store.createList.mockResolvedValue();
-    wrapper.vm.name = "Fresh";
-    await wrapper.vm.create();
-    expect(store.addTargets).not.toHaveBeenCalled();
-    expect(wrapper.emitted("done")).toBeUndefined();
-  });
-
-  test("loads the lists when they were never loaded", () => {
-    const pinia = createTestingPinia({
-      initialState: { readingLists: { myLists: [], myListsLoaded: false } },
-      stubActions: true,
-    });
-    const wrapper = mount(ReadingListMenuSection, {
-      global: { plugins: [pinia, vuetify] },
-      props: { targets: TARGETS },
-    });
-    wrappers.push(wrapper);
-    expect(useReadingListsStore().loadMyLists).toHaveBeenCalledOnce();
-  });
 });
 
 describe("BrowserSettingsReadingLists", () => {
@@ -264,14 +170,36 @@ describe("BrowserSettingsReadingLists", () => {
     expect(wrapper.vm.showEditor).toBe(true);
   });
 
-  test("a new list is created from the drawer", async () => {
+  test("a new list is made with the list name input", async () => {
     const { wrapper, store } = mountBlock();
     store.createList.mockResolvedValue({ pk: 3, name: "Next" });
     wrapper.vm.creating = true;
-    wrapper.vm.name = "Next";
-    await wrapper.vm.create();
+    await flushPromises();
+    const input = wrapper.findComponent(ListNameInput);
+    // Your own list names are taken; a global list's is not.
+    expect(input.props("existingNames")).toEqual(["My Spidey"]);
+    input.vm.$emit("submit", "Next");
+    await flushPromises();
     expect(store.createList).toHaveBeenCalledWith("Next");
     expect(wrapper.vm.creating).toBe(false);
+    expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledOnce();
+  });
+
+  test("a refused create keeps the input open with the server's reason", async () => {
+    const { wrapper, store } = mountBlock();
+    const reason = "You already have a reading list with that name.";
+    store.createList.mockRejectedValue(
+      new APIError(
+        { status: "400", title: "Bad Request", detail: reason },
+        400,
+      ),
+    );
+    wrapper.vm.creating = true;
+    await flushPromises();
+    wrapper.findComponent(ListNameInput).vm.$emit("submit", "Next");
+    await flushPromises();
+    expect(wrapper.vm.creating).toBe(true);
+    expect(wrapper.findComponent(ListNameInput).vm.shownError).toBe(reason);
   });
 
   test("anonymous sessions get nothing", () => {

@@ -4,8 +4,8 @@
  * Standalone reads its collection, columns and show flags from props, emits
  * ``save`` with the list, and never touches the browser store. Live mode,
  * mounted in the same file, still reads the store and falls back to the
- * admin's site default before the registry. Live mode never offers an
- * anonymous visitor the Shelves column: they own no shelves.
+ * admin's site default before the registry. Live mode offers an anonymous
+ * visitor every column, Reading Lists too.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";

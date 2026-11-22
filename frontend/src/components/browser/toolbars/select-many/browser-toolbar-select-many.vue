@@ -26,22 +26,22 @@
             <v-icon :icon="mdiTagOutline" />
             <span class="actionLabel">Tags</span>
           </v-btn>
-          <ShelfMenu :targets="selectedPksByCollection">
-            <template #activator="{ props: shelfMenuProps }">
+          <ReadingListMenu :targets="selectedPksByCollection">
+            <template #activator="{ props: listMenuProps }">
               <v-btn
-                v-tooltip="{ text: 'Shelves & Lists', openDelay: 500 }"
-                v-bind="shelfMenuProps"
-                class="shelvesButton"
+                v-tooltip="{ text: 'Reading Lists', openDelay: 500 }"
+                v-bind="listMenuProps"
+                class="readingListsButton"
                 :disabled="!hasSelection"
                 density="compact"
                 size="small"
                 variant="text"
               >
-                <v-icon :icon="mdiLibraryShelves" />
-                <span class="actionLabel">Shelves &amp; Lists</span>
+                <v-icon :icon="mdiPlaylistPlus" />
+                <span class="actionLabel">Reading Lists</span>
               </v-btn>
             </template>
-          </ShelfMenu>
+          </ReadingListMenu>
           <v-btn
             v-if="removeListPk"
             v-tooltip="{ text: 'Remove from List', openDelay: 500 }"
@@ -135,7 +135,7 @@ import {
   mdiBookmarkMinusOutline,
   mdiClose,
   mdiDownload,
-  mdiLibraryShelves,
+  mdiPlaylistPlus,
   mdiPlaylistRemove,
   mdiTagOutline,
 } from "@mdi/js";
@@ -143,7 +143,7 @@ import { mapActions, mapState } from "pinia";
 
 import ForceUpdateConfirmDialog from "@/components/force-update-confirm-dialog.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import { routeReadingListPk } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -157,7 +157,7 @@ export default {
   components: {
     ForceUpdateConfirmDialog,
     MetadataDialog,
-    ShelfMenu,
+    ReadingListMenu,
   },
   data() {
     return {
@@ -166,7 +166,7 @@ export default {
       mdiBookmarkMinusOutline,
       mdiClose,
       mdiDownload,
-      mdiLibraryShelves,
+      mdiPlaylistPlus,
       mdiPlaylistRemove,
       mdiTagOutline,
       showMetadataDialog: false,

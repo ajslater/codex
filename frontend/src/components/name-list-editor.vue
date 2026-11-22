@@ -115,7 +115,7 @@ import { isImeEnter } from "@/util";
 /*
  * A list of named things the user can rename and delete in place.
  * It owns no data: the parent passes ``items`` and acts on the
- * ``rename`` / ``delete`` events, so shelves and reading lists share it.
+ * ``rename`` / ``delete`` events, so any named list of the user's can use it.
  * ``noun`` words the labels. A parent that fills the ``menu`` slot gets
  * one menu per row, its items above Rename and Delete, so a narrow row
  * keeps room for the name; otherwise a row has rename and delete buttons.
@@ -129,7 +129,7 @@ export default {
       type: Array,
       required: true,
     },
-    // What one item is called, lower case: "shelf".
+    // What one item is called, lower case: "reading list".
     noun: {
       type: String,
       default: "item",

@@ -251,7 +251,7 @@ def reading_list_continue_top_link(list_pk: int) -> TopLink:
     Build the entry that leads a reading list's feed.
 
     It opens the list's unfinished issues in list order, so the first is
-    the one to read next. Every parameter is spelled out, as for shelves.
+    the one to read next. Every parameter is spelled out.
     """
     return TopLink(
         MappingProxyType({**TopRoutes.STORY_ARC, "pks": (list_pk,)}),

@@ -32,7 +32,7 @@ from codex.librarian.scribe.readinglists.tasks import ReadingListLiveSyncTask
 from codex.models import Comic
 from codex.models.readinglist import ReadingList, ReadingListSource
 from codex.views.readinglists.access import ReadingListAccessView, visible_lists
-from codex.views.readinglists.entries import add_comics, remove_comics
+from codex.views.readinglists.entries import add_comics, entry_count, remove_comics
 
 COMICS: Final = "comics"
 ITEM_TARGETS: Final = (COMICS, *ITEM_MODELS)
@@ -147,4 +147,11 @@ class ReadingListItemsView(ReadingListAccessView):
             )
         queued = self._sync(reading_list, added)
         result["refused"] += refused
-        return Response({**result, "added": comics + len(added), "queued": queued})
+        return Response(
+            {
+                **result,
+                "added": comics + len(added),
+                "queued": queued,
+                "count": entry_count(reading_list),
+            }
+        )

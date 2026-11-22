@@ -3,12 +3,19 @@
     v-model="show"
     class="noticeSnackbar"
     :color="notice.error ? 'error' : undefined"
-    :timeout="notice.error ? ERROR_TIMEOUT : TIMEOUT"
+    :timeout="notice.error || notice.action ? ERROR_TIMEOUT : TIMEOUT"
     location="bottom"
     multi-line
   >
     {{ notice.text }}
     <template #actions>
+      <v-btn
+        v-if="notice.action"
+        class="noticeAction"
+        variant="text"
+        @click="runAction"
+        >{{ notice.action.label }}</v-btn
+      >
       <v-btn variant="text" @click="clearNotice">Dismiss</v-btn>
     </template>
   </v-snackbar>
@@ -21,7 +28,8 @@ import { useCommonStore } from "@/stores/common";
 
 /*
  * Shows the common store's notice: a confirmation or error for an action
- * taken outside a form. Errors stay up longer, to be read.
+ * taken outside a form, with a button when it offers a next step. Errors
+ * stay up longer, to be read.
  */
 export default {
   name: "NoticeSnackbar",
@@ -41,6 +49,11 @@ export default {
   },
   methods: {
     ...mapActions(useCommonStore, ["clearNotice"]),
+    runAction() {
+      const { run } = this.notice.action;
+      this.clearNotice();
+      run();
+    },
   },
 };
 </script>

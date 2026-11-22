@@ -53,10 +53,18 @@ export const duplicateList = (pk, name) =>
   HTTP.post(`${LISTS}/${pk}/duplicate`, name ? { name } : {});
 export const getEntries = (pk, filter = "all") =>
   HTTP.get(`${LISTS}/${pk}/entries`, fresh({ filter }));
-export const addTargets = (pk, targets) =>
-  HTTP.post(`${LISTS}/${pk}/add`, { targets });
-export const removeComics = (pk, comics) =>
-  HTTP.post(`${LISTS}/${pk}/remove`, { comics });
+/*
+ * A list's items, speaking the collection vocabulary: ``add`` and
+ * ``remove`` are each a ``{collection: [pks]}`` map, either one optional.
+ * Comics are issues added by hand; a publisher, imprint, series, volume,
+ * folder or list is held whole and stays current.
+ */
+export const updateItems = (pk, { add, remove }) => {
+  const body = {};
+  if (add) body.add = add;
+  if (remove) body.remove = remove;
+  return HTTP.patch(`${LISTS}/${pk}/items`, body);
+};
 export const addEntries = (pk, comics, position) =>
   HTTP.post(`${LISTS}/${pk}/entries`, { comics, position });
 export const updateEntry = (pk, entryPk, data) =>

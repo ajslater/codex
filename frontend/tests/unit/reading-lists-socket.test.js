@@ -43,7 +43,7 @@ describe("reading lists notifications", () => {
     await readingListsNotified();
     expect(API.getMyLists).toHaveBeenCalledTimes(1);
     expect(API.getAdminLists).not.toHaveBeenCalled();
-    expect(store.myLists).toEqual([{ pk: 3 }]);
+    expect(store.myLists.map((list) => list.pk)).toEqual([3]);
   });
 
   test("an admin's table and its suggestions reload too", async () => {

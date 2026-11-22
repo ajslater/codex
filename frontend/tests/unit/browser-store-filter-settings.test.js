@@ -26,19 +26,19 @@ describe("browser store filter settings", () => {
 
   it("sends only the filters in use", () => {
     const store = storeWith({
-      filters: { bookmark: "", characters: [], genres: [5], shelves: [3] },
+      filters: { bookmark: "", characters: [], genres: [5], readingLists: [3] },
       q: "batman",
     });
 
     expect(store.filterOnlySettings).toStrictEqual({
-      filters: { genres: [5], shelves: [3] },
+      filters: { genres: [5], readingLists: [3] },
       q: "batman",
     });
   });
 
   it("drops the filters key when no filter is in use", () => {
     const store = storeWith({
-      filters: { bookmark: "", characters: [], genres: [], shelves: [] },
+      filters: { bookmark: "", characters: [], genres: [], readingLists: [] },
       q: "",
     });
 
@@ -56,12 +56,12 @@ describe("browser store filter settings", () => {
     });
   });
 
-  it("counts selected shelves as a selected, clearable filter", () => {
-    const store = storeWith({ filters: { bookmark: "", shelves: [] } });
+  it("counts selected lists as a selected, clearable filter", () => {
+    const store = storeWith({ filters: { bookmark: "", readingLists: [] } });
     expect(store.isDynamicFiltersSelected).toBe(false);
     expect(store.isFiltersClearable).toBe(false);
 
-    store.settings.filters.shelves = [3];
+    store.settings.filters.readingLists = [3];
     expect(store.isDynamicFiltersSelected).toBe(true);
     expect(store.isFiltersClearable).toBe(true);
   });
@@ -84,7 +84,7 @@ describe("browser store setSettings", () => {
     const settled = vi.fn();
 
     const done = (async () => {
-      await store.setSettings({ filters: { shelves: [1] } });
+      await store.setSettings({ filters: { readingLists: [1] } });
       settled();
     })();
     // Drain every pending microtask, Pinia's action wrapper included.

@@ -23,7 +23,7 @@ vi.mock("@/api/v4/reading-lists", () => ({
   updateEntry: vi.fn(),
   acceptEntries: vi.fn(),
   exportURL: (pk, fmt) => `/export/${pk}/${fmt}`,
-  removeComics: vi.fn(),
+  updateItems: vi.fn(),
   getMappings: vi.fn(() => Promise.resolve({ data: { mappings: [] } })),
   deleteMapping: vi.fn(),
   updateAdminList: vi.fn(),
@@ -424,10 +424,12 @@ describe("add lists dialog — private Metron lists", () => {
 describe("removeFromList", () => {
   test("says what it removed and what it hid", async () => {
     setActivePinia(pinia());
-    API.removeComics.mockResolvedValue({ data: { removed: 1, hidden: 2 } });
+    API.updateItems.mockResolvedValue({ data: { removed: 1, hidden: 2 } });
     const changed = await useReadingListsStore().removeFromList(5, [1, 2, 3]);
     expect(changed).toBe(true);
-    expect(API.removeComics).toHaveBeenCalledWith(5, [1, 2, 3]);
+    expect(API.updateItems).toHaveBeenCalledWith(5, {
+      remove: { comics: [1, 2, 3] },
+    });
     expect(useCommonStore().setNotice).toHaveBeenCalledWith(
       "Removed 1 comic, hid 2 comics its sources hold from the list.",
     );

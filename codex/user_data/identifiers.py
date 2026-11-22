@@ -1,7 +1,7 @@
 """
 Stable identifiers for the sidecar.
 
-The main DB stores polymorphic shelf items and tag-filter lists as integer
+The main DB stores polymorphic list items and tag-filter lists as integer
 PKs that won't survive a full rebuild. The sidecar replaces those PKs
 with name-chain tuples (or comic paths) — values that *do* survive,
 because the librarian's filesystem-driven import will re-create rows
@@ -163,7 +163,7 @@ def watched_path_pks(model, path: str) -> tuple[int, ...]:
 
     ``WatchedPath`` is unique on ``(library, path)``, not on ``path``, so
     nested or overlapping library roots hold the same file under two
-    libraries. The sidecar keys bookmarks and comic/folder shelf items on
+    libraries. The sidecar keys bookmarks and comic and folder items on
     the path alone -- one file on disk -- and cannot say which library a
     row came from, so taking the arbitrary first match dropped the user's
     data in whichever library they actually browse. Restore into all of

@@ -2,7 +2,7 @@
  * Regression test for the multi-select metadata toolbar.
  *
  * The action toolbar (MetadataControls — Download / Mark Read / Edit Tags
- * / Tag Online / shelves) used to be gated by
+ * / Tag Online) used to be gated by
  * `v-if="!multiSelect && !editing"`, so it vanished whenever the dialog
  * was opened from a multi-select. The gate is now `v-if="!editing"`: the
  * toolbar renders for single AND multi-select, and only hides while the

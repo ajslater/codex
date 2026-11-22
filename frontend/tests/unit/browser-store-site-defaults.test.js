@@ -3,7 +3,7 @@
  *
  *   - Table columns resolve per collection: the visitor's own list, else the
  *     admin's site default, else the show-gated registry default. An
- *     anonymous visitor, who owns no shelves, never gets the Shelves column.
+ *     anonymous visitor gets every column, Reading Lists too.
  *   - "Clear All Filters" treats the site default bookmark filter as clear.
  *   - ``tableColumns`` is replaced whole, so a reset can remove a key.
  *   - The first-paint seed applies only until the stored settings load.

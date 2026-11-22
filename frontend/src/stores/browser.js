@@ -378,8 +378,8 @@ export const useBrowserStore = defineStore("browser", {
     isDynamicFiltersSelected(state) {
       /*
        * "Dynamic" = anything beyond the bookmark choice. Every other
-       * filter is a list, ``shelves`` (the user's selected shelf pks)
-       * included, so a non-empty one lights the multi-filter indicator.
+       * filter is a list, so a non-empty one lights the multi-filter
+       * indicator.
        */
       for (const [name, array] of Object.entries(state.settings.filters)) {
         if (array?.length > 0 && !SCALAR_FILTERS.has(name)) {

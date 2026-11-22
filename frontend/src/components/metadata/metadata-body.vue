@@ -56,13 +56,12 @@
     <MetadataRatings class="mdSection" />
     <MetadataTagsTable :tag-map="tags" class="mdSection">
       <!--
-        Shelves are a signed-in user's; reading lists show to whoever may
-        see them. The slot alone keeps a table up, so an untagged comic in
-        no list shows an anonymous visitor none.
+        Reading lists show to whoever may see them, and a signed-in user
+        gets the list menu there too. The slot alone keeps a table up, so
+        an untagged comic in no list shows an anonymous visitor none.
       -->
       <template v-if="isLoggedIn || inReadingLists" #before>
-        <MetadataShelvesRow v-if="isLoggedIn" :book="book" />
-        <MetadataReadingListsRow />
+        <MetadataReadingListsRow :book="book" />
       </template>
     </MetadataTagsTable>
     <section class="mdSection">
@@ -88,7 +87,6 @@ import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
 import MetadataReadingListDetails from "@/components/metadata/metadata-reading-list-details.vue";
 import MetadataReadingListsRow from "@/components/metadata/metadata-reading-lists-row.vue";
-import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
 import { getDateTime } from "@/datetime";
@@ -102,7 +100,6 @@ export default {
     MetadataRatings,
     MetadataReadingListDetails,
     MetadataReadingListsRow,
-    MetadataShelvesRow,
     MetadataTagsTable,
     MetadataText,
   },

@@ -1,5 +1,6 @@
 // Common store functions
 import { defineStore } from "pinia";
+import { markRaw } from "vue";
 
 import * as API from "@/api/v4/common";
 
@@ -119,7 +120,7 @@ export const useCommonStore = defineStore("common", {
      * ``form.errors`` have nothing to show them. ``notice-snackbar.vue``
      * in the root component shows it.
      */
-    notice: { text: "", error: false },
+    notice: { text: "", error: false, action: undefined },
   }),
   actions: {
     async loadVersions() {
@@ -154,14 +155,23 @@ export const useCommonStore = defineStore("common", {
         state.form.success = "";
       });
     },
-    setNotice(text, { error = false } = {}) {
-      this.notice = { text, error };
+    setNotice(text, { error = false, action } = {}) {
+      /*
+       * ``action`` is ``{label, run}``: a button on the notice that runs
+       * ``run`` and closes it, such as removing the series an issue is in
+       * a list through. Raw: a function nothing renders.
+       */
+      this.notice = {
+        text,
+        error,
+        action: action ? markRaw(action) : undefined,
+      };
     },
     setErrorNotice(xiorError) {
       this.setNotice(getErrors(xiorError).join(" "), { error: true });
     },
     clearNotice() {
-      this.notice = { text: "", error: false };
+      this.notice = { text: "", error: false, action: undefined };
     },
     setSessionError(message) {
       this.sessionError = message;

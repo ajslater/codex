@@ -18,28 +18,14 @@
         <ReadingListExportMenu :pk="item.pk" />
       </template>
     </NameListEditor>
-    <div v-if="creating" class="newList">
-      <v-text-field
-        v-model="name"
-        autofocus
-        density="compact"
-        hide-details
-        label="Reading List Name"
-        :maxlength="maxLength"
-        variant="outlined"
-        @keydown.enter="create"
-        @keydown.esc.stop="creating = false"
-      />
-      <v-btn
-        density="compact"
-        :disabled="!name.trim()"
-        :icon="mdiCheck"
-        size="small"
-        title="Create"
-        variant="text"
-        @click="create"
-      />
-    </div>
+    <ListNameInput
+      v-if="creating"
+      class="newList"
+      :error="createError"
+      :existing-names="myListNames"
+      @cancel="creating = false"
+      @submit="create"
+    />
     <v-btn
       v-else
       density="compact"
@@ -51,8 +37,8 @@
       New reading list
     </v-btn>
     <div class="readingListsHint">
-      Add comics from any shelf menu. Saved in Codex only: no comic file
-      changes.
+      Add comics, series and folders from any Reading Lists menu. Saved in Codex
+      only: no comic file changes.
     </div>
     <ReviewDialog
       v-if="editing"
@@ -66,34 +52,40 @@
 </template>
 
 <script>
-import { mdiCheck, mdiPlus } from "@mdi/js";
+import { mdiPlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ReviewDialog from "@/components/admin/tabs/reading-lists/review-dialog.vue";
 import LIMITS from "@/choices/limits.json";
+import ListNameInput from "@/components/list-name-input.vue";
 import NameListEditor from "@/components/name-list-editor.vue";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
+import { getErrors } from "@/stores/common";
 import { useReadingListsStore } from "@/stores/reading-lists";
 
 const ARCS = "arcs";
 
 /*
  * The signed-in user's own reading lists: open, edit, rename, duplicate,
- * export, delete, and make new ones. Comics join a list from the shelf
- * menu everywhere it appears.
+ * export, delete, and make new ones. Comics join a list from the Reading
+ * Lists menu everywhere it appears.
  */
 export default {
   name: "BrowserSettingsReadingLists",
-  components: { NameListEditor, ReadingListExportMenu, ReviewDialog },
+  components: {
+    ListNameInput,
+    NameListEditor,
+    ReadingListExportMenu,
+    ReviewDialog,
+  },
   data() {
     return {
       maxLength: LIMITS.maxNameLen,
-      mdiCheck,
       mdiPlus,
+      createError: "",
       creating: false,
-      name: "",
       editing: null,
       showEditor: false,
     };
@@ -102,12 +94,20 @@ export default {
     ...mapState(useAuthStore, {
       isLoggedIn: (state) => Boolean(state.user),
     }),
-    ...mapState(useReadingListsStore, ["myLists", "myListsLoaded"]),
+    ...mapState(useReadingListsStore, [
+      "myListNames",
+      "myLists",
+      "myListsLoaded",
+    ]),
     personalLists() {
       return this.myLists.filter((list) => list.personal);
     },
   },
   watch: {
+    creating() {
+      // Opening or closing the name input drops the last attempt's error.
+      this.createError = "";
+    },
     isLoggedIn: {
       immediate: true,
       handler(value) {
@@ -150,15 +150,16 @@ export default {
       this.editing = { pk: item.pk, name: item.name };
       this.showEditor = true;
     },
-    async create() {
-      const name = this.name.trim();
-      if (!name) return;
-      const list = await this.createList(name);
-      if (list) {
-        this.creating = false;
-        this.name = "";
-        await this.refreshBrowserPage();
+    async create(name) {
+      this.createError = "";
+      try {
+        await this.createList(name);
+      } catch (error) {
+        this.createError = getErrors(error).join(" ");
+        return;
       }
+      this.creating = false;
+      await this.refreshBrowserPage();
     },
   },
 };
@@ -167,8 +168,6 @@ export default {
 <style scoped lang="scss">
 @layer codex-components {
   .newList {
-    display: flex;
-    align-items: center;
     padding: 4px 8px;
   }
 

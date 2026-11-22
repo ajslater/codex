@@ -87,10 +87,10 @@ const STATS = {
   },
   usage: {
     bookmarkCount: 1,
-    shelfCount: 2,
-    shelfUserCount: 1,
-    shelfItemCount: 4,
-    shelfItems: { comics: 4 },
+    personalListCount: 2,
+    personalListUserCount: 1,
+    listItemCount: 4,
+    listItems: { comics: 4 },
   },
   identifiers: { "metron:comic": 85, "comicvine:comic": 126 },
   adminFlags: {

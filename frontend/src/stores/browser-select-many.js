@@ -83,7 +83,7 @@ export const useBrowserSelectManyStore = defineStore("browserSelectMany", {
      * Every selected pk, keyed by collection: ``{series: [1, 2],
      * comics: [9]}``. Unlike ``compositeItem`` this covers every
      * collection type in the selection, which is what an action that
-     * takes all of them in one request (shelving) wants.
+     * takes all of them in one request (adding to a list) wants.
      */
     selectedPksByCollection(state) {
       const grouped = _groupSelectedItems(state.selectedItems);

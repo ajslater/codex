@@ -20,23 +20,23 @@
         @click="continueList"
       />
       <MarkReadButton class="listItem" :button="false" :item="item" />
-      <ShelfMenu
-        v-if="shelfPk"
+      <ReadingListMenu
+        v-if="targetPk"
         :collection="item.collection"
-        :pk="shelfPk"
+        :pk="targetPk"
         location="end"
         submenu
       >
-        <template #activator="{ props: shelfMenuProps }">
+        <template #activator="{ props: listMenuProps }">
           <CodexListItem
-            v-bind="shelfMenuProps"
-            class="listItem shelvesListItem"
-            :prepend-icon="mdiLibraryShelves"
+            v-bind="listMenuProps"
+            class="listItem readingListsListItem"
+            :prepend-icon="mdiPlaylistPlus"
             :append-icon="mdiChevronRight"
-            title="Shelves & Lists"
+            title="Reading Lists"
           />
         </template>
-      </ShelfMenu>
+      </ReadingListMenu>
       <CodexListItem
         v-if="removablePk"
         class="listItem removeFromListItem"
@@ -65,8 +65,8 @@ import {
   mdiChevronRight,
   mdiContentCopy,
   mdiDotsVertical,
-  mdiLibraryShelves,
   mdiPlay,
+  mdiPlaylistPlus,
   mdiPlaylistRemove,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
@@ -79,7 +79,7 @@ import DownloadButton from "@/components/download-button.vue";
 import ForceUpdateButton from "@/components/force-update-button.vue";
 import MarkReadButton from "@/components/mark-read-button.vue";
 import ReadingListExportMenu from "@/components/reading-list-export-menu.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import { routeReadingListPk } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
@@ -95,8 +95,8 @@ export default {
     ForceUpdateButton,
     MarkReadButton,
     ReadingListExportMenu,
+    ReadingListMenu,
     RemoveCoverButton,
-    ShelfMenu,
     UploadCoverButton,
   },
   props: {
@@ -110,8 +110,8 @@ export default {
       mdiChevronRight,
       mdiContentCopy,
       mdiDotsVertical,
-      mdiLibraryShelves,
       mdiPlay,
+      mdiPlaylistPlus,
       mdiPlaylistRemove,
       showMenu: false,
     };
@@ -131,12 +131,12 @@ export default {
       // A comic inside a list this user may change.
       if (!this.listEditable || !this.openListPk) return;
       if (this.item?.collection !== "comics") return;
-      return this.shelfPk;
+      return this.targetPk;
     },
     listPk() {
       // A reading list's card: everyone who sees it may read or export it.
       if (this.item?.collection !== READING_LISTS) return;
-      return this.shelfPk;
+      return this.targetPk;
     },
     copyListPk() {
       /*
@@ -144,14 +144,14 @@ export default {
        * of their own, to reorder or trim. Anonymous sessions own no lists.
        */
       if (!this.isLoggedIn || this.item?.collection !== READING_LISTS) return;
-      return this.shelfPk;
+      return this.targetPk;
     },
-    shelfPk() {
+    targetPk() {
       /*
-       * A shelf holds single rows. Cards that aggregate several ids
-       * (folder rollups, story-arc cross-publisher cards) can't be
-       * shelved atomically, so they get no Shelves entry rather than
-       * a guess at which pk to write.
+       * A list holds single rows. Cards that aggregate several ids
+       * (folder rollups, cross-publisher cards) can't go in a list
+       * atomically, so they get no Reading Lists entry rather than a
+       * guess at which pk to write.
        */
       const ids = this.item?.ids;
       if (!Array.isArray(ids) || ids.length !== 1) return undefined;

@@ -34,6 +34,7 @@ from codex.models.settings import (
     SettingsBrowserFilters,
     SettingsBrowserShow,
 )
+from codex.views.readinglists.entries import add_comics
 from tests.test_reading_list_live import LiveFixture
 from tests.test_reading_lists import TMP_DIR
 
@@ -156,8 +157,21 @@ class RemoveTests(ItemsFixture):
         body = _data(self.patch_items(self.mine, {"remove": {"comics": [c1.pk]}}))
         (refused,) = body["refused"]
         assert refused["comic"] == c1.pk
+        # Enough to offer removing the series instead.
         assert refused["item"]["collection"] == "series"
+        assert refused["item"]["targetId"] == self.series.pk
+        assert refused["item"]["label"] == self.series.name
         assert c1.pk in self.order(self.mine)
+
+    def test_the_answer_counts_the_list(self) -> None:
+        """The list's new issue count comes back, for the menus."""
+        c1, c2, _, _ = self.comics
+        body = _data(self.patch_items(self.mine, {"add": {"comics": [c1.pk, c2.pk]}}))
+        assert body["count"] == 2  # noqa: PLR2004
+        body = _data(self.patch_items(self.mine, {"remove": {"comics": [c1.pk]}}))
+        assert body["count"] == 1
+        body = _data(self.patch_items(self.mine, {"add": {"series": [self.series.pk]}}))
+        assert body["count"] == len(self.comics)
 
     def test_a_series_goes_with_its_comics(self) -> None:
         """Removing the item removes what it delivered."""
@@ -185,6 +199,21 @@ class MenuTests(ItemsFixture):
         assert mine["items"]["comics"] == [c1.pk]
         assert mine["items"]["series"] == [daredevil.pk]
         assert mine["items"]["publishers"] == []
+
+    def test_the_filter_offers_your_own_lists_first(self) -> None:
+        """Then the global lists, each group by name."""
+        c1 = self.comics[0]
+        zeta = ReadingList.objects.create(name="Zeta", user=self.reader)
+        alpha = ReadingList.objects.create(name="Alpha")
+        for reading_list in (self.mine, zeta, alpha):
+            add_comics(reading_list, [c1.pk])
+        response = self.client.get(
+            f"/api/v4/browse/publishers/{self.publisher.pk}/choices/reading_lists",
+            {"filters": json.dumps({})},
+        )
+        assert response.status_code == _OK, response.content
+        names = [choice["name"] for choice in _data(response)["choices"]]
+        assert names[-3:] == [self.mine.name, "Zeta", "Alpha"]
 
 
 class DeleteTests(ItemsFixture):

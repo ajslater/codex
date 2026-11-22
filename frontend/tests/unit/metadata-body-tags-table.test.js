@@ -1,12 +1,13 @@
 /*
- * The metadata dialog's tags table, whose first row is the Shelves row.
+ * The metadata dialog's tags table, whose first row is Reading Lists.
  *
  * Behavior locked in here:
- *   - An untagged comic shows an anonymous visitor no tags table at all:
- *     the Shelves row is theirs to never see, so the table would be empty.
- *   - A signed-in user still gets the table, for the Shelves row alone.
- *   - Everyone sees the Reading Lists row: a list is shown to whoever may
- *     see it, signed in or not.
+ *   - An untagged comic in no list shows an anonymous visitor no tags
+ *     table at all: it would be empty.
+ *   - A signed-in user still gets the table, for the Reading Lists row and
+ *     its list menu.
+ *   - Everyone sees the Reading Lists row of a comic in a list: a list is
+ *     shown to whoever may see it, signed in or not.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -26,7 +27,7 @@ function mountBody(user, readingLists = []) {
         settings: { filters: {}, show: {}, topCollection: "publishers" },
       },
       metadata: { md: { collection: "comics", ids: [5], pk: 5, readingLists } },
-      shelves: { shelves: [] },
+      readingLists: { myLists: [], myListsLoaded: true },
     },
   });
   return mount(MetadataBody, {
@@ -39,7 +40,7 @@ function mountBody(user, readingLists = []) {
   });
 }
 
-// The tags table is the one with the Shelves row slot; credits come first.
+// The tags table is the one with the Reading Lists row slot; credits come first.
 const tagsTable = (wrapper) => wrapper.findAllComponents(MetadataTagsTable)[1];
 
 describe("metadata tags table", () => {
@@ -48,11 +49,12 @@ describe("metadata tags table", () => {
     expect(tagsTable(wrapper).find("table").exists()).toBe(false);
   });
 
-  test("a signed-in user gets the table for the Shelves row", () => {
+  test("a signed-in user gets the table for the Reading Lists row", () => {
     const wrapper = mountBody({ id: 1, username: "alice" });
     const table = tagsTable(wrapper);
     expect(table.find("table").exists()).toBe(true);
-    expect(table.find("td.key").text()).toBe("Shelves");
+    expect(table.find("td.key").text()).toBe("Reading Lists");
+    expect(table.find(".readingListsRowMenu").exists()).toBe(true);
   });
 
   test("an anonymous visitor sees the reading lists that hold a comic", () => {

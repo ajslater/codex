@@ -173,7 +173,7 @@ ADMIN_JOBS: MappingProxyType[str, tuple[dict, ...]] = MappingProxyType(
                         "desc": (
                             "Write a dated, compressed snapshot"
                             " (user_data.<date>.sql.xz) of every user, bookmark,"
-                            " shelf, and setting to the backups dir."
+                            " reading list and setting to the backups dir."
                             " Runs nightly."
                         ),
                         "statuses": ("JDU",),

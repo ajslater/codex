@@ -1,8 +1,8 @@
 /*
  * Unit tests for ``browser-card-menu.vue`` — the cover card's action
- * menu. Covers its Shelves entry: a submenu for a single-id card, and
- * absent for a card that aggregates several ids, which can't be
- * shelved atomically. And its Copy to My Lists entry, on reading list
+ * menu. Covers its Reading Lists entry: a submenu for a single-id card,
+ * and absent for a card that aggregates several ids, which can't go in
+ * a list atomically. And its Copy to My Lists entry, on reading list
  * cards for signed-in users only. The other entries are stubbed; they
  * have their own components and tests.
  */
@@ -11,7 +11,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
 import BrowserCardMenu from "@/components/browser/card/browser-card-menu.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import vuetify from "@/plugins/vuetify";
 import { useBrowserStore } from "@/stores/browser";
 import { useReadingListsStore } from "@/stores/reading-lists";
@@ -47,7 +47,7 @@ async function mountOpenMenu(
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : null },
       browser: { page: { listEditable } },
-      shelves: { shelves: [] },
+      readingLists: { myLists: [], myListsLoaded: true },
     },
     stubActions: true,
   });
@@ -73,32 +73,32 @@ afterEach(() => {
   wrappers.length = 0;
 });
 
-describe("BrowserCardMenu — Shelves", () => {
-  test("a single-id card gets a Shelves submenu", async () => {
+describe("BrowserCardMenu — Reading Lists", () => {
+  test("a single-id card gets a Reading Lists submenu", async () => {
     const wrapper = await mountOpenMenu({ collection: "series", ids: [7] });
-    const shelfMenu = wrapper.findComponent(ShelfMenu);
-    expect(shelfMenu.props()).toMatchObject({
+    const listMenu = wrapper.findComponent(ReadingListMenu);
+    expect(listMenu.props()).toMatchObject({
       collection: "series",
       pk: 7,
       location: "end",
     });
-    const entry = document.querySelector(".shelvesListItem");
-    expect(entry.textContent).toContain("Shelves");
+    const entry = document.querySelector(".readingListsListItem");
+    expect(entry.textContent).toContain("Reading Lists");
   });
 
-  test("the Shelves menu is a submenu, so arrow keys don't pop it open", async () => {
+  test("the Reading Lists menu is a submenu, so arrow keys don't pop it open", async () => {
     const wrapper = await mountOpenMenu({ collection: "series", ids: [7] });
-    const shelfMenu = wrapper.findComponent(ShelfMenu);
-    expect(shelfMenu.props("submenu")).toBe(true);
-    expect(shelfMenu.findComponent({ name: "VMenu" }).props("submenu")).toBe(
+    const listMenu = wrapper.findComponent(ReadingListMenu);
+    expect(listMenu.props("submenu")).toBe(true);
+    expect(listMenu.findComponent({ name: "VMenu" }).props("submenu")).toBe(
       true,
     );
   });
 
-  test("a card aggregating several ids gets no Shelves entry", async () => {
+  test("a card aggregating several ids gets no Reading Lists entry", async () => {
     const wrapper = await mountOpenMenu({ collection: "folders", ids: [3, 4] });
-    expect(wrapper.findComponent(ShelfMenu).exists()).toBe(false);
-    expect(document.querySelector(".shelvesListItem")).toBeNull();
+    expect(wrapper.findComponent(ReadingListMenu).exists()).toBe(false);
+    expect(document.querySelector(".readingListsListItem")).toBeNull();
   });
 });
 

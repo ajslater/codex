@@ -1,14 +1,14 @@
 <template>
-  <div class="shelfNameInput">
+  <div class="listNameInput">
     <v-combobox
       v-model="name"
-      class="shelfNameCombobox"
+      class="listNameCombobox"
       :autofocus="autofocus"
       density="compact"
       :error-messages="shownError"
       hide-details="auto"
       :items="suggestions"
-      label="Shelf Name"
+      label="Reading List Name"
       :maxlength="maxLength"
       :menu-props="{ maxHeight: 200 }"
       variant="outlined"
@@ -17,17 +17,17 @@
       @update:model-value="serverError = ''"
     />
     <v-btn
-      class="shelfNameSubmit"
+      class="listNameSubmit"
       density="compact"
       :disabled="!isValid"
       :icon="mdiCheck"
       size="small"
-      title="Create Shelf"
+      :title="submitTitle"
       variant="text"
       @click="submit"
     />
     <v-btn
-      class="shelfNameCancel"
+      class="listNameCancel"
       density="compact"
       :icon="mdiClose"
       size="small"
@@ -45,19 +45,19 @@ import LIMITS from "@/choices/limits.json";
 import { isImeEnter } from "@/util";
 
 /*
- * Starter names offered for a new shelf. All shelves are equal: these
- * are only suggestions, none of them is special once created.
+ * Starter names offered for a new list. All lists are equal: these are
+ * only suggestions, none of them is special once created.
  */
-export const SHELF_NAME_SUGGESTIONS = Object.freeze([
+export const LIST_NAME_SUGGESTIONS = Object.freeze([
   "Want to Read",
   "Favorites",
   "Reading Now",
 ]);
-// The server's limit on a shelf name.
-export const SHELF_NAME_MAX_LENGTH = LIMITS.maxNameLen;
+// The server's limit on a list name.
+export const LIST_NAME_MAX_LENGTH = LIMITS.maxNameLen;
 
 export default {
-  name: "ShelfNameInput",
+  name: "ListNameInput",
   props: {
     autofocus: {
       type: Boolean,
@@ -73,11 +73,16 @@ export default {
       type: String,
       default: "",
     },
+    // What the check button does: make the list, with what for.
+    submitTitle: {
+      type: String,
+      default: "Create Reading List",
+    },
   },
   emits: ["cancel", "submit"],
   data() {
     return {
-      maxLength: SHELF_NAME_MAX_LENGTH,
+      maxLength: LIST_NAME_MAX_LENGTH,
       mdiCheck,
       mdiClose,
       name: "",
@@ -86,7 +91,7 @@ export default {
   },
   computed: {
     suggestions() {
-      return SHELF_NAME_SUGGESTIONS.filter(
+      return LIST_NAME_SUGGESTIONS.filter(
         (name) => !this.existingNames.includes(name),
       );
     },
@@ -99,12 +104,14 @@ export default {
     isValid() {
       return (
         this.trimmedName.length > 0 &&
-        this.trimmedName.length <= SHELF_NAME_MAX_LENGTH &&
+        this.trimmedName.length <= LIST_NAME_MAX_LENGTH &&
         !this.isDuplicate
       );
     },
     shownError() {
-      if (this.isDuplicate) return "A shelf with this name already exists";
+      if (this.isDuplicate) {
+        return "You already have a reading list with that name.";
+      }
       return this.serverError;
     },
   },
@@ -134,19 +141,19 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.shelfNameInput {
+.listNameInput {
   display: flex;
   align-items: flex-start;
   gap: 4px;
 }
 
-.shelfNameCombobox {
+.listNameCombobox {
   flex: 1;
   min-width: 12em;
 }
 
-.shelfNameSubmit,
-.shelfNameCancel {
+.listNameSubmit,
+.listNameCancel {
   flex-shrink: 0;
   margin-top: 8px;
 }

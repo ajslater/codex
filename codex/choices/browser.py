@@ -279,8 +279,6 @@ _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
         "reading_list_kind": "",
-        # Retired with shelves: a client still sending one gets nothing.
-        "shelves": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
     }
 )

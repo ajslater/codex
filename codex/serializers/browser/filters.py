@@ -24,6 +24,7 @@ class BrowserSettingsFilterInputSerializer(Serializer):
 
     bookmark = BookmarkFilterField(required=False)
     reading_list_kind = ReadingListKindFilterField(required=False)
+    # Retired with shelves: a client still sending one gets nothing.
     shelves = VuetifyListField()
     # Dynamic filters
     age_rating_metron = VuetifyListField()

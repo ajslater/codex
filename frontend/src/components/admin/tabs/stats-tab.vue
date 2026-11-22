@@ -80,10 +80,10 @@ const METADATA_LABELS = Object.freeze({
 });
 const USAGE_LABELS = Object.freeze({
   bookmarkCount: "Bookmarks",
-  shelfCount: "Shelves",
-  shelfUserCount: "Users with Shelves",
-  shelfItemCount: "Shelf Items",
-  shelfItems: "Shelf Items by Collection",
+  personalListCount: "Personal Reading Lists",
+  personalListUserCount: "Users with Reading Lists",
+  listItemCount: "Reading List Items",
+  listItems: "Reading List Items by Collection",
   deviceKeyCount: "Device Keys",
   deviceKeyUserCount: "Users with Device Keys",
   deviceKeyUsedCount: "Device Keys Used",

@@ -1,26 +1,29 @@
 /*
- * Unit tests for ``shelf-menu.vue`` — the shelf button and its menu,
- * shared by browser cards and table cells (single ``pk``), the metadata
- * toolbar (``pks``) and the multi-select toolbar (``targets`` spanning
- * several collection types). Covers the target normalization, the
- * "every target shelved" accent, the checked / indeterminate rows, that
- * a row click dispatches one bulk membership change, the "New shelf…"
- * flow with its suggestions and the server's reason for a refusal, that
- * Enter mid IME composition submits nothing, and that anonymous sessions
- * get nothing.
- * Real Vuetify is mounted so the menu and its rows are the ones that
- * ship; store actions are stubbed by createTestingPinia so calls can be
- * asserted.
+ * ``reading-list-menu.vue``: the list button and its menu, shared by
+ * browser cards and table cells (single ``pk``), the metadata dialog
+ * (``pks``) and the multi-select toolbar (``targets`` spanning several
+ * collection types). Ported from the shelf menu tests when shelves folded
+ * into reading lists. Covers the target normalization, the "every target
+ * listed" accent, the checked / mixed rows that toggle and keep the menu
+ * open, global lists marked, a list never offered to itself, the find
+ * field, the "New reading list…" flow with its suggestions and the
+ * server's reason for a refusal, that Enter mid IME composition submits
+ * nothing, and that anonymous sessions get nothing.
+ * Real Vuetify is mounted; store actions are stubbed by createTestingPinia
+ * so calls can be asserted.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
 import { APIError } from "@/api/v4/base";
-import ShelfMenu from "@/components/shelf-menu.vue";
-import ShelfNameInput from "@/components/shelf-name-input.vue";
+import ListNameInput from "@/components/list-name-input.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import vuetify from "@/plugins/vuetify";
-import { useShelvesStore } from "@/stores/shelves";
+import {
+  LIST_ITEM_COLLECTIONS,
+  useReadingListsStore,
+} from "@/stores/reading-lists";
 
 beforeAll(() => {
   /*
@@ -38,62 +41,69 @@ beforeAll(() => {
   };
 });
 
-const shelf = (pk, name, items = {}) => ({
+const list = (
   pk,
   name,
+  { items = {}, personal = true, editable = true } = {},
+) => ({
+  pk,
+  name,
+  personal,
+  editable,
+  count: 0,
   items: Object.fromEntries(
-    [
-      "publishers",
-      "imprints",
-      "series",
-      "volumes",
-      "folders",
-      "arcs",
-      "comics",
-    ].map((collection) => [collection, new Set(items[collection] || [])]),
+    LIST_ITEM_COLLECTIONS.map((collection) => [
+      collection,
+      new Set(items[collection] || []),
+    ]),
   ),
 });
 
-const DUPLICATE = "You already have a shelf with that name.";
+const DUPLICATE = "You already have a reading list with that name.";
 const refusal = () =>
   new APIError({ status: "400", title: "Bad Request", detail: DUPLICATE }, 400);
 
-const SHELVES = () => [
-  shelf(1, "Favorites", { series: [1, 2], comics: [42] }),
-  shelf(2, "Want to Read", { series: [1] }),
+const LISTS = () => [
+  list(1, "Favorites", { items: { series: [1, 2], comics: [42] } }),
+  list(2, "Want to Read", { items: { series: [1] } }),
+  list(3, "Civil War", { personal: false }),
+  list(4, "Theirs", { personal: false, editable: false }),
 ];
 
 const wrappers = [];
 
-function mountMenu(props, { loggedIn = true, shelves = SHELVES() } = {}) {
+function mountMenu(
+  props,
+  { loggedIn = true, lists = LISTS(), loaded = true } = {},
+) {
   const pinia = createTestingPinia({
     initialState: {
       auth: { user: loggedIn ? { pk: 1 } : null },
-      shelves: { shelves },
+      readingLists: { myLists: lists, myListsLoaded: loaded },
     },
     stubActions: true,
   });
-  const wrapper = mount(ShelfMenu, {
+  const wrapper = mount(ReadingListMenu, {
     attachTo: document.body,
     global: { plugins: [pinia, vuetify] },
     props,
   });
   wrappers.push(wrapper);
-  return { wrapper, shelvesStore: useShelvesStore() };
+  return { wrapper, store: useReadingListsStore() };
 }
 
 async function openMenu(wrapper) {
   wrapper.vm.menu = true;
   await flushPromises();
-  return document.querySelector(".shelfMenu");
+  return document.querySelector(".listMenu");
 }
 
 const location = (wrapper) =>
   wrapper.findComponent({ name: "VMenu" }).props("location");
 
 const rowTitles = (content) =>
-  [...content.querySelectorAll(".shelfMenuRow")].map((row) =>
-    row.textContent.trim(),
+  [...content.querySelectorAll(":scope .listMenuRow .v-list-item-title")].map(
+    (row) => row.textContent.trim(),
   );
 
 afterEach(() => {
@@ -103,7 +113,7 @@ afterEach(() => {
   wrappers.length = 0;
 });
 
-describe("ShelfMenu — targets", () => {
+describe("targets", () => {
   test("a single pk normalizes to one numeric target", () => {
     const { wrapper } = mountMenu({ collection: "comics", pk: "42" });
     expect(wrapper.vm.targetMap).toEqual({ comics: [42] });
@@ -113,7 +123,7 @@ describe("ShelfMenu — targets", () => {
   test("pks win over pk and normalize to numbers", () => {
     const { wrapper } = mountMenu({ collection: "series", pks: ["1", "2"] });
     expect(wrapper.vm.targetMap).toEqual({ series: [1, 2] });
-    expect(wrapper.vm.title).toBe("Shelves & Lists for 2 items");
+    expect(wrapper.vm.title).toBe("Reading Lists for 2 items");
   });
 
   test("targets cover several collection types", () => {
@@ -131,38 +141,36 @@ describe("ShelfMenu — targets", () => {
   });
 });
 
-describe("ShelfMenu — button", () => {
-  test("accented only when every target is on some shelf", () => {
+describe("button", () => {
+  test("accented only when every target is in some list", () => {
     const allOn = mountMenu({ collection: "series", pks: [1, 2] });
     expect(allOn.wrapper.vm.on).toBe(true);
-    expect(allOn.wrapper.find("button").classes()).toContain("shelfMenuOn");
+    expect(allOn.wrapper.find("button").classes()).toContain("listMenuOn");
 
     const mixed = mountMenu({ collection: "series", pks: [1, 2, 3] });
     expect(mixed.wrapper.vm.on).toBe(false);
-    expect(mixed.wrapper.find("button").classes()).not.toContain("shelfMenuOn");
+    expect(mixed.wrapper.find("button").classes()).not.toContain("listMenuOn");
   });
 
   test("the call site's class and id land on the button", () => {
     const { wrapper } = mountMenu(
       { collection: "comics", pk: 42 },
-      { shelves: [] },
+      { lists: [] },
     );
-    const mounted = mount(ShelfMenu, {
+    const mounted = mount(ReadingListMenu, {
       global: { plugins: [wrapper.vm.$pinia, vuetify] },
       props: { collection: "comics", pk: 42 },
-      attrs: { class: "readerShelfMenu", id: "shelfButton" },
+      attrs: { class: "readerListMenu", id: "listButton" },
     });
     wrappers.push(mounted);
     const button = mounted.find("button");
-    expect(button.classes()).toContain("readerShelfMenu");
-    expect(button.attributes("id")).toBe("shelfButton");
+    expect(button.classes()).toContain("readerListMenu");
+    expect(button.attributes("id")).toBe("listButton");
   });
 
   test("the menu hangs toward the end unless the call site says otherwise", () => {
     const { wrapper: byDefault } = mountMenu({ collection: "comics", pk: 42 });
     expect(location(byDefault)).toBe("bottom end");
-
-    // A browser card's action menu opens it beside itself, as a submenu.
     const { wrapper: submenu } = mountMenu({
       collection: "comics",
       pk: 42,
@@ -171,7 +179,7 @@ describe("ShelfMenu — button", () => {
     expect(location(submenu)).toBe("end");
   });
 
-  test("anonymous sessions get no shelf button at all", () => {
+  test("anonymous sessions get no list button at all", () => {
     const { wrapper } = mountMenu(
       { collection: "series", pk: 1 },
       { loggedIn: false },
@@ -180,92 +188,129 @@ describe("ShelfMenu — button", () => {
   });
 });
 
-describe("ShelfMenu — shelf rows", () => {
-  test("lists every shelf under a Shelves section", async () => {
+describe("rows", () => {
+  test("lists every list the user may change, global ones marked", async () => {
     const { wrapper } = mountMenu({ collection: "series", pk: 1 });
     const content = await openMenu(wrapper);
     expect(content.querySelector(".menuSectionTitle").textContent).toBe(
-      "Shelves",
+      "Reading Lists",
     );
-    expect(rowTitles(content)).toEqual(["Favorites", "Want to Read"]);
+    expect(rowTitles(content)).toEqual([
+      "Favorites",
+      "Want to Read",
+      "Civil War",
+    ]);
+    const rows = [...content.querySelectorAll(".listMenuRow")];
+    expect(rows[2].textContent).toContain("Global");
+    expect(rows[0].textContent).not.toContain("Global");
   });
 
-  test("checked when all targets are on it, indeterminate when some", async () => {
+  test("a list is not offered as a place to put itself", async () => {
+    const { wrapper } = mountMenu({ targets: { arcs: [1] } });
+    const content = await openMenu(wrapper);
+    expect(rowTitles(content)).toEqual(["Want to Read", "Civil War"]);
+  });
+
+  test("checked when all targets are in it, mixed when some", async () => {
     const { wrapper } = mountMenu({ collection: "series", pks: [1, 2] });
-    expect(wrapper.vm.shelfRows.map((row) => row.state)).toEqual([
+    expect(wrapper.vm.rows.map((row) => row.state)).toEqual([
       "all",
       "some",
+      "none",
     ]);
     const content = await openMenu(wrapper);
-    const rows = [...content.querySelectorAll(".shelfMenuRow")];
+    const rows = [...content.querySelectorAll(".listMenuRow")];
     expect(rows.map((row) => row.getAttribute("aria-checked"))).toEqual([
       "true",
       "mixed",
+      "false",
     ]);
     expect(rows[0].querySelector("input").checked).toBe(true);
     expect(rows[1].querySelector("input").indeterminate).toBe(true);
   });
 
-  test("clicking a checked row takes every target off that shelf", async () => {
-    const { wrapper, shelvesStore } = mountMenu({
-      collection: "series",
-      pks: [1, 2],
-    });
+  test("clicking a checked row takes every target out of that list", async () => {
+    const { wrapper, store } = mountMenu({ collection: "series", pks: [1, 2] });
     const content = await openMenu(wrapper);
-    content.querySelector(".shelfMenuRow").click();
-    expect(shelvesStore.setTargetsMembership).toHaveBeenCalledExactlyOnceWith(
+    content.querySelector(".listMenuRow").click();
+    expect(store.setTargetsMembership).toHaveBeenCalledExactlyOnceWith(
       1,
       { series: [1, 2] },
       false,
     );
-    // Stays open so more shelves can be ticked.
+    // Stays open so more lists can be ticked.
     expect(wrapper.vm.menu).toBe(true);
   });
 
-  test("clicking a mixed or empty row puts every target on it", async () => {
-    const { wrapper, shelvesStore } = mountMenu({
+  test("clicking a mixed or empty row puts every target in it", async () => {
+    const { wrapper, store } = mountMenu({
       targets: { series: [1, 2], comics: [42] },
     });
     const content = await openMenu(wrapper);
-    content.querySelectorAll(".shelfMenuRow")[1].click();
-    expect(shelvesStore.setTargetsMembership).toHaveBeenCalledExactlyOnceWith(
+    content.querySelectorAll(".listMenuRow")[1].click();
+    expect(store.setTargetsMembership).toHaveBeenCalledExactlyOnceWith(
       2,
       { series: [1, 2], comics: [42] },
       true,
     );
   });
-});
 
-describe("ShelfMenu — new shelf", () => {
-  test("the New shelf row reveals the name input", async () => {
+  test("past eight lists, a field finds one by name", async () => {
+    const lists = Array.from({ length: 10 }, (_, i) =>
+      list(i + 1, i === 6 ? "Secret Wars" : `List ${i + 1}`),
+    );
+    const { wrapper } = mountMenu({ collection: "comics", pk: 42 }, { lists });
+    const content = await openMenu(wrapper);
+    expect(content.querySelector(".listFilter")).not.toBeNull();
+    wrapper.vm.query = "secret";
+    await flushPromises();
+    expect(rowTitles(content)).toEqual(["Secret Wars"]);
+  });
+
+  test("no find field for a short menu", async () => {
     const { wrapper } = mountMenu({ collection: "comics", pk: 42 });
     const content = await openMenu(wrapper);
-    expect(wrapper.findComponent(ShelfNameInput).exists()).toBe(false);
+    expect(content.querySelector(".listFilter")).toBeNull();
+  });
 
-    content.querySelector(".shelfMenuNew").click();
+  test("opening loads the lists when they were never loaded", async () => {
+    const { wrapper, store } = mountMenu(
+      { collection: "comics", pk: 42 },
+      { lists: [], loaded: false },
+    );
+    expect(store.loadMyLists).not.toHaveBeenCalled();
+    await openMenu(wrapper);
+    expect(store.loadMyLists).toHaveBeenCalledOnce();
+  });
+});
+
+describe("new list", () => {
+  test("the New reading list row reveals the name input", async () => {
+    const { wrapper } = mountMenu({ collection: "comics", pk: 42 });
+    const content = await openMenu(wrapper);
+    expect(wrapper.findComponent(ListNameInput).exists()).toBe(false);
+
+    content.querySelector(".listMenuNew").click();
     await flushPromises();
 
-    const input = wrapper.findComponent(ShelfNameInput);
+    const input = wrapper.findComponent(ListNameInput);
     expect(input.exists()).toBe(true);
     // "Favorites" and "Want to Read" already exist, so aren't suggested.
     expect(input.vm.suggestions).toEqual(["Reading Now"]);
   });
 
-  test("creating a shelf adds the targets to it", async () => {
-    const { wrapper, shelvesStore } = mountMenu({
-      collection: "comics",
-      pk: 42,
-    });
-    shelvesStore.createShelf.mockResolvedValue(shelf(9, "Finished"));
+  test("creating a list puts the targets in it", async () => {
+    const { wrapper, store } = mountMenu({ collection: "comics", pk: 42 });
+    store.createList.mockResolvedValue(list(9, "Finished"));
     await openMenu(wrapper);
     wrapper.vm.creating = true;
     await flushPromises();
 
-    wrapper.findComponent(ShelfNameInput).vm.$emit("submit", "Finished");
+    wrapper.findComponent(ListNameInput).vm.$emit("submit", "Finished");
     await flushPromises();
 
-    expect(shelvesStore.createShelf).toHaveBeenCalledWith("Finished");
-    expect(shelvesStore.setTargetsMembership).toHaveBeenCalledExactlyOnceWith(
+    expect(store.createList).toHaveBeenCalledWith("Finished");
+    expect(store.setTargetsMembership).toHaveBeenCalledExactlyOnceWith(
       9,
       { comics: [42] },
       true,
@@ -274,42 +319,39 @@ describe("ShelfMenu — new shelf", () => {
   });
 
   test("a refused create keeps the input open with the server's reason", async () => {
-    const { wrapper, shelvesStore } = mountMenu({
-      collection: "comics",
-      pk: 42,
-    });
-    shelvesStore.createShelf.mockRejectedValue(refusal());
+    const { wrapper, store } = mountMenu({ collection: "comics", pk: 42 });
+    store.createList.mockRejectedValue(refusal());
     await openMenu(wrapper);
     wrapper.vm.creating = true;
     await flushPromises();
 
-    wrapper.findComponent(ShelfNameInput).vm.$emit("submit", "Finished");
+    wrapper.findComponent(ListNameInput).vm.$emit("submit", "Finished");
     await flushPromises();
 
-    expect(shelvesStore.setTargetsMembership).not.toHaveBeenCalled();
+    expect(store.setTargetsMembership).not.toHaveBeenCalled();
     expect(wrapper.vm.creating).toBe(true);
     expect(wrapper.vm.createError).toBe(DUPLICATE);
-    expect(wrapper.findComponent(ShelfNameInput).vm.shownError).toBe(DUPLICATE);
+    expect(wrapper.findComponent(ListNameInput).vm.shownError).toBe(DUPLICATE);
   });
 
-  test("New shelf again drops the last attempt's error", async () => {
+  test("New reading list again drops the last attempt's error", async () => {
     const { wrapper } = mountMenu({ collection: "comics", pk: 42 });
     const content = await openMenu(wrapper);
     wrapper.vm.creating = true;
     wrapper.vm.createError = DUPLICATE;
     await flushPromises();
 
-    wrapper.findComponent(ShelfNameInput).vm.$emit("cancel");
+    wrapper.findComponent(ListNameInput).vm.$emit("cancel");
     await flushPromises();
-    content.querySelector(".shelfMenuNew").click();
+    content.querySelector(".listMenuNew").click();
     await flushPromises();
 
-    expect(wrapper.findComponent(ShelfNameInput).vm.shownError).toBe("");
+    expect(wrapper.findComponent(ListNameInput).vm.shownError).toBe("");
   });
 });
 
 function mountInput(existingNames = []) {
-  const wrapper = mount(ShelfNameInput, {
+  const wrapper = mount(ListNameInput, {
     global: { plugins: [vuetify] },
     props: { existingNames, autofocus: false },
   });
@@ -317,7 +359,7 @@ function mountInput(existingNames = []) {
   return wrapper;
 }
 
-describe("ShelfNameInput", () => {
+describe("ListNameInput", () => {
   test("suggests the starter names", () => {
     expect(mountInput().vm.suggestions).toEqual([
       "Want to Read",
@@ -330,7 +372,7 @@ describe("ShelfNameInput", () => {
     const wrapper = mountInput();
     wrapper.vm.name = "  Horror  ";
     await wrapper.vm.$nextTick();
-    await wrapper.find(".shelfNameSubmit").trigger("click");
+    await wrapper.find(".listNameSubmit").trigger("click");
     expect(wrapper.emitted("submit")).toEqual([["Horror"]]);
   });
 
@@ -360,6 +402,8 @@ describe("ShelfNameInput", () => {
     expect(wrapper.emitted("submit")).toBeUndefined();
     wrapper.vm.name = "Horror";
     await wrapper.vm.$nextTick();
-    expect(wrapper.vm.shownError).toContain("already exists");
+    expect(wrapper.vm.shownError).toBe(
+      "You already have a reading list with that name.",
+    );
   });
 });

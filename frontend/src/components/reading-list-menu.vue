@@ -15,9 +15,9 @@
       >
         <v-btn
           v-bind="{ ...$attrs, ...activatorProps }"
-          class="shelfMenuButton"
-          :class="{ shelfMenuOn: on, shelfMenuOpen: menu }"
-          :icon="mdiLibraryShelves"
+          class="listMenuButton"
+          :class="{ listMenuOn: on, listMenuOpen: menu }"
+          :icon="mdiPlaylistPlus"
           :title="title"
           :aria-label="title"
           :disabled="disabled"
@@ -28,25 +28,36 @@
         />
       </slot>
     </template>
-    <v-sheet class="shelfMenu" @click.stop>
-      <!-- One titled section per kind of grouping. -->
-      <MenuSection title="Shelves">
-        <v-list class="shelfMenuList" density="compact">
+    <v-sheet class="listMenu" @click.stop>
+      <MenuSection title="Reading Lists">
+        <v-text-field
+          v-if="rows.length > FILTER_AFTER"
+          v-model="query"
+          class="listFilter"
+          density="compact"
+          hide-details
+          clearable
+          label="Find a list"
+          variant="outlined"
+          @click.stop
+        />
+        <v-list class="listMenuList" density="compact">
           <v-list-item
-            v-for="shelf of shelfRows"
-            :key="shelf.pk"
-            class="shelfMenuRow"
+            v-for="row of shownRows"
+            :key="row.pk"
+            class="listMenuRow"
             density="compact"
             role="menuitemcheckbox"
-            :aria-checked="shelf.ariaChecked"
-            :title="shelf.name"
-            @click="onToggle(shelf)"
+            :aria-checked="row.ariaChecked"
+            :title="row.name"
+            :subtitle="row.personal ? '' : 'Global'"
+            @click="onToggle(row)"
           >
             <template #prepend>
               <v-checkbox-btn
                 density="compact"
-                :indeterminate="shelf.state === 'some'"
-                :model-value="shelf.state === 'all'"
+                :indeterminate="row.state === 'some'"
+                :model-value="row.state === 'all'"
                 tabindex="-1"
                 readonly
               />
@@ -54,51 +65,60 @@
           </v-list-item>
           <v-list-item
             v-if="!creating"
-            class="shelfMenuNew"
+            class="listMenuNew"
             density="compact"
             :prepend-icon="mdiPlus"
-            title="New shelf…"
+            title="New reading list…"
             @click="creating = true"
           />
         </v-list>
-        <ShelfNameInput
+        <ListNameInput
           v-if="creating"
-          class="shelfMenuNameInput"
+          class="listMenuNameInput"
           :error="createError"
-          :existing-names="shelfNames"
+          :existing-names="myListNames"
+          submit-title="Create the list with these"
           @cancel="creating = false"
           @submit="onCreate"
         />
+        <div class="listMenuHint">
+          A series, folder or other group added whole keeps its comics current.
+          Saved in Codex only: no comic file changes.
+        </div>
       </MenuSection>
-      <ReadingListMenuSection
-        v-if="menu"
-        :targets="targetMap"
-        @done="menu = false"
-      />
     </v-sheet>
   </v-menu>
 </template>
 
 <script>
-import { mdiLibraryShelves, mdiPlus } from "@mdi/js";
+import { mdiPlaylistPlus, mdiPlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import ListNameInput from "@/components/list-name-input.vue";
 import MenuSection from "@/components/menu-section.vue";
-import ReadingListMenuSection from "@/components/reading-list-menu-section.vue";
-import ShelfNameInput from "@/components/shelf-name-input.vue";
 import { useAuthStore } from "@/stores/auth";
 import { getErrors } from "@/stores/common";
-import { useShelvesStore } from "@/stores/shelves";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 const ARIA_CHECKED = Object.freeze({
   all: "true",
   some: "mixed",
   none: "false",
 });
+// Past this many lists the menu grows a field to find one by name.
+const FILTER_AFTER = 8;
+const READING_LISTS = "arcs";
 
+/*
+ * The one menu that puts things in reading lists: on cards, table rows,
+ * the selection toolbar, the metadata dialog and the reader. Each list the
+ * user may change is a row whose checkbox says whether the targets are in
+ * it directly; a click puts them in or takes them out, and the menu stays
+ * open. Issues are added by hand; a whole collection stays current.
+ */
 export default {
-  name: "ShelfMenu",
-  components: { MenuSection, ReadingListMenuSection, ShelfNameInput },
+  name: "ReadingListMenu",
+  components: { ListNameInput, MenuSection },
   // The class and id a call site passes belong on the button, not on the
   // menu overlay VMenu would forward them to.
   inheritAttrs: false,
@@ -109,8 +129,8 @@ export default {
     },
     /*
      * Single-target convenience prop (browser cards, table cells, the
-     * reader). The metadata toolbar passes ``pks`` instead to shelve a
-     * whole selection of one collection. Both normalize to ``targetMap``.
+     * reader). The metadata dialog passes ``pks`` instead for a whole
+     * selection of one collection. Both normalize to ``targetMap``.
      */
     pk: {
       type: [Number, String],
@@ -131,8 +151,8 @@ export default {
     },
     /*
      * Which way the menu hangs off its activator. The default suits a
-     * toolbar or table button; a browser card's action menu passes
-     * "end" so the shelves open beside it as a submenu.
+     * toolbar or table button; a browser card's action menu passes "end"
+     * so the lists open beside it as a submenu.
      */
     location: {
       type: String,
@@ -149,25 +169,25 @@ export default {
     return {
       createError: "",
       creating: false,
-      // One glyph either way; the accent color says "on a shelf".
-      mdiLibraryShelves,
+      FILTER_AFTER,
+      // One glyph either way; the accent color says "in a list".
+      mdiPlaylistPlus,
       mdiPlus,
       menu: false,
+      query: "",
     };
   },
   computed: {
     ...mapState(useAuthStore, {
-      /*
-       * Anonymous sessions have no shelves — the API rejects them with
-       * 403 — so they get no shelf affordance at all.
-       */
+      // Anonymous sessions own no lists, so they get no list button.
       isLoggedIn: (state) => Boolean(state.user),
     }),
-    ...mapState(useShelvesStore, [
-      "isEveryShelved",
+    ...mapState(useReadingListsStore, [
+      "editableLists",
+      "isEveryListed",
       "membershipState",
-      "shelfNames",
-      "shelves",
+      "myListNames",
+      "myListsLoaded",
     ]),
     targetMap() {
       const source =
@@ -192,22 +212,37 @@ export default {
       return count;
     },
     on() {
-      // Accented only when every target is on at least one shelf.
-      return this.isEveryShelved(this.targetMap);
+      // Accented only when every target is directly in some list.
+      return this.isEveryListed(this.targetMap);
     },
     title() {
       return this.targetCount > 1
-        ? `Shelves & Lists for ${this.targetCount} items`
-        : "Shelves & Lists";
+        ? `Reading Lists for ${this.targetCount} items`
+        : "Reading Lists";
     },
     disabled() {
       return this.targetCount === 0;
     },
-    shelfRows() {
-      return this.shelves.map(({ pk, name }) => {
-        const state = this.membershipState(pk, this.targetMap);
-        return { pk, name, state, ariaChecked: ARIA_CHECKED[state] };
-      });
+    rows() {
+      // A list is not offered as a place to put itself.
+      const own = new Set(this.targetMap[READING_LISTS] || []);
+      return this.editableLists
+        .filter(({ pk }) => !own.has(pk))
+        .map(({ pk, name, personal }) => {
+          const state = this.membershipState(pk, this.targetMap);
+          return {
+            pk,
+            name,
+            personal,
+            state,
+            ariaChecked: ARIA_CHECKED[state],
+          };
+        });
+    },
+    shownRows() {
+      const query = (this.query || "").trim().toLowerCase();
+      if (!query) return this.rows;
+      return this.rows.filter((row) => row.name.toLowerCase().includes(query));
     },
   },
   watch: {
@@ -216,30 +251,38 @@ export default {
       this.createError = "";
     },
     menu(to) {
+      if (to && !this.myListsLoaded) {
+        this.loadMyLists();
+      }
       if (!to) {
         this.creating = false;
         this.createError = "";
+        this.query = "";
       }
     },
   },
   methods: {
-    ...mapActions(useShelvesStore, ["createShelf", "setTargetsMembership"]),
-    onToggle(shelf) {
-      // Mixed reads as off, so the first click shelves the stragglers.
-      const on = shelf.state !== "all";
-      this.setTargetsMembership(shelf.pk, this.targetMap, on);
+    ...mapActions(useReadingListsStore, [
+      "createList",
+      "loadMyLists",
+      "setTargetsMembership",
+    ]),
+    onToggle(row) {
+      // Mixed reads as off, so the first click adds the stragglers.
+      const on = row.state !== "all";
+      this.setTargetsMembership(row.pk, this.targetMap, on);
     },
     async onCreate(name) {
       this.createError = "";
-      let shelf;
+      let list;
       try {
-        shelf = await this.createShelf(name);
+        list = await this.createList(name);
       } catch (error) {
         this.createError = getErrors(error).join(" ");
         return;
       }
       this.creating = false;
-      await this.setTargetsMembership(shelf.pk, this.targetMap, true);
+      if (list) await this.setTargetsMembership(list.pk, this.targetMap, true);
     },
   },
 };
@@ -249,43 +292,54 @@ export default {
 /* Layered: these rules beat Vuetify's component CSS by position,
  * and lose to a `color`/utility prop, which is the intended order. */
 @layer codex-components {
-  .shelfMenuButton {
+  .listMenuButton {
     color: rgb(var(--v-theme-text-secondary));
     opacity: 0.85;
   }
 
-  .shelfMenuButton:hover {
+  .listMenuButton:hover {
     color: rgb(var(--v-theme-link-hover));
     opacity: 1;
   }
 
-  .shelfMenuOn {
+  .listMenuOn {
     color: rgb(var(--v-theme-primary));
     opacity: 1;
   }
 
-  .shelfMenuOn:hover {
+  .listMenuOn:hover {
     color: rgb(var(--v-theme-link-hover));
   }
 
-  .shelfMenu {
+  .listMenu {
     min-width: 14em;
     max-width: 24em;
   }
 
-  .shelfMenuList {
+  .listFilter {
+    margin: 4px 12px;
+  }
+
+  .listMenuList {
     max-height: 50vh;
     overflow-y: auto;
     padding-top: 0;
   }
 
-  .shelfMenuRow :deep(.v-list-item__prepend > .v-list-item__spacer),
-  .shelfMenuNew :deep(.v-list-item__prepend > .v-list-item__spacer) {
+  .listMenuRow :deep(.v-list-item__prepend > .v-list-item__spacer),
+  .listMenuNew :deep(.v-list-item__prepend > .v-list-item__spacer) {
     width: 8px;
   }
 
-  .shelfMenuNameInput {
+  .listMenuNameInput {
     padding: 4px 8px 10px 12px;
+  }
+
+  .listMenuHint {
+    color: rgb(var(--v-theme-text-secondary));
+    font-size: 0.8em;
+    padding: 0 12px 8px;
+    max-width: 22em;
   }
 }
 </style>

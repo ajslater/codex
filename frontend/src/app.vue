@@ -15,7 +15,7 @@ import NoticeSnackbar from "@/components/notice-snackbar.vue";
 import SessionErrorSnackbar from "@/components/session-error-snackbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { pendingTitle, useOnlineTagStore } from "@/stores/online-tag";
-import { useShelvesStore } from "@/stores/shelves";
+import { useReadingListsStore } from "@/stores/reading-lists";
 import { useSocketStore } from "@/stores/socket";
 
 export default {
@@ -60,11 +60,11 @@ export default {
           /* If the user changes resubscribe to channels. */
           useSocketStore().reopen();
           /*
-           * Warm the shelves store so shelf buttons render the
-           * user's persisted state on first paint instead of
-           * flashing empty. ``hydrate`` clears another user's first.
+           * Warm the user's lists so list buttons render their
+           * persisted state on first paint instead of flashing
+           * empty. ``hydrate`` clears another user's first.
            */
-          useShelvesStore().hydrate(to.id);
+          useReadingListsStore().hydrate(to.id);
         }
       },
     },

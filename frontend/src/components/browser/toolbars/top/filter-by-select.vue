@@ -42,10 +42,6 @@
       />
     </template>
     <template #append-item>
-      <template v-if="hasShelves">
-        <v-divider />
-        <BrowserFilterShelvesSubMenu />
-      </template>
       <v-divider />
       <v-list-item
         v-if="dynamicChoiceNames === undefined"
@@ -76,12 +72,10 @@
 import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
 import { mapActions, mapState, mapWritableState } from "pinia";
 
-import BrowserFilterShelvesSubMenu from "@/components/browser/toolbars/top/filter-shelves-sub-menu.vue";
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
-import { useShelvesStore } from "@/stores/shelves";
 
 const ARROW_STEPS = Object.freeze({ ArrowDown: 1, ArrowUp: -1 });
 /*
@@ -94,7 +88,6 @@ const FOCUSABLE_ROW = '[tabindex]:not([tabindex="-1"]):not([disabled])';
 export default {
   name: "BrowserFilterBySelect",
   components: {
-    BrowserFilterShelvesSubMenu,
     BrowserFilterSubMenu,
     ToolbarSelect,
   },
@@ -108,7 +101,6 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      isLoggedIn: (state) => Boolean(state.user),
       siteBookmarkDefault: (state) => state.defaults?.browser?.bookmark ?? "",
     }),
     ...mapState(useBrowserStore, [
@@ -146,14 +138,9 @@ export default {
         // Add selected filters to choices if they aren't there already.
         if (this.filters && Object.keys(this.filters).length) {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
-            /*
-             * ``shelves`` has its own sub-menu, fed by the shelves
-             * store instead of the choices endpoints.
-             */
             if (
               filterKey !== "bookmark" &&
               filterKey !== "readingListKind" &&
-              filterKey !== "shelves" &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {
@@ -181,14 +168,7 @@ export default {
         return names;
       },
     }),
-    ...mapState(useShelvesStore, {
-      shelfCount: (state) => state.shelves.length,
-    }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
-    hasShelves() {
-      // Anonymous sessions have no shelves; neither does a new account.
-      return this.isLoggedIn && this.shelfCount > 0;
-    },
     padRight() {
       return this.$vuetify.display.xs && !this.bookmarkFilter;
     },
@@ -234,7 +214,6 @@ export default {
           const clearedFilters = {
             bookmark: this.siteBookmarkDefault,
             ...emptyDynamic,
-            shelves: [],
             ageRatingMetron: [],
             ageRatingTagged: [],
           };
@@ -255,8 +234,8 @@ export default {
      * which wraps from the last bookmark row straight back to the first and
      * calls ``stopImmediatePropagation()``. That preempts VList's own focus
      * walk, which is what used to carry the user into the rows this menu
-     * adds through the prepend/append slots ("Clear All Filters",
-     * "Shelves" and the filter sub-menus), leaving them mouse-only.
+     * adds through the prepend/append slots ("Clear All Filters" and the
+     * filter sub-menus), leaving them mouse-only.
      * A capture listener on the overlay content runs before the list's, so
      * stepping off either end of the bookmark rows lands on the adjacent
      * slot row instead of wrapping. Everywhere else the event is left alone

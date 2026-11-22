@@ -36,7 +36,6 @@ from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS, from_j
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.librarian.scribe.readinglists.service import copy_list
 from codex.models.readinglist import (
-    DANGLING_Q,
     MISSING_Q,
     ReadingList,
     ReadingListEntry,
@@ -49,7 +48,7 @@ from codex.views.readinglists.access import (
     menu_lists_q,
 )
 from codex.views.readinglists.details import continue_comic
-from codex.views.readinglists.entries import add_comics
+from codex.views.readinglists.entries import add_comics, entry_count
 from codex.views.readinglists.items import COMICS, ITEM_TARGETS
 
 _KEYLESS_KINDS: Final = frozenset(
@@ -171,18 +170,6 @@ _COUNTED: Final = Q(entries__ignored=False) & ~Q(
 )
 
 
-def _entry_count(reading_list: ReadingList) -> int:
-    """Count the entries a list shows: the menu's annotation, else a query."""
-    count = getattr(reading_list, "count", None)
-    if count is None:
-        count = (
-            ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
-            .exclude(DANGLING_Q)
-            .count()
-        )
-    return count
-
-
 def list_repr(
     reading_list: ReadingList, user, items: dict[str, list[int]] | None = None
 ) -> dict[str, Any]:
@@ -191,7 +178,7 @@ def list_repr(
         "pk": reading_list.pk,
         "name": reading_list.name,
         "personal": reading_list.user_id is not None,  # pyright: ignore[reportAttributeAccessIssue]
-        "count": _entry_count(reading_list),
+        "count": entry_count(reading_list),
         "editable": can_edit(user, reading_list),
     }
     if items is not None:

@@ -150,12 +150,12 @@ class BrowserChoicesViewBase(BrowserFilterView):
         return rel, model
 
     def reading_lists_of(self, comic_qs: QuerySet) -> QuerySet:
-        """Return the visible lists holding any of the comics, by name."""
+        """Return the visible lists holding any of the comics: own first, by name."""
         return (
             visible_lists(self.request.user)
             .filter(entries__comic__in=comic_qs.values("pk"), entries__ignored=False)
             .distinct()
-            .order_by("sort_name", "pk")
+            .order_by(F("user_id").asc(nulls_last=True), "sort_name", "pk")
         )
 
     def unlisted(self, comic_qs: QuerySet) -> QuerySet:

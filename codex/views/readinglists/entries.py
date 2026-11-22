@@ -29,6 +29,7 @@ from codex.librarian.scribe.readinglists.references import (
 )
 from codex.models import Comic
 from codex.models.readinglist import (
+    DANGLING_Q,
     MISSING_Q,
     ReadingList,
     ReadingListEntry,
@@ -68,16 +69,35 @@ def _comic_repr(comic: Comic | None) -> dict[str, Any] | None:
 
 
 def item_repr(item: ReadingListSource | None) -> dict[str, Any]:
-    """Return a collection item: its kind, its name for people, and if gone."""
+    """Return a collection item: its kind, target, name for people, and if gone."""
     if item is None:
-        return {"pk": None, "collection": "", "label": "", "dangling": True}
+        return {
+            "pk": None,
+            "collection": "",
+            "target_id": None,
+            "label": "",
+            "dangling": True,
+        }
     label = (item.document or {}).get(LABEL_KEY) or item.ref
     return {
         "pk": item.pk,
         "collection": item.collection,
+        "target_id": item.target_id,
         "label": label,
         "dangling": item.target_id is None,
     }
+
+
+def entry_count(reading_list: ReadingList) -> int:
+    """Count the entries a list shows: the menu's annotation, else a query."""
+    count = getattr(reading_list, "count", None)
+    if count is None:
+        count = (
+            ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
+            .exclude(DANGLING_Q)
+            .count()
+        )
+    return count
 
 
 def _live_refusal(entry: ReadingListEntry) -> str:
