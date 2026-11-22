@@ -60,6 +60,7 @@ from codex.librarian.scribe.readinglists.status import (
     ReadingListSyncStatus,
 )
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
+from codex.librarian.scribe.readinglists.tasks import ReadingListLiveSyncTask
 from codex.librarian.scribe.search.status import (
     SearchIndexCleanStatus,
     SearchIndexOptimizeStatus,
@@ -123,6 +124,9 @@ _NIGHTLY_TASKS: Final[tuple[LibrarianTask, ...]] = (
     # After the FK cleanup, so an arc whose last comic was reaped is gone.
     JanitorSyncReadingListsTask(),
     JanitorRematchReadingListsTask(),
+    # After the rematch: every list with a collection item, digests or not,
+    # since the reap, orphan cleanup and library deletes count nothing.
+    ReadingListLiveSyncTask(force=True),
     # Only queues fetches on the online thread; the sources not fetched in
     # a week come back as imports later.
     JanitorRefreshReadingListsTask(),

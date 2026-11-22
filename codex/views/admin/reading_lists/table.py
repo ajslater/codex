@@ -22,6 +22,7 @@ from codex.librarian.scribe.readinglists.errors import (
     clear_reading_list_errors,
     get_reading_list_errors,
 )
+from codex.librarian.scribe.readinglists.live import owner_refusal
 from codex.librarian.scribe.readinglists.service import (
     REMOTE_KINDS,
     copy_list,
@@ -189,6 +190,13 @@ class AdminReadingListDetailView(AdminAPIView):
         row["description"] = reading_list.description
         return Response(row)
 
+    def _change_owner(self, reading_list: ReadingList, *, private: bool) -> None:
+        """Make a list this admin's or global, unless lists that hold it object."""
+        owner = self.request.user if private else None
+        if reason := owner_refusal(reading_list, owner.pk if owner else None):
+            raise ValidationError(reason)
+        reading_list.user = owner
+
     def patch(self, *_args, pk: int, **_kwargs) -> Response:
         """Rename a list, or make it private to this admin or global again."""
         reading_list = get_list(pk)
@@ -201,7 +209,7 @@ class AdminReadingListDetailView(AdminAPIView):
             reading_list.description = str(data["description"] or "")
             edited.add("description")
         if "private" in data:
-            reading_list.user = self.request.user if data["private"] else None
+            self._change_owner(reading_list, private=bool(data["private"]))
         reading_list.edited_fields = sorted(edited)
         try:
             with transaction.atomic():

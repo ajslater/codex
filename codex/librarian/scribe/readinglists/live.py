@@ -211,6 +211,27 @@ def list_refusal(reading_list: ReadingList, target: ReadingList) -> str:
     return ""
 
 
+def owner_refusal(reading_list: ReadingList, owner_id: int | None) -> str:
+    """Say why a list may not change owner, or return ""."""
+    if owner_id is None:
+        held = ReadingListSource.objects.filter(
+            reading_list=reading_list,
+            **items_q(),
+            collection=_ARC,
+            target_id__isnull=False,
+        ).values_list("target_id", flat=True)
+        if ReadingList.objects.filter(pk__in=list(held), user__isnull=False).exists():
+            return "It holds personal lists, which a global list cannot."
+        return ""
+    holders = ReadingListSource.objects.filter(
+        **items_q(), collection=_ARC, target_id=reading_list.pk
+    ).values_list("reading_list_id", flat=True)
+    others = ReadingList.objects.filter(pk__in=list(holders)).exclude(user_id=owner_id)
+    if others.exists():
+        return "Other lists hold it, so it must stay where they can see it."
+    return ""
+
+
 def _next_rank(reading_list: ReadingList) -> int:
     top = ReadingListSource.objects.filter(reading_list=reading_list).aggregate(
         top=Max("rank")
