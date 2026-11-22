@@ -16,9 +16,9 @@ border-radius: 128px;
 - A reading list shows its missing issues as placeholders in reading order.
 - A reading list's details show how much of it you have and have read, its
   sources, Continue Reading, and Export of the list or just its missing issues.
-- Signed-in users make their own reading lists, add comics from any shelf menu,
-  remove them in place, and copy any list to their own.
-- Shelves hold reading lists.
+- Signed-in users make their own reading lists from any Reading Lists menu,
+  remove comics in place, and copy any list to their own.
+- A series, folder, publisher or list added to a reading list keeps it current.
 - Filter any view by reading list.
 - A reading list downloads as a zip numbered in list order.
 - A reading list's OPDS feed starts with the next issue to read.
@@ -31,6 +31,12 @@ border-radius: 128px;
 - Story Arcs are now Reading Lists: one list per story arc name, in arc order,
   and the Story Arcs filter, column, sort and search field are Reading Lists.
   Links and OPDS bookmarks into a story arc change once.
+- Shelves are now your own reading lists, with the same names and contents, in
+  saved views, filters, columns, backups and OPDS start pages.
+
+### 🔥 Removed
+
+- The `/api/v4/shelves/` API and OPDS shelf links.
 
 ### 🐛 Fixed
 
