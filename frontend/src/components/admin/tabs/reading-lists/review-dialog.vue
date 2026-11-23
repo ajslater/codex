@@ -28,8 +28,9 @@
         </div>
         <p class="adminProse">
           Edits here are saved in Codex only and never change a comic file.
-          Dragging a row, or typing its position, locks the list's order: a
-          refresh then only adds new issues beside their neighbours.
+          Dragging a row, moving it with its arrows, or typing its position
+          locks the list's order: a refresh then only adds new issues beside
+          their neighbours.
         </p>
         <v-progress-linear v-if="loading" indeterminate />
         <v-table density="compact" class="entriesTable">
@@ -59,16 +60,50 @@
               @drop.prevent="drop(entry)"
             >
               <td class="positionCol">
-                <v-text-field
-                  :model-value="entry.position + 1"
-                  type="number"
-                  min="1"
-                  density="compact"
-                  hide-details
-                  variant="plain"
-                  class="positionInput"
-                  @change="move(entry, $event.target.value - 1)"
-                />
+                <div class="positionControls">
+                  <!--
+                    No number spinner: its up arrow counts the position up,
+                    which moves the entry down the list. These arrows move
+                    it as they point, one place at a time, so only on the
+                    whole list, as dragging.
+                  -->
+                  <v-text-field
+                    :model-value="entry.position + 1"
+                    inputmode="numeric"
+                    density="compact"
+                    hide-details
+                    variant="plain"
+                    class="positionInput"
+                    @change="move(entry, $event.target.value - 1)"
+                  />
+                  <span
+                    v-if="filter === 'all' && entry.liveSource == null"
+                    class="moveArrows"
+                  >
+                    <v-btn
+                      class="moveUp"
+                      :icon="mdiArrowUp"
+                      size="small"
+                      density="compact"
+                      variant="text"
+                      title="Move up"
+                      aria-label="Move up"
+                      :disabled="entry.position === 0"
+                      @click="move(entry, entry.position - 1)"
+                    />
+                    <v-btn
+                      class="moveDown"
+                      :icon="mdiArrowDown"
+                      size="small"
+                      density="compact"
+                      variant="text"
+                      title="Move down"
+                      aria-label="Move down"
+                      :disabled="downTarget(entry) === undefined"
+                      @click="move(entry, downTarget(entry))"
+                    />
+                  </span>
+                </div>
               </td>
               <td>{{ entry.seriesName }}</td>
               <td>{{ entry.issue }}</td>
@@ -146,6 +181,8 @@
 
 <script>
 import {
+  mdiArrowDown,
+  mdiArrowUp,
   mdiEyeOffOutline,
   mdiEyeOutline,
   mdiHelpCircleOutline,
@@ -190,6 +227,8 @@ export default {
   emits: ["update:modelValue", "changed"],
   data() {
     return {
+      mdiArrowDown,
+      mdiArrowUp,
       mdiEyeOffOutline,
       mdiEyeOutline,
       mdiHelpCircleOutline,
@@ -208,6 +247,13 @@ export default {
     };
   },
   computed: {
+    ordered() {
+      return [...this.allEntries].sort((a, b) => a.position - b.position);
+    },
+    isSourced() {
+      // A list with document or tags sources keeps its collections last.
+      return Boolean(this.readingList?.sources?.length);
+    },
     entries() {
       // One fetch of every entry; the filters narrow it here.
       const test = ENTRY_FILTERS[this.filter] || ENTRY_FILTERS.all;
@@ -299,6 +345,25 @@ export default {
       await this.call(API.deleteEntry(this.readingList.pk, entry.pk));
       await this.changed();
     },
+    downTarget(entry) {
+      /*
+       * The position one step down, or undefined when nothing can follow.
+       * The server keeps a collection's block whole, so a step into one
+       * goes past it; a list with sources keeps its collections last.
+       * One step up needs no help: the server places it before a block.
+       */
+      const order = this.ordered;
+      const next = order[order.indexOf(entry) + 1];
+      if (!next) return;
+      if (next.liveSource == null) return next.position;
+      if (this.isSourced) return;
+      let last = next;
+      for (const row of order.slice(order.indexOf(next) + 1)) {
+        if (row.liveSource !== next.liveSource) break;
+        last = row;
+      }
+      return last.position;
+    },
     async move(entry, position) {
       const target = Math.max(0, Number(position) || 0);
       if (target === entry.position) return;
@@ -346,11 +411,22 @@ export default {
   }
 
   .positionCol {
-    width: 72px;
+    width: 112px;
+  }
+
+  // The number, then the arrows as the Sources dialog's rank arrows sit.
+  .positionControls {
+    display: flex;
+    align-items: center;
   }
 
   .positionInput {
-    width: 64px;
+    width: 48px;
+  }
+
+  .moveArrows {
+    display: flex;
+    white-space: nowrap;
   }
 
   .entryActions {

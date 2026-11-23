@@ -169,3 +169,40 @@ class ReorderTests(LiveEntriesFixture):
         order = self.order(imported)
         assert order[-2:] == self.pks(self.more)
         assert order[-3] == first.comic_id  # pyright: ignore[reportAttributeAccessIssue]
+
+
+class OneStepTests(LiveEntriesFixture):
+    """
+    The review dialog's arrows: a position is where the issue ends up.
+
+    One step down past Daredevil's block sends the block's last position;
+    one step up from after it sends the position just before, and the
+    server puts the issue before the block.
+    """
+
+    def _hand(self, comic) -> ReadingListEntry:
+        return ReadingListEntry.objects.get(
+            reading_list=self.mine, comic=comic, live_source__isnull=True
+        )
+
+    def test_one_step_down_past_a_block(self) -> None:
+        """Civil War #1 to the block's last position: after the block."""
+        c1 = self.comics[0]
+        last = len(self.more)
+        response = self.post(
+            "/entries/reorder", {"entry": self._hand(c1).pk, "position": last}
+        )
+        assert response.status_code == _OK, response.content
+        assert self.order(self.mine) == [*self.pks(self.more), c1.pk]
+
+    def test_one_step_up_past_a_block(self) -> None:
+        """An issue after the block, one step up: before the block."""
+        c1, _, c3, _ = self.comics
+        self.post("/entries", {"comics": [c3.pk]})
+        assert self.order(self.mine) == [c1.pk, *self.pks(self.more), c3.pk]
+        before = len(self.more)
+        response = self.post(
+            "/entries/reorder", {"entry": self._hand(c3).pk, "position": before}
+        )
+        assert response.status_code == _OK, response.content
+        assert self.order(self.mine) == [c1.pk, c3.pk, *self.pks(self.more)]

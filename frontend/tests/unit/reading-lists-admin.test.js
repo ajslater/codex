@@ -700,6 +700,85 @@ describe("review dialog", () => {
   });
 });
 
+describe("review dialog — moving an entry", () => {
+  const ENTRIES = Object.freeze([
+    { pk: 7, position: 0, seriesName: "Civil War", issue: "1" },
+    { pk: 8, position: 1, seriesName: "Civil War", issue: "2" },
+    { pk: 9, position: 2, seriesName: "Civil War", issue: "3" },
+  ]);
+
+  async function mountReview(entries = ENTRIES, sources = []) {
+    API.getEntries.mockResolvedValue({ data: { entries } });
+    API.reorderEntry.mockResolvedValue({ data: { position: 0 } });
+    API.reorderEntry.mockClear();
+    const wrapper = mount(ReviewDialog, {
+      props: { modelValue: true, readingList: { pk: 3, name: "CW", sources } },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    // The rows are in list order, pk 7 first.
+    const row = (pk) => wrapper.findAll("tbody tr")[pk - 7];
+    return { wrapper, row };
+  }
+
+  // A hand entry, a collection's block of two, another hand entry.
+  const WITH_BLOCK = Object.freeze([
+    { pk: 7, position: 0, seriesName: "Civil War", issue: "1" },
+    { pk: 8, position: 1, seriesName: "X-Men", issue: "1", liveSource: 5 },
+    { pk: 9, position: 2, seriesName: "X-Men", issue: "2", liveSource: 5 },
+    { pk: 10, position: 3, seriesName: "Civil War", issue: "2" },
+  ]);
+
+  test("a collection's own issues have no arrows: they move with it", async () => {
+    const { row } = await mountReview(WITH_BLOCK);
+    expect(row(8).find(".moveUp").exists()).toBe(false);
+    expect(row(8).find(".moveDown").exists()).toBe(false);
+  });
+
+  test("one step down past a collection's block clears the whole block", async () => {
+    const { row } = await mountReview(WITH_BLOCK);
+    await row(7).find(".moveDown").trigger("click");
+    await flushPromises();
+    expect(API.reorderEntry).toHaveBeenLastCalledWith(3, 7, 2);
+  });
+
+  test("on a list with sources, issues stay before its collections", async () => {
+    const entries = [
+      { pk: 7, position: 0, seriesName: "Civil War", issue: "1" },
+      { pk: 8, position: 1, seriesName: "Civil War", issue: "2" },
+      { pk: 9, position: 2, seriesName: "X-Men", issue: "1", liveSource: 5 },
+    ];
+    const { row } = await mountReview(entries, [{ pk: 1, kind: "upload" }]);
+    expect(row(8).find(".moveDown").attributes("disabled")).toBeDefined();
+    expect(row(7).find(".moveDown").attributes("disabled")).toBeUndefined();
+  });
+
+  test("the up arrow moves an entry up the list, the down arrow down", async () => {
+    const { row } = await mountReview();
+    await row(8).find(".moveUp").trigger("click");
+    await flushPromises();
+    expect(API.reorderEntry).toHaveBeenLastCalledWith(3, 8, 0);
+    await row(8).find(".moveDown").trigger("click");
+    await flushPromises();
+    expect(API.reorderEntry).toHaveBeenLastCalledWith(3, 8, 2);
+  });
+
+  test("there is no up from the top, no down from the bottom", async () => {
+    const { row } = await mountReview();
+    expect(row(7).find(".moveUp").attributes("disabled")).toBeDefined();
+    expect(row(7).find(".moveDown").attributes("disabled")).toBeUndefined();
+    expect(row(9).find(".moveDown").attributes("disabled")).toBeDefined();
+    expect(row(9).find(".moveUp").attributes("disabled")).toBeUndefined();
+  });
+
+  test("the position field has no number spinner, whose up counts down the list", async () => {
+    const { row } = await mountReview();
+    const input = row(8).find(".positionInput input");
+    expect(input.attributes("type")).not.toBe("number");
+    expect(input.attributes("inputmode")).toBe("numeric");
+  });
+});
+
 describe("export menu", () => {
   test("offers json-cbl first, then ComicRack CBL", async () => {
     globalThis.visualViewport ??= {
