@@ -598,6 +598,22 @@ class OnlineTagSessionManager:
 
     # --- prompt persistence --------------------------------------------
 
+    @staticmethod
+    def _prompt_comic(state: SessionState, dp: Any, pk: int) -> dict[str, Any]:
+        """Describe one comic of a deferred prompt, with who else wrote it."""
+        stats = state.stats
+        others = stats.matched_ids_by_path.get(dp.path, {})
+        return {
+            "pk": pk,
+            "path": str(dp.path),
+            "tagged_by": [
+                source
+                for source in stats.matched_source_by_path.get(dp.path, ())
+                if source != dp.source
+            ],
+            "tagged_ids": {s: i for s, i in others.items() if s != dp.source},
+        }
+
     def _group_deferred_prompts(self, state: SessionState) -> dict[str, dict[str, Any]]:
         """
         Collect the scan's deferred prompts into one entry per question.
@@ -610,7 +626,9 @@ class OnlineTagSessionManager:
 
         Each comic carries ``tagged_by``: the other sources that wrote it
         this scan. It still needs review, as their data differ, and the
-        review dialog says it was tagged.
+        review dialog says it was tagged. ``tagged_ids`` holds the issue id
+        each of them wrote, so applying the answer can fetch them again and
+        let comicbox merge in the run's order before the database has them.
         """
         grouped: dict[str, dict[str, Any]] = {}
         for dp in state.session.deferred_prompts():
@@ -622,15 +640,7 @@ class OnlineTagSessionManager:
             # already-answered series is a question nobody has answered yet.
             if pk is None or pk in state.answered_pks:
                 continue
-            comic = {
-                "pk": pk,
-                "path": str(dp.path),
-                "tagged_by": [
-                    source
-                    for source in state.stats.matched_source_by_path.get(dp.path, ())
-                    if source != dp.source
-                ],
-            }
+            comic = self._prompt_comic(state, dp, pk)
             prompt = grouped.get(dp.fingerprint)
             if prompt is None:
                 grouped[dp.fingerprint] = serialize_prompt(
@@ -639,6 +649,8 @@ class OnlineTagSessionManager:
                     state.formats,
                     delete_original=state.delete_original,
                     rename=state.rename,
+                    source_order=state.sources,
+                    merge_all_sources=state.merge_all_sources,
                 )
             elif all(known["pk"] != pk for known in prompt["comics"]):
                 prompt["comics"].append(comic)
@@ -817,7 +829,8 @@ class OnlineTagSessionManager:
             match=MatchMode(task.mode),
             prompts=prompts,
             defer_prompts=defer_prompts,
-            # first_wins=False queries every source per comic and merges.
+            # first_wins=False queries every source per comic and merges,
+            # and the first of task.sources wins where they disagree.
             first_wins=not task.merge_all_sources,
             on_event=self._on_event,
             prompt_handler=CodexPromptHandler(),

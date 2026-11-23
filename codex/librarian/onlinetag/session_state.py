@@ -78,8 +78,9 @@ class SessionState:
     pending_paths: list[Path] = field(default_factory=list)
     mode: str = "additive"
     # The comicbox match mode (auto/careful/eager) and enabled sources in
-    # priority order — the inputs the time-remaining estimate needs. Distinct
-    # from ``mode`` above, which is the tag-write mode.
+    # priority order — the inputs the time-remaining estimate needs, and the
+    # merge order each deferred prompt records. Distinct from ``mode``
+    # above, which is the tag-write mode.
     match_mode: str = "auto"
     sources: tuple[str, ...] = ()
     # How much API budget a comic may spend against a fan-out source.
@@ -145,6 +146,8 @@ def serialize_prompt(
     *,
     delete_original: bool,
     rename: bool,
+    source_order: tuple[str, ...] = (),
+    merge_all_sources: bool = False,
 ) -> dict[str, Any]:
     """
     Serialize a deferred prompt with everything needed to apply it later.
@@ -156,6 +159,12 @@ def serialize_prompt(
     codex still reads on a rollback to one that predates the list. The
     review dialog derives the file's own cover from ``pk`` when the
     prompt list is served, so no cover data is stored here.
+
+    ``source_order`` and ``merge_all_sources`` are the run's: its sources
+    in priority order, and whether it merged them all. Applying the answer
+    needs both to keep a higher-priority source's tags winning the merge.
+    A prompt cached before they existed reads without them and applies the
+    pick on its own, so they add no ``PROMPT_VERSION``.
     """
     representative = comics[0]
     return {
@@ -170,6 +179,8 @@ def serialize_prompt(
         "formats": list(formats),
         "delete_original": delete_original,
         "rename": rename,
+        "source_order": list(source_order),
+        "merge_all_sources": merge_all_sources,
     }
 
 

@@ -8,13 +8,16 @@ Two things live in the dedicated ``tagging`` cache, namespaced under
   Each entry is fully self-contained so a later, independent task can apply
   the admin's choice *without* the original tagging run's in-memory session:
   it carries the ``comics`` the question speaks for (each with the other
-  sources that tagged it anyway, ``tagged_by``), the ``source``, the
-  serialized ``candidates``, the match ``mode``, and the write params
-  (``formats``, ``delete_original``). Prompts persist with no TTL and
-  deliberately survive daemon restarts — they linger until answered,
-  skipped, or pruned (when their comic disappears). The deferred-prompt
-  fingerprint is deterministic across processes, so a fresh session can
-  replay the choice.
+  sources that tagged it anyway, ``tagged_by``, and the issue ids they
+  wrote, ``tagged_ids``), the ``source``, the serialized ``candidates``, the
+  match ``mode``, the write params (``formats``, ``delete_original``), and
+  the run's ``source_order`` and ``merge_all_sources``, which keep a
+  higher-priority source winning the merge when the answer is applied
+  (prompts cached before those three existed lack them). Prompts persist
+  with no TTL and deliberately survive daemon restarts — they linger until
+  answered, skipped, or pruned (when their comic disappears). The
+  deferred-prompt fingerprint is deterministic across processes, so a
+  fresh session can replay the choice.
 
 - **active scan id** — set only while a Pass-1 lookup is running, so the
   admin UI can show live progress and abort it. Unlike prompts, this is

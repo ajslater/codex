@@ -55,6 +55,7 @@ from comicbox.events import (
     SourceStarted,
 )
 
+from codex.librarian.onlinetag.issue_id import parse_issue_id
 from codex.librarian.onlinetag.statuses import (
     MATCHED,
     NEEDS_REVIEW,
@@ -73,6 +74,11 @@ class OnlineTagOutcomeStats:
     """Accumulate per-comic online-tagging outcomes for an end-of-session summary."""
 
     matched_source_by_path: dict[Path, list[str]] = field(default_factory=dict)
+    # The issue id each source auto-wrote a comic with. A prompt another
+    # source defers on the comic carries these, so answering it can fetch
+    # them again and let comicbox merge in the run's order: the scan writes
+    # only when it ends, so the database learns them too late.
+    matched_ids_by_path: dict[Path, dict[str, int]] = field(default_factory=dict)
     source_status_by_path: dict[Path, dict[str, str]] = field(default_factory=dict)
     # Sources that actually ran on a comic, so the ones that finished
     # without saying anything can still be told from the ones that never
@@ -98,8 +104,11 @@ class OnlineTagOutcomeStats:
     def _record_outcome(self, event: Event) -> None:
         """Fold one event into the file-level outcome buckets."""
         match event:
-            case AutoWritten(path=path, source=source) if path and source:
+            case AutoWritten(path=path, source=source, candidate_summary=summary) if (
+                path and source
+            ):
                 self._add_matched_source(path, source)
+                self._add_matched_id(path, source, summary)
             case Skipped(path=path, reason=reason) if (
                 path and reason == SKIP_QUOTA_RESERVED
             ):
@@ -177,6 +186,17 @@ class OnlineTagOutcomeStats:
         sources = self.matched_source_by_path.setdefault(path, [])
         if source not in sources:
             sources.append(source)
+
+    def _add_matched_id(self, path: Path, source: str, summary: str) -> None:
+        """
+        Note the issue id a source auto-wrote a comic with.
+
+        comicbox's ``AutoWritten`` names the id it fetched as the event's
+        ``candidate_summary`` on every route to a win; anything that does
+        not parse as an id is left out rather than guessed at.
+        """
+        if (issue_id := parse_issue_id(summary)) is not None:
+            self.matched_ids_by_path.setdefault(path, {})[source] = issue_id
 
     def _add_started_source(self, path: Path, source: str) -> None:
         """Note that a source ran on a comic, deduped in start order."""

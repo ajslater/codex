@@ -97,8 +97,14 @@ class PromptTaggedByScanTests(OnlineTagSessionTestCase):
         assert mid_scan[0]["tagged_by"] == ["comicvine"]
         prompt = get_pending_prompts()["fp1"]
         assert prompt["source"] == "metron"
+        # This AutoWritten names no issue id, so none is recorded.
         assert prompt["comics"] == [
-            {"pk": comic.pk, "path": str(path), "tagged_by": ["comicvine"]}
+            {
+                "pk": comic.pk,
+                "path": str(path),
+                "tagged_by": ["comicvine"],
+                "tagged_ids": {},
+            }
         ]
 
     def test_a_comic_no_other_source_wrote_names_none(self) -> None:

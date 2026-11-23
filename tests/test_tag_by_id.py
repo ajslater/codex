@@ -174,6 +174,28 @@ class ExplicitIdHelpersTests(SimpleTestCase):
         assert settings.online.lookup.first_wins is False
         assert set(settings.online.auth.sources) == {"metron", "comicvine"}
 
+    def test_build_explicit_id_config_follows_the_order(self) -> None:
+        """
+        The caller's order lists the pinned sources, so its first one wins.
+
+        comicbox merges in ``sources`` order, so a lower-priority primary
+        must not be listed first. A source the order leaves out goes last.
+        """
+        creds = OnlineCredentials(metron_key="t", comicvine_key="k", versedb_key="v")
+        settings = build_explicit_id_config(
+            "comicvine",
+            456,
+            creds,
+            extra_ids=(("versedb", 789), ("metron", 123)),
+            order=("metron", "comicvine"),
+        )
+        assert settings.online.lookup.sources == ("metron", "comicvine", "versedb")
+        assert dict(settings.online.lookup.ids) == {
+            "metron": 123,
+            "comicvine": 456,
+            "versedb": 789,
+        }
+
 
 def _make_admin() -> User:
     return User.objects.create_user(
