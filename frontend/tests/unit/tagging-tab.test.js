@@ -441,19 +441,21 @@ describe("AdminTaggingTab — source priority order", () => {
 
 const ALL_SOURCES = ["metron", "comicvine", "versedb"];
 
-/*
- * The titles of the outlined rows. The DOM keeps source order (Metron, Comic
- * Vine, VerseDB); only the flex ``order`` style moves rows on screen.
- */
-function outlinedSources(wrapper) {
+function modeButton(wrapper, label) {
   return wrapper
-    .findAll(".sourceRow")
-    .filter((row) =>
-      ["sourceRowLead", "sourceRowMerged"].some((name) =>
-        row.classes().includes(name),
-      ),
-    )
-    .map((row) => row.find(".adminCardTitle").text());
+    .find(".sourcesMode")
+    .findAll("button")
+    .find((button) => button.text() === label);
+}
+
+function rowRank(wrapper, label) {
+  const rank = sourceRowFor(wrapper, label).find(".sourceRank");
+  return rank.exists() ? rank.text() : "";
+}
+
+function rowRole(wrapper, label) {
+  const role = sourceRowFor(wrapper, label).find(".sourceRole");
+  return role.exists() ? role.text() : "";
 }
 
 function sourceRowFor(wrapper, label) {
@@ -462,80 +464,91 @@ function sourceRowFor(wrapper, label) {
     .find((row) => row.find(".adminCardTitle").text() === label);
 }
 
-describe("AdminTaggingTab — source outline", () => {
-  test("first wins: only the first enabled source is outlined", () => {
-    const wrapper = mountTab({
-      configuredSources: ALL_SOURCES,
-      defaultSources: ["comicvine", "metron"],
-      mergeAllSources: false,
-    });
-    expect(outlinedSources(wrapper)).toEqual(["Comic Vine"]);
-    expect(sourceRowFor(wrapper, "Comic Vine").classes()).toContain(
-      "sourceRowLead",
-    );
-  });
-
-  test("merging: one outline spans every enabled source", () => {
-    const wrapper = mountTab({
-      configuredSources: ALL_SOURCES,
-      defaultSources: ["versedb", "metron", "comicvine"],
-      mergeAllSources: true,
-    });
-    expect(outlinedSources(wrapper)).toEqual([
-      "Metron Cloud",
-      "Comic Vine",
-      "VerseDB",
-    ]);
-    // The first and last enabled rows close the box; the middle one only
-    // draws its sides.
-    const first = sourceRowFor(wrapper, "VerseDB").classes();
-    const middle = sourceRowFor(wrapper, "Metron Cloud").classes();
-    const last = sourceRowFor(wrapper, "Comic Vine").classes();
-    expect(first).toEqual(
-      expect.arrayContaining(["sourceRowMerged", "sourceRowMergedFirst"]),
-    );
-    expect(first).not.toContain("sourceRowMergedLast");
-    expect(middle).toContain("sourceRowMerged");
-    expect(middle).not.toContain("sourceRowMergedFirst");
-    expect(middle).not.toContain("sourceRowMergedLast");
-    expect(last).toEqual(
-      expect.arrayContaining(["sourceRowMerged", "sourceRowMergedLast"]),
-    );
-    expect(last).not.toContain("sourceRowMergedFirst");
-  });
-
-  test("a source that isn't enabled is never outlined", () => {
-    const wrapper = mountTab({
-      configuredSources: ["metron", "comicvine"],
-      // VerseDB lingers without credentials; Comic Vine is configured but off.
-      defaultSources: ["versedb", "metron"],
-      mergeAllSources: true,
-    });
-    expect(outlinedSources(wrapper)).toEqual(["Metron Cloud"]);
-    expect(sourceRowFor(wrapper, "Metron Cloud").classes()).toEqual(
-      expect.arrayContaining([
-        "sourceRowMerged",
-        "sourceRowMergedFirst",
-        "sourceRowMergedLast",
-      ]),
-    );
-  });
-
-  test("toggling Merge all sources moves the outline", async () => {
+describe("AdminTaggingTab — mode switch, ranks and roles", () => {
+  test("the switch above the list sets Merge all sources and saves", async () => {
     const wrapper = mountTab({
       configuredSources: ALL_SOURCES,
       defaultSources: ["metron", "comicvine"],
       mergeAllSources: false,
     });
-    expect(outlinedSources(wrapper)).toEqual(["Metron Cloud"]);
+    const store = useAdminStore();
 
-    wrapper.vm.draft.mergeAllSources = true;
-    await wrapper.vm.$nextTick();
-    expect(outlinedSources(wrapper)).toEqual(["Metron Cloud", "Comic Vine"]);
+    await modeButton(wrapper, "Merge all sources").trigger("click");
+    expect(wrapper.vm.draft.mergeAllSources).toBe(true);
+    expect(store.updateTaggingDefaults).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mergeAllSources: true }),
+    );
+
+    await modeButton(wrapper, "First match").trigger("click");
+    expect(wrapper.vm.draft.mergeAllSources).toBe(false);
   });
 
-  test("nothing is outlined with no source enabled", () => {
-    expect(outlinedSources(mountTab())).toEqual([]);
+  test("merging is disabled with one enabled source, and says why", () => {
+    const one = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["metron"],
+    });
+    expect(modeButton(one, "Merge all sources").element.disabled).toBe(true);
+    expect(modeButton(one, "First match").element.disabled).toBe(false);
+    expect(one.find(".sourcesModeHint").text()).toBe(
+      "Merging needs two or more enabled sources: enable another one below.",
+    );
+
+    const two = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["metron", "comicvine"],
+    });
+    expect(modeButton(two, "Merge all sources").element.disabled).toBe(false);
+    expect(two.find(".sourcesModeHint").text()).toContain(
+      "roughly multiplies online API calls",
+    );
+  });
+
+  test("enabled sources are numbered in priority order", () => {
+    const wrapper = mountTab({
+      // VerseDB lingers without credentials, so it is not ranked.
+      configuredSources: ["metron", "comicvine"],
+      defaultSources: ["comicvine", "versedb", "metron"],
+    });
+    expect(rowRank(wrapper, "Comic Vine")).toBe("1");
+    expect(rowRank(wrapper, "Metron Cloud")).toBe("2");
+    expect(rowRank(wrapper, "VerseDB")).toBe("");
+  });
+
+  test("first match: the top source is tried first, the rest only if no match", () => {
+    const wrapper = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["comicvine", "metron", "versedb"],
+      mergeAllSources: false,
+    });
+    expect(rowRole(wrapper, "Comic Vine")).toBe("Tried first");
+    expect(rowRole(wrapper, "Metron Cloud")).toBe("If no match");
+    expect(rowRole(wrapper, "VerseDB")).toBe("If no match");
+    expect(
+      sourceRowFor(wrapper, "Comic Vine").find(".sourceRole").classes(),
+    ).toContain("sourceRoleLead");
+  });
+
+  test("merging: the top source wins conflicts, the rest fill gaps", async () => {
+    const wrapper = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["comicvine", "metron", "versedb"],
+      mergeAllSources: false,
+    });
+    await modeButton(wrapper, "Merge all sources").trigger("click");
+    expect(rowRole(wrapper, "Comic Vine")).toBe("Wins conflicts");
+    expect(rowRole(wrapper, "Metron Cloud")).toBe("Fills gaps");
+    expect(rowRole(wrapper, "VerseDB")).toBe("Fills gaps");
+  });
+
+  test("a lone enabled source is the only source, and others have no role", () => {
+    const wrapper = mountTab({
+      configuredSources: ["metron", "comicvine"],
+      defaultSources: ["metron"],
+      mergeAllSources: true,
+    });
+    expect(rowRole(wrapper, "Metron Cloud")).toBe("Only source");
+    expect(rowRole(wrapper, "Comic Vine")).toBe("");
   });
 });
 

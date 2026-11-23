@@ -116,12 +116,28 @@
         <p class="adminHint sourcesHint">
           {{ sourcesOrderHint }}
         </p>
+        <div class="sourcesMode">
+          <v-btn-toggle
+            v-model="draft.mergeAllSources"
+            aria-label="How the enabled sources combine"
+            color="primary"
+            density="compact"
+            variant="outlined"
+            divided
+            mandatory
+          >
+            <v-btn :value="false">First match</v-btn>
+            <v-btn :value="true" :disabled="!canMerge">Merge all sources</v-btn>
+          </v-btn-toggle>
+          <p class="adminHint sourcesModeHint">
+            {{ canMerge ? mergeAllSourcesHint : mergeDisabledHint }}
+          </p>
+        </div>
         <div class="sourcesGroup">
           <div
             v-for="source in sources"
             :key="source.id"
             class="sourceRow"
-            :class="sourceRowClass(source.id)"
             :style="sourceRowStyle(source.id)"
           >
             <div
@@ -168,7 +184,10 @@
                 variant="accordion"
               >
                 <v-expansion-panel>
-                  <v-expansion-panel-title>
+                  <v-expansion-panel-title class="sourceTitle">
+                    <span v-if="sourceRank(source.id)" class="sourceRank">
+                      {{ sourceRank(source.id) }}
+                    </span>
                     <span class="adminCardTitle">{{ source.label }}</span>
                     <span
                       class="adminCardDesc credentialStatus"
@@ -181,6 +200,14 @@
                           ? "API key set"
                           : "Not configured"
                       }}
+                    </span>
+                    <span v-if="sourceRole(source.id)" class="sourceRoleSlot">
+                      <span
+                        class="sourceRole"
+                        :class="{ sourceRoleLead: sourceRank(source.id) === 1 }"
+                      >
+                        {{ sourceRole(source.id) }}
+                      </span>
                     </span>
                   </v-expansion-panel-title>
                   <v-expansion-panel-text>
@@ -258,17 +285,6 @@
             </div>
           </div>
         </div>
-        <div class="adminCard mergeAllSourcesCard">
-          <v-checkbox
-            v-model="draft.mergeAllSources"
-            label="Merge all sources"
-            :hint="mergeAllSourcesHint"
-            :disabled="!canMerge"
-            persistent-hint
-            hide-details="auto"
-            density="compact"
-          />
-        </div>
       </AdminSection>
       <TagWriteErrorsPanel />
     </template>
@@ -325,6 +341,13 @@ function budgetNote(id) {
   const perDay = NUMBER_FORMAT.format(rate.perDay);
   return `Free tier: ${perHour} requests an hour and ${perDay} a day, about ${perComic} per comic.`;
 }
+
+// What each enabled source does in a scan, by mode and rank.
+const SOURCE_ROLES = Object.freeze({
+  only: "Only source",
+  firstMatch: Object.freeze({ lead: "Tried first", rest: "If no match" }),
+  merge: Object.freeze({ lead: "Wins conflicts", rest: "Fills gaps" }),
+});
 
 // One row per source, with the copy its credential panel shows.
 const SOURCE_ROWS = Object.freeze(
@@ -399,9 +422,11 @@ export default {
       sourceDisabledTooltip:
         "A source can only be enabled once its API key is saved.",
       sourcesOrderHint:
-        "The enabled sources below are listed in priority order, highest first; use the arrows to reorder them. With Merge all sources off, the first source in the list that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried and their results are merged into one record; where they disagree, the source higher in the list wins.",
+        "The enabled sources below are listed in priority order, highest first; use the arrows to reorder them. With First match, the first source in the list that finds a match tags the comic and the rest are skipped. With Merge all sources, every enabled source is queried and their results are merged into one record; where they disagree, the source higher in the list wins.",
       mergeAllSourcesHint:
         "Merging queries every enabled source for each comic instead of stopping at the first match, so it roughly multiplies online API calls by the number of enabled sources — scans take longer and hit rate limits sooner. Can be overridden per scan in the Tag Online dialog.",
+      mergeDisabledHint:
+        "Merging needs two or more enabled sources: enable another one below.",
       sources: SOURCE_ROWS,
       draft: pickFields(undefined),
       saving: false,
@@ -533,22 +558,23 @@ export default {
       const index = this.activeSources.indexOf(source);
       return { order: index === -1 ? 99 : index };
     },
-    sourceRowClass(source) {
-      // Outline the sources that decide a comic's tags: with Merge all
-      // sources off, the first enabled one; with it on, every enabled one,
-      // as a single box drawn across their rows.
-      const index = this.activeSources.indexOf(source);
-      if (index === -1) {
-        return {};
+    sourceRank(source) {
+      // 1 for the highest-priority enabled source; 0 for one not enabled.
+      return this.activeSources.indexOf(source) + 1;
+    },
+    sourceRole(source) {
+      // What this source does in a scan, as its row's tag says.
+      const rank = this.sourceRank(source);
+      if (!rank) {
+        return "";
       }
-      if (!this.draft.mergeAllSources) {
-        return { sourceRowLead: index === 0 };
+      if (this.activeSources.length === 1) {
+        return SOURCE_ROLES.only;
       }
-      return {
-        sourceRowMerged: true,
-        sourceRowMergedFirst: index === 0,
-        sourceRowMergedLast: index === this.activeSources.length - 1,
-      };
+      const roles = this.draft.mergeAllSources
+        ? SOURCE_ROLES.merge
+        : SOURCE_ROLES.firstMatch;
+      return rank === 1 ? roles.lead : roles.rest;
     },
     moveSource(source, delta) {
       const sources = [...(this.draft.defaultSources || [])];
@@ -623,11 +649,74 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "sass:map";
+@use "vuetify/styles/settings/variables" as vuetify;
 @use "@/components/admin/tabs/admin-section.scss";
 @use "@/components/admin/tabs/design.scss" as d;
 
+$rank-size: 20px;
+
+// The name and key status never break mid-phrase; on a phone the role tag
+// moves to a line of its own instead.
+.sourceTitle .adminCardTitle {
+  white-space: nowrap;
+}
+
+// Grows to take the title's free space, which puts the role tag after it
+// right against the chevron.
 .credentialStatus {
+  flex: 1 1 auto;
   margin-left: d.$space-2;
+  white-space: nowrap;
+}
+
+// The source's priority, before its name. Only enabled sources have one.
+.sourceRank {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $rank-size;
+  height: $rank-size;
+  margin-right: d.$space-2;
+  border-radius: 50%;
+  font-size: d.$text-meta;
+  background-color: rgba(var(--v-theme-on-surface), 0.12);
+}
+
+// What the source does in a scan, just before the panel's chevron.
+.sourceRoleSlot {
+  flex: none;
+  margin: 0 d.$space-2;
+}
+
+.sourceRole {
+  display: inline-block;
+  padding: 2px d.$space-2;
+  border-radius: d.$radius-sm;
+  font-size: d.$text-small;
+  color: rgb(var(--v-theme-text-secondary));
+  white-space: nowrap;
+}
+
+.sourceRoleLead {
+  color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.16);
+}
+
+// A phone has no room for the tag beside the name: it takes the next line,
+// under the name, and the chevron stays on the first.
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+  .sourceTitle {
+    flex-wrap: wrap;
+    row-gap: d.$space-1;
+  }
+
+  .sourceRoleSlot {
+    order: 1;
+    flex-basis: 100%;
+    margin: 0 0 0 calc(#{$rank-size} + #{d.$space-2});
+  }
 }
 
 .credentialSet {
@@ -638,15 +727,23 @@ export default {
   margin-top: d.$space-2;
 }
 
+// How the enabled sources combine, right above the list it changes.
+.sourcesMode {
+  margin-top: d.$space-3;
+}
+
+.sourcesModeHint {
+  margin-top: d.$space-1;
+}
+
 // The body of the Online Tagging Sources section: one row per source.
 // Flex column so the rows can be visually reordered by priority via
-// the per-row `order` style without moving template blocks. The rows sit
-// flush and pad themselves instead of taking a gap, so the merge outline
-// below runs unbroken from one row to the next.
+// the per-row `order` style without moving template blocks.
 .sourcesGroup {
   margin-top: d.$space-4;
   display: flex;
   flex-direction: column;
+  gap: d.$space-2;
 }
 
 // Each source: the enable checkbox to the left of its credential panel.
@@ -654,49 +751,6 @@ export default {
   display: flex;
   align-items: flex-start;
   gap: d.$space-2;
-  padding: d.$space-1 d.$space-2;
-  border-radius: d.$radius;
-}
-
-// The outline around the sources that decide a comic's tags. An inset
-// shadow inside the row's padding, so it takes no room and toggling it
-// never shifts the rows.
-$outline-width: 2px;
-$outline-color: rgb(var(--v-theme-primary));
-
-.sourceRowLead {
-  box-shadow: inset 0 0 0 $outline-width $outline-color;
-}
-
-// Merged, every enabled row draws its sides, and the first and last rows
-// close the box at the top and bottom.
-.sourceRowMerged {
-  --outline-top: 0;
-  --outline-bottom: 0;
-
-  border-radius: 0;
-  box-shadow:
-    inset $outline-width 0 0 $outline-color,
-    inset (-$outline-width) 0 0 $outline-color,
-    inset 0 var(--outline-top) 0 $outline-color,
-    inset 0 var(--outline-bottom) 0 $outline-color;
-}
-
-.sourceRowMergedFirst {
-  --outline-top: #{$outline-width};
-
-  border-top-left-radius: d.$radius;
-  border-top-right-radius: d.$radius;
-}
-
-// Negative: an inset shadow's offset toward the top edge draws the bottom
-// one. Stored already negative because calc(-1 * var()) of the unitless 0
-// default is a number, not a length, which voids the whole box-shadow.
-.sourceRowMergedLast {
-  --outline-bottom: -#{$outline-width};
-
-  border-bottom-left-radius: d.$radius;
-  border-bottom-right-radius: d.$radius;
 }
 
 // Pin the checkbox to its panel's title bar instead of letting it ride the
@@ -720,9 +774,5 @@ $outline-color: rgb(var(--v-theme-primary));
 
 .sourceNotes {
   margin-top: 0;
-}
-
-.mergeAllSourcesCard {
-  margin-top: d.$space-4;
 }
 </style>
