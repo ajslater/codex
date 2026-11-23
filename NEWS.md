@@ -10,8 +10,8 @@ border-radius: 128px;
 
 ### ✨ Added
 
-- The Tagging tab outlines the source that tags first, or every source when
-  merging.
+- The Tagging tab numbers its online sources by priority and labels each one's
+  role, under a First match / Merge all sources switch.
 
 ### ♻️ Changed
 
