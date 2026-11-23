@@ -143,7 +143,6 @@
       item-value="pk"
       :mobile="$vuetify.display.xs"
       fixed-header
-      height="420"
       density="compact"
     >
       <template #[`item.path`]="{ item }">
@@ -782,6 +781,13 @@ export default {
 
   .comicsTable {
     background-color: inherit;
+  }
+
+  /* No fixed height, so a short batch's table is only as tall as its rows;
+   * a long one stops here and scrolls. The virtual scroller measures this
+   * box rather than reading a height prop, so it still virtualizes. */
+  .comicsTable :deep(.v-table__wrapper) {
+    max-height: 420px;
   }
 
   .statusCell {
