@@ -427,6 +427,116 @@ describe("AdminTaggingTab — source priority order", () => {
     // Metron isn't in the priority list — it sinks below the enabled rows.
     expect(off.sourceRowStyle("metron")).toEqual({ order: 99 });
   });
+
+  test("a source without credentials sinks below, even if listed", () => {
+    // Its key was cleared, but it lingers at the top of defaultSources.
+    const vm = mountTab({
+      configuredSources: ["comicvine"],
+      defaultSources: ["metron", "comicvine"],
+    }).vm;
+    expect(vm.sourceRowStyle("comicvine")).toEqual({ order: 0 });
+    expect(vm.sourceRowStyle("metron")).toEqual({ order: 99 });
+  });
+});
+
+const ALL_SOURCES = ["metron", "comicvine", "versedb"];
+
+/*
+ * The titles of the outlined rows. The DOM keeps source order (Metron, Comic
+ * Vine, VerseDB); only the flex ``order`` style moves rows on screen.
+ */
+function outlinedSources(wrapper) {
+  return wrapper
+    .findAll(".sourceRow")
+    .filter((row) =>
+      ["sourceRowLead", "sourceRowMerged"].some((name) =>
+        row.classes().includes(name),
+      ),
+    )
+    .map((row) => row.find(".adminCardTitle").text());
+}
+
+function sourceRowFor(wrapper, label) {
+  return wrapper
+    .findAll(".sourceRow")
+    .find((row) => row.find(".adminCardTitle").text() === label);
+}
+
+describe("AdminTaggingTab — source outline", () => {
+  test("first wins: only the first enabled source is outlined", () => {
+    const wrapper = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["comicvine", "metron"],
+      mergeAllSources: false,
+    });
+    expect(outlinedSources(wrapper)).toEqual(["Comic Vine"]);
+    expect(sourceRowFor(wrapper, "Comic Vine").classes()).toContain(
+      "sourceRowLead",
+    );
+  });
+
+  test("merging: one outline spans every enabled source", () => {
+    const wrapper = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["versedb", "metron", "comicvine"],
+      mergeAllSources: true,
+    });
+    expect(outlinedSources(wrapper)).toEqual([
+      "Metron Cloud",
+      "Comic Vine",
+      "VerseDB",
+    ]);
+    // The first and last enabled rows close the box; the middle one only
+    // draws its sides.
+    const first = sourceRowFor(wrapper, "VerseDB").classes();
+    const middle = sourceRowFor(wrapper, "Metron Cloud").classes();
+    const last = sourceRowFor(wrapper, "Comic Vine").classes();
+    expect(first).toEqual(
+      expect.arrayContaining(["sourceRowMerged", "sourceRowMergedFirst"]),
+    );
+    expect(first).not.toContain("sourceRowMergedLast");
+    expect(middle).toContain("sourceRowMerged");
+    expect(middle).not.toContain("sourceRowMergedFirst");
+    expect(middle).not.toContain("sourceRowMergedLast");
+    expect(last).toEqual(
+      expect.arrayContaining(["sourceRowMerged", "sourceRowMergedLast"]),
+    );
+    expect(last).not.toContain("sourceRowMergedFirst");
+  });
+
+  test("a source that isn't enabled is never outlined", () => {
+    const wrapper = mountTab({
+      configuredSources: ["metron", "comicvine"],
+      // VerseDB lingers without credentials; Comic Vine is configured but off.
+      defaultSources: ["versedb", "metron"],
+      mergeAllSources: true,
+    });
+    expect(outlinedSources(wrapper)).toEqual(["Metron Cloud"]);
+    expect(sourceRowFor(wrapper, "Metron Cloud").classes()).toEqual(
+      expect.arrayContaining([
+        "sourceRowMerged",
+        "sourceRowMergedFirst",
+        "sourceRowMergedLast",
+      ]),
+    );
+  });
+
+  test("toggling Merge all sources moves the outline", async () => {
+    const wrapper = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["metron", "comicvine"],
+      mergeAllSources: false,
+    });
+    expect(outlinedSources(wrapper)).toEqual(["Metron Cloud"]);
+
+    wrapper.vm.draft.mergeAllSources = true;
+    await wrapper.vm.$nextTick();
+    expect(outlinedSources(wrapper)).toEqual(["Metron Cloud", "Comic Vine"]);
+  });
+
+  test("nothing is outlined with no source enabled", () => {
+    expect(outlinedSources(mountTab())).toEqual([]);
+  });
 });
 
 describe("AdminTaggingTab — auto-save & layout", () => {

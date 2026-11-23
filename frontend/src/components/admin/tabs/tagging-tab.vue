@@ -121,6 +121,7 @@
             v-for="source in sources"
             :key="source.id"
             class="sourceRow"
+            :class="sourceRowClass(source.id)"
             :style="sourceRowStyle(source.id)"
           >
             <div
@@ -435,13 +436,18 @@ export default {
         ? []
         : ["Choose at least one format"];
     },
+    activeSources() {
+      // The enabled sources in priority order: what a scan runs.
+      // isSourceEnabled already gates on credentials, so a source that
+      // lingers in defaultSources without them is left out.
+      return (this.draft.defaultSources || []).filter((source) =>
+        this.isSourceEnabled(source),
+      );
+    },
     canMerge() {
       // Merging needs at least two enabled sources; with one there's nothing
-      // to merge. isSourceEnabled already gates on credentials.
-      return (
-        SUPPORTED_SOURCES.filter((source) => this.isSourceEnabled(source))
-          .length >= 2
-      );
+      // to merge.
+      return this.activeSources.length >= 2;
     },
   },
   watch: {
@@ -522,10 +528,27 @@ export default {
       return (this.draft.defaultSources || []).indexOf(source);
     },
     sourceRowStyle(source) {
-      // Render rows in priority order via flex order; sources not in the
-      // priority list (disabled) sink below the enabled ones.
-      const index = this.sourcePriority(source);
+      // Render rows in priority order via flex order; sources that aren't
+      // enabled sink below the enabled ones, so those stay contiguous.
+      const index = this.activeSources.indexOf(source);
       return { order: index === -1 ? 99 : index };
+    },
+    sourceRowClass(source) {
+      // Outline the sources that decide a comic's tags: with Merge all
+      // sources off, the first enabled one; with it on, every enabled one,
+      // as a single box drawn across their rows.
+      const index = this.activeSources.indexOf(source);
+      if (index === -1) {
+        return {};
+      }
+      if (!this.draft.mergeAllSources) {
+        return { sourceRowLead: index === 0 };
+      }
+      return {
+        sourceRowMerged: true,
+        sourceRowMergedFirst: index === 0,
+        sourceRowMergedLast: index === this.activeSources.length - 1,
+      };
     },
     moveSource(source, delta) {
       const sources = [...(this.draft.defaultSources || [])];
@@ -617,12 +640,13 @@ export default {
 
 // The body of the Online Tagging Sources section: one row per source.
 // Flex column so the rows can be visually reordered by priority via
-// the per-row `order` style without moving template blocks.
+// the per-row `order` style without moving template blocks. The rows sit
+// flush and pad themselves instead of taking a gap, so the merge outline
+// below runs unbroken from one row to the next.
 .sourcesGroup {
   margin-top: d.$space-4;
   display: flex;
   flex-direction: column;
-  gap: d.$space-2;
 }
 
 // Each source: the enable checkbox to the left of its credential panel.
@@ -630,6 +654,49 @@ export default {
   display: flex;
   align-items: flex-start;
   gap: d.$space-2;
+  padding: d.$space-1 d.$space-2;
+  border-radius: d.$radius;
+}
+
+// The outline around the sources that decide a comic's tags. An inset
+// shadow inside the row's padding, so it takes no room and toggling it
+// never shifts the rows.
+$outline-width: 2px;
+$outline-color: rgb(var(--v-theme-primary));
+
+.sourceRowLead {
+  box-shadow: inset 0 0 0 $outline-width $outline-color;
+}
+
+// Merged, every enabled row draws its sides, and the first and last rows
+// close the box at the top and bottom.
+.sourceRowMerged {
+  --outline-top: 0;
+  --outline-bottom: 0;
+
+  border-radius: 0;
+  box-shadow:
+    inset $outline-width 0 0 $outline-color,
+    inset (-$outline-width) 0 0 $outline-color,
+    inset 0 var(--outline-top) 0 $outline-color,
+    inset 0 var(--outline-bottom) 0 $outline-color;
+}
+
+.sourceRowMergedFirst {
+  --outline-top: #{$outline-width};
+
+  border-top-left-radius: d.$radius;
+  border-top-right-radius: d.$radius;
+}
+
+// Negative: an inset shadow's offset toward the top edge draws the bottom
+// one. Stored already negative because calc(-1 * var()) of the unitless 0
+// default is a number, not a length, which voids the whole box-shadow.
+.sourceRowMergedLast {
+  --outline-bottom: -#{$outline-width};
+
+  border-bottom-left-radius: d.$radius;
+  border-bottom-right-radius: d.$radius;
 }
 
 // Pin the checkbox to its panel's title bar instead of letting it ride the
