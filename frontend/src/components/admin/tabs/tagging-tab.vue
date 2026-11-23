@@ -133,11 +133,16 @@
             {{ canMerge ? mergeAllSourcesHint : mergeDisabledHint }}
           </p>
         </div>
-        <div class="sourcesGroup">
+        <p class="d-sr-only sourceMoveAnnouncement" aria-live="polite">
+          {{ moveAnnouncement }}
+        </p>
+        <div ref="sourcesGroup" class="sourcesGroup">
           <div
             v-for="source in sources"
             :key="source.id"
             class="sourceRow"
+            :class="{ sourceRowDragging: dragSource === source.id }"
+            :data-source="source.id"
             :style="sourceRowStyle(source.id)"
           >
             <div
@@ -152,32 +157,23 @@
                 density="compact"
                 @update:model-value="setSourceEnabled(source.id, $event)"
               />
-              <div v-if="isSourceEnabled(source.id)" class="sourceOrderButtons">
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  :aria-label="source.raiseLabel"
-                  :disabled="sourcePriority(source.id) <= 0"
-                  @click="moveSource(source.id, -1)"
-                >
-                  <v-icon>{{ mdiChevronUp }}</v-icon>
-                </v-btn>
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  :aria-label="source.lowerLabel"
-                  :disabled="
-                    sourcePriority(source.id) >=
-                    (draft.defaultSources || []).length - 1
-                  "
-                  @click="moveSource(source.id, 1)"
-                >
-                  <v-icon>{{ mdiChevronDown }}</v-icon>
-                </v-btn>
-              </div>
             </div>
+            <button
+              v-if="isSourceEnabled(source.id)"
+              type="button"
+              class="sourceHandle"
+              :aria-label="source.moveLabel"
+              :title="moveTooltip"
+              @pointerdown="startDrag($event, source.id)"
+              @pointermove="dragTo"
+              @pointerup="endDrag"
+              @pointercancel="cancelDrag"
+              @lostpointercapture="cancelDrag"
+              @keydown="onHandleKey($event, source.id)"
+            >
+              <v-icon>{{ mdiDragVertical }}</v-icon>
+            </button>
+            <span v-else class="sourceHandle" aria-hidden="true" />
             <div class="sourcePanel">
               <v-expansion-panels
                 :model-value="isConfigured(source.id) ? [] : [0]"
@@ -292,7 +288,7 @@
 </template>
 
 <script>
-import { mdiChevronDown, mdiChevronUp, mdiOpenInNew } from "@mdi/js";
+import { mdiDragVertical, mdiOpenInNew } from "@mdi/js";
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
@@ -342,6 +338,9 @@ function budgetNote(id) {
   return `Free tier: ${perHour} requests an hour and ${perDay} a day, about ${perComic} per comic.`;
 }
 
+// The keys that move a focused drag handle, and which way.
+const MOVE_KEYS = Object.freeze({ ArrowUp: -1, ArrowDown: 1 });
+
 // What each enabled source does in a scan, by mode and rank.
 const SOURCE_ROLES = Object.freeze({
   only: "Only source",
@@ -360,8 +359,7 @@ const SOURCE_ROWS = Object.freeze(
       fields: credentialFields(id),
       notes: [budgetNote(id), descriptor.terms].filter(Boolean).join(" "),
       enableLabel: `Enable ${label}`,
-      raiseLabel: `Raise ${label} priority`,
-      lowerLabel: `Lower ${label} priority`,
+      moveLabel: `Reorder ${label}: drag, or press the up and down arrow keys`,
       saveText: customUrl
         ? `Save ${label} Credentials`
         : `Save ${label} API Key`,
@@ -398,8 +396,7 @@ export default {
   },
   data() {
     return {
-      mdiChevronDown,
-      mdiChevronUp,
+      mdiDragVertical,
       mdiOpenInNew,
       formatChoices: WRITE_FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
@@ -422,12 +419,19 @@ export default {
       sourceDisabledTooltip:
         "A source can only be enabled once its API key is saved.",
       sourcesOrderHint:
-        "The enabled sources below are listed in priority order, highest first; use the arrows to reorder them. With First match, the first source in the list that finds a match tags the comic and the rest are skipped. With Merge all sources, every enabled source is queried and their results are merged into one record; where they disagree, the source higher in the list wins.",
+        "The enabled sources below are listed in priority order, highest first; drag one by its handle to reorder them. With First match, the first source in the list that finds a match tags the comic and the rest are skipped. With Merge all sources, every enabled source is queried and their results are merged into one record; where they disagree, the source higher in the list wins.",
       mergeAllSourcesHint:
         "Merging queries every enabled source for each comic instead of stopping at the first match, so it roughly multiplies online API calls by the number of enabled sources — scans take longer and hit rate limits sooner. Can be overridden per scan in the Tag Online dialog.",
       mergeDisabledHint:
         "Merging needs two or more enabled sources: enable another one below.",
       sources: SOURCE_ROWS,
+      moveTooltip: "Drag to reorder",
+      // The source being dragged, and the order the drag would save; null
+      // when nothing is being dragged.
+      dragSource: "",
+      dragOrder: null,
+      // Read out by screen readers after each move.
+      moveAnnouncement: "",
       draft: pickFields(undefined),
       saving: false,
       pendingSave: false,
@@ -468,6 +472,10 @@ export default {
       return (this.draft.defaultSources || []).filter((source) =>
         this.isSourceEnabled(source),
       );
+    },
+    shownSources() {
+      // The order on screen: a drag in progress previews its own, unsaved.
+      return this.dragOrder || this.activeSources;
     },
     canMerge() {
       // Merging needs at least two enabled sources; with one there's nothing
@@ -549,18 +557,15 @@ export default {
       }
       this.draft.defaultSources = sources;
     },
-    sourcePriority(source) {
-      return (this.draft.defaultSources || []).indexOf(source);
-    },
     sourceRowStyle(source) {
       // Render rows in priority order via flex order; sources that aren't
       // enabled sink below the enabled ones, so those stay contiguous.
-      const index = this.activeSources.indexOf(source);
+      const index = this.shownSources.indexOf(source);
       return { order: index === -1 ? 99 : index };
     },
     sourceRank(source) {
       // 1 for the highest-priority enabled source; 0 for one not enabled.
-      return this.activeSources.indexOf(source) + 1;
+      return this.shownSources.indexOf(source) + 1;
     },
     sourceRole(source) {
       // What this source does in a scan, as its row's tag says.
@@ -568,7 +573,7 @@ export default {
       if (!rank) {
         return "";
       }
-      if (this.activeSources.length === 1) {
+      if (this.shownSources.length === 1) {
         return SOURCE_ROLES.only;
       }
       const roles = this.draft.mergeAllSources
@@ -576,15 +581,101 @@ export default {
         : SOURCE_ROLES.firstMatch;
       return rank === 1 ? roles.lead : roles.rest;
     },
-    moveSource(source, delta) {
-      const sources = [...(this.draft.defaultSources || [])];
-      const from = sources.indexOf(source);
-      const to = from + delta;
-      if (from === -1 || to < 0 || to >= sources.length) {
+    saveOrder(order, moved) {
+      // Store a new order of the enabled sources. defaultSources may still
+      // list a source that lost its credentials; it keeps its place after
+      // them, where it neither runs nor shows a rank.
+      if (dequal(order, this.activeSources)) {
         return;
       }
-      [sources[from], sources[to]] = [sources[to], sources[from]];
-      this.draft.defaultSources = sources;
+      const rest = (this.draft.defaultSources || []).filter(
+        (source) => !order.includes(source),
+      );
+      this.draft.defaultSources = [...order, ...rest];
+      const { label } = SOURCE_ROWS.find((row) => row.id === moved);
+      const rank = order.indexOf(moved) + 1;
+      this.moveAnnouncement = `${label} moved to ${rank} of ${order.length}.`;
+    },
+    moveSource(source, delta) {
+      // Swap a source with its enabled neighbour, as the arrow keys do.
+      const order = [...this.activeSources];
+      const from = order.indexOf(source);
+      const to = from + delta;
+      if (from === -1 || to < 0 || to >= order.length) {
+        return;
+      }
+      [order[from], order[to]] = [order[to], order[from]];
+      this.saveOrder(order, source);
+    },
+    onHandleKey(event, source) {
+      if (event.key === "Escape") {
+        this.cancelDrag();
+        return;
+      }
+      const delta = MOVE_KEYS[event.key];
+      if (!delta || this.dragSource) {
+        return;
+      }
+      // Keep the page from scrolling.
+      event.preventDefault();
+      this.moveSource(source, delta);
+    },
+    startDrag(event, source) {
+      if (event.button !== 0) {
+        return;
+      }
+      // No text selection while dragging.
+      event.preventDefault();
+      this.dragSource = source;
+      this.dragOrder = [...this.activeSources];
+      const handle = event.currentTarget;
+      // Focused so Escape can drop the drag, without a keyboard focus ring.
+      handle.focus({ focusVisible: false });
+      try {
+        // Every later pointer event comes to this handle, wherever the
+        // pointer goes.
+        handle.setPointerCapture(event.pointerId);
+      } catch {
+        // Not a pointer that is down (a synthetic event): the drag still
+        // follows it while it stays over the handle.
+      }
+    },
+    rowMiddle(source) {
+      const row = this.$refs.sourcesGroup?.querySelector(
+        `[data-source="${source}"]`,
+      );
+      const box = row?.getBoundingClientRect();
+      return box ? box.top + box.height / 2 : 0;
+    },
+    dragTo(event) {
+      // Put the dragged source after every other row whose middle is above
+      // the pointer. The rows move as the order changes, so this settles
+      // instead of flickering between two places.
+      if (!this.dragSource) {
+        return;
+      }
+      const others = this.dragOrder.filter(
+        (source) => source !== this.dragSource,
+      );
+      const above = others.filter(
+        (source) => this.rowMiddle(source) < event.clientY,
+      ).length;
+      const order = [...others];
+      order.splice(above, 0, this.dragSource);
+      if (!dequal(order, this.dragOrder)) {
+        this.dragOrder = order;
+      }
+    },
+    endDrag() {
+      const { dragSource, dragOrder } = this;
+      this.cancelDrag();
+      if (dragOrder) {
+        this.saveOrder(dragOrder, dragSource);
+      }
+    },
+    cancelDrag() {
+      this.dragSource = "";
+      this.dragOrder = null;
     },
     async autoSave() {
       // Serialize saves so overlapping requests can't land out of order; if the
@@ -760,11 +851,45 @@ $rank-size: 20px;
   margin-top: d.$space-1;
 }
 
-// Priority arrows under the enable checkbox.
-.sourceOrderButtons {
-  display: flex;
-  flex-direction: column;
+// The grip that reorders a source, between its checkbox and its panel. A
+// source that isn't enabled keeps an empty one, so every panel lines up.
+.sourceHandle {
+  flex: none;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 32px;
+  margin-top: d.$space-2;
+  padding: 0;
+  border: none;
+  border-radius: d.$radius-sm;
+  background: none;
+  color: rgb(var(--v-theme-text-secondary));
+  cursor: grab;
+  // A touch on the grip drags the source instead of scrolling the page.
+  touch-action: none;
+}
+
+button.sourceHandle:hover,
+button.sourceHandle:focus-visible {
+  color: rgb(var(--v-theme-on-surface));
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+}
+
+button.sourceHandle:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+}
+
+// The source being dragged stands out, and the grip says it's held.
+.sourceRowDragging .sourcePanel {
+  border-radius: d.$radius;
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary));
+}
+
+.sourceRowDragging .sourceHandle {
+  cursor: grabbing;
+  color: rgb(var(--v-theme-primary));
 }
 
 .sourcePanel {

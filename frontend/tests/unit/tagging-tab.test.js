@@ -256,11 +256,9 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
       .filter((label) => /Comic Vine|Metron Cloud/v.test(label));
     expect(ariaLabels).toEqual([
       "Enable Metron Cloud",
-      "Raise Metron Cloud priority",
-      "Lower Metron Cloud priority",
+      "Reorder Metron Cloud: drag, or press the up and down arrow keys",
       "Enable Comic Vine",
-      "Raise Comic Vine priority",
-      "Lower Comic Vine priority",
+      "Reorder Comic Vine: drag, or press the up and down arrow keys",
     ]);
     const [metronPanel, comicvinePanel] = wrapper.findAll(".sourcePanel");
     expect(metronPanel.find(".adminCardTitle").text()).toBe("Metron Cloud");
@@ -549,6 +547,166 @@ describe("AdminTaggingTab — mode switch, ranks and roles", () => {
     });
     expect(rowRole(wrapper, "Metron Cloud")).toBe("Only source");
     expect(rowRole(wrapper, "Comic Vine")).toBe("");
+  });
+});
+
+function handleFor(wrapper, label) {
+  return sourceRowFor(wrapper, label).find(".sourceHandle");
+}
+
+function mountThree() {
+  const wrapper = mountTab({
+    configuredSources: ALL_SOURCES,
+    defaultSources: ["metron", "comicvine", "versedb"],
+  });
+  stubRowBoxes(wrapper);
+  return wrapper;
+}
+
+/*
+ * happy-dom lays nothing out, so give each row a 100px box at the slot its
+ * flex ``order`` puts it in, read afresh on every call as a drag moves it.
+ */
+function stubRowBoxes(wrapper) {
+  for (const row of wrapper.findAll(".sourceRow")) {
+    row.element.getBoundingClientRect = () => {
+      const top = Number(row.element.style.order) * 100;
+      return { top, height: 100, bottom: top + 100, left: 0, right: 0 };
+    };
+  }
+}
+
+const PRESS = Object.freeze({ button: 0, pointerId: 1 });
+
+describe("AdminTaggingTab — drag to reorder", () => {
+  test("only an enabled source has a drag handle", () => {
+    const wrapper = mountTab({
+      configuredSources: ALL_SOURCES,
+      defaultSources: ["metron"],
+    });
+    expect(handleFor(wrapper, "Metron Cloud").element.tagName).toBe("BUTTON");
+    // The others keep an empty slot so the panels line up.
+    expect(handleFor(wrapper, "Comic Vine").element.tagName).toBe("SPAN");
+    expect(wrapper.find(".sourceOrderButtons").exists()).toBe(false);
+  });
+
+  test("dragging previews the order and saves it once, on release", async () => {
+    const wrapper = mountThree();
+    const store = useAdminStore();
+    const handle = handleFor(wrapper, "Metron Cloud");
+
+    await handle.trigger("pointerdown", { ...PRESS, clientY: 50 });
+    expect(sourceRowFor(wrapper, "Metron Cloud").classes()).toContain(
+      "sourceRowDragging",
+    );
+    await handle.trigger("pointermove", { ...PRESS, clientY: 160 });
+    expect(rowRank(wrapper, "Comic Vine")).toBe("1");
+    expect(rowRank(wrapper, "Metron Cloud")).toBe("2");
+    await handle.trigger("pointermove", { ...PRESS, clientY: 260 });
+    expect(rowRank(wrapper, "Metron Cloud")).toBe("3");
+    expect(store.updateTaggingDefaults).not.toHaveBeenCalled();
+
+    await handle.trigger("pointerup", PRESS);
+    expect(wrapper.vm.draft.defaultSources).toEqual([
+      "comicvine",
+      "versedb",
+      "metron",
+    ]);
+    expect(store.updateTaggingDefaults).toHaveBeenCalledTimes(1);
+    expect(store.updateTaggingDefaults).toHaveBeenCalledWith(
+      expect.objectContaining({
+        defaultSources: ["comicvine", "versedb", "metron"],
+      }),
+    );
+    expect(wrapper.find(".sourceMoveAnnouncement").text()).toBe(
+      "Metron Cloud moved to 3 of 3.",
+    );
+    expect(sourceRowFor(wrapper, "Metron Cloud").classes()).not.toContain(
+      "sourceRowDragging",
+    );
+  });
+
+  test("a cancelled drag puts everything back and saves nothing", async () => {
+    const wrapper = mountThree();
+    const store = useAdminStore();
+    const handle = handleFor(wrapper, "Metron Cloud");
+
+    await handle.trigger("pointerdown", { ...PRESS, clientY: 50 });
+    await handle.trigger("pointermove", { ...PRESS, clientY: 260 });
+    await handle.trigger("pointercancel", PRESS);
+    expect(rowRank(wrapper, "Metron Cloud")).toBe("1");
+    expect(wrapper.vm.draft.defaultSources).toEqual([
+      "metron",
+      "comicvine",
+      "versedb",
+    ]);
+    expect(store.updateTaggingDefaults).not.toHaveBeenCalled();
+  });
+
+  test("Escape drops a drag in progress", async () => {
+    const wrapper = mountThree();
+    const handle = handleFor(wrapper, "Metron Cloud");
+
+    await handle.trigger("pointerdown", { ...PRESS, clientY: 50 });
+    await handle.trigger("pointermove", { ...PRESS, clientY: 260 });
+    await handle.trigger("keydown", { key: "Escape" });
+    await handle.trigger("pointerup", PRESS);
+    expect(wrapper.vm.draft.defaultSources).toEqual([
+      "metron",
+      "comicvine",
+      "versedb",
+    ]);
+  });
+
+  test("only the main button starts a drag", async () => {
+    const wrapper = mountThree();
+    await handleFor(wrapper, "Metron Cloud").trigger("pointerdown", {
+      button: 2,
+      pointerId: 1,
+      clientY: 50,
+    });
+    expect(wrapper.vm.dragSource).toBe("");
+  });
+
+  test("the arrow keys move a focused handle's source", async () => {
+    const wrapper = mountThree();
+    const store = useAdminStore();
+
+    await handleFor(wrapper, "VerseDB").trigger("keydown", { key: "ArrowUp" });
+    expect(wrapper.vm.draft.defaultSources).toEqual([
+      "metron",
+      "versedb",
+      "comicvine",
+    ]);
+    expect(store.updateTaggingDefaults).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        defaultSources: ["metron", "versedb", "comicvine"],
+      }),
+    );
+    expect(wrapper.find(".sourceMoveAnnouncement").text()).toBe(
+      "VerseDB moved to 2 of 3.",
+    );
+
+    // Already first: nothing to do.
+    await handleFor(wrapper, "Metron Cloud").trigger("keydown", {
+      key: "ArrowUp",
+    });
+    expect(wrapper.vm.draft.defaultSources[0]).toBe("metron");
+  });
+
+  test("a move skips a source that lingers without credentials", async () => {
+    const wrapper = mountTab({
+      configuredSources: ["metron", "comicvine"],
+      defaultSources: ["versedb", "metron", "comicvine"],
+    });
+    await handleFor(wrapper, "Comic Vine").trigger("keydown", {
+      key: "ArrowUp",
+    });
+    expect(wrapper.vm.draft.defaultSources).toEqual([
+      "comicvine",
+      "metron",
+      "versedb",
+    ]);
   });
 });
 
