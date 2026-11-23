@@ -1,5 +1,6 @@
 /*
- * A reading list's card says "31 of 98" when the library lacks some of it.
+ * A reading list's card leads with its name, then its sources, then "31 of
+ * 98" when the library lacks some of it.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -34,5 +35,39 @@ describe("list coverage on a card", () => {
   test("another card says nothing", () => {
     const wrapper = subtitle({ collection: "series" });
     expect(wrapper.find(".listCoverage").exists()).toBe(false);
+  });
+});
+
+function lines(wrapper) {
+  return [...wrapper.element.children].map((el) => [
+    el.className,
+    el.textContent.trim(),
+  ]);
+}
+
+describe("a reading list's card caption", () => {
+  test("its name comes first, bold, and its sources after", () => {
+    const wrapper = subtitle({
+      listSources: "Tags, Metron · CBRO",
+      listInLibrary: 31,
+      listTotal: 98,
+    });
+    const [first, ...rest] = lines(wrapper);
+    expect(first[1]).toBe("Civil War");
+    expect(first[0]).toContain("listName");
+    expect(rest.map(([, text]) => text)).toEqual([
+      "Tags, Metron · CBRO",
+      "31 of 98",
+    ]);
+  });
+
+  test("another card keeps its name last", () => {
+    const wrapper = subtitle({
+      collection: "imprints",
+      publisherName: "Marvel",
+    });
+    const names = lines(wrapper).map(([, text]) => text);
+    expect(names.at(-1)).toBe("Civil War");
+    expect(wrapper.find(".listName").exists()).toBe(false);
   });
 });

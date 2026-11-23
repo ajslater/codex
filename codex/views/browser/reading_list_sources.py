@@ -8,15 +8,20 @@ from codex.choices.readinglists import SOURCE_SHORT_LABELS, ReadingListSourceKin
 from codex.models.readinglist import ReadingListEntry, ReadingListSource
 from codex.views.readinglists.access import shown_entries_q
 
+# No-break spaces keep a source whole when the caption wraps.
+_ATTRIBUTION_SEP = "\u00a0·\u00a0"
+
 
 def _label(kind: str, attribution: str) -> str:
     label = SOURCE_SHORT_LABELS.get(kind, kind)
-    return f"{label} · {attribution.upper()}" if attribution else label
+    return f"{label}{_ATTRIBUTION_SEP}{attribution.upper()}" if attribution else label
 
 
 def attach_list_sources(collection_qs: QuerySet) -> None:
     """
-    Set ``list_sources`` on each reading list of a page: ``Tags + Metron · CBRO``.
+    Set ``list_sources`` on each reading list of a page: ``Tags, Metron · CBRO``.
+
+    Joined with a comma, as other cover captions join several values.
 
     Iterating the paginated queryset primes its result cache, so the
     serializer reads these same instances. One query for the page's sources.
@@ -36,7 +41,7 @@ def attach_list_sources(collection_qs: QuerySet) -> None:
         if label not in labels[list_pk]:
             labels[list_pk].append(label)
     for row in rows:
-        row.list_sources = " + ".join(labels.get(row.pk, ()))
+        row.list_sources = ", ".join(labels.get(row.pk, ()))
 
 
 def attach_list_coverage(acl, user, collection_qs: QuerySet) -> None:

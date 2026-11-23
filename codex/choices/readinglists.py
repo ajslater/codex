@@ -33,7 +33,7 @@ class ReadingListSourceKind(TextChoices):
 SOURCE_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
     {str(value): str(label) for value, label in ReadingListSourceKind.choices}
 )
-# A list card's caption names its sources briefly: ``Tags + Metron · CBRO``.
+# A list card's caption names its sources briefly: ``Tags, Metron · CBRO``.
 SOURCE_SHORT_LABELS: Final[MappingProxyType[str, str]] = MappingProxyType(
     {
         ReadingListSourceKind.TAGS.value: "Tags",
