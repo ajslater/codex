@@ -10,8 +10,8 @@ border-radius: 128px;
 
 ### ✨ Added
 
-- The Tagging tab numbers its online sources by priority and labels each one's
-  role, under a First match / Merge all sources switch.
+- The Tagging tab numbers its online sources by priority, labels each one's role
+  and reorders them by drag, under a First match / Merge all sources switch.
 
 ### ♻️ Changed
 
