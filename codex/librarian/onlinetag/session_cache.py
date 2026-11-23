@@ -9,7 +9,8 @@ Two things live in the dedicated ``tagging`` cache, namespaced under
   the admin's choice *without* the original tagging run's in-memory session:
   it carries the ``comics`` the question speaks for (each with the other
   sources that tagged it anyway, ``tagged_by``, and the issue ids they
-  wrote, ``tagged_ids``), the ``source``, the serialized ``candidates``, the
+  wrote, ``tagged_ids``, to which answering another prompt on the comic
+  adds its source), the ``source``, the serialized ``candidates``, the
   match ``mode``, the write params (``formats``, ``delete_original``), and
   the run's ``source_order`` and ``merge_all_sources``, which keep a
   higher-priority source winning the merge when the answer is applied
@@ -32,7 +33,10 @@ which would have stranded prompts mid-answer.
 
 All writes happen on the single ``OnlineTagThread`` (run/resolve/skip) plus
 the nightly janitor prune; the admin views only read prompts and enqueue
-tasks. Not to be confused with
+tasks. A resolve runs only between scans, never inside one, so its changes
+and a scan's persists take turns. The janitor's prune runs on the scribe
+thread and does not take turns: a change the online tag thread makes
+between the prune's read and its write is lost. Not to be confused with
 :mod:`codex.librarian.onlinetag.session_state`, which holds the in-process
 ``SessionState`` for a running job.
 """
@@ -106,6 +110,67 @@ def prompt_comics(prompt: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
     if pk is None:
         return ()
     return ({"pk": pk, "path": prompt.get("path") or ""},)
+
+
+def _note_comic(comic: dict[str, Any], ids: Mapping[str, int]) -> bool:
+    """Add ``ids`` to one comic's tagged ids and sources; return whether new."""
+    known = comic.get("tagged_ids") or {}
+    if ids.items() <= known.items():
+        return False
+    comic["tagged_ids"] = {**known, **ids}
+    tagged_by = [str(name) for name in comic.get("tagged_by") or ()]
+    comic["tagged_by"] = [*tagged_by, *(name for name in ids if name not in tagged_by)]
+    return True
+
+
+def note_tagged_ids(
+    prompt: dict[str, Any], written: Mapping[int, Mapping[str, int]]
+) -> bool:
+    """
+    Note on a prompt's comics the issue ids their queued writes carry.
+
+    ``written`` maps a comic's pk to the issue id each source's write for it
+    was queued with. Answering one source's prompt queues a write that the
+    database only has once it is re-imported, so another source's prompt
+    on the same comic, answered first, would apply alone. Noted here, its
+    apply finds the id, as it does the ids the scan saw written, and the
+    review dialog says that source already tagged the comic. The prompt's
+    own source is never noted on it. Returns whether anything changed.
+    """
+    source = prompt.get("source")
+    comics = [dict(comic) for comic in prompt_comics(prompt)]
+    noted = [
+        _note_comic(
+            comic,
+            {
+                name: issue_id
+                for name, issue_id in written.get(comic["pk"], {}).items()
+                if name != source
+            },
+        )
+        for comic in comics
+    ]
+    if not any(noted):
+        return False
+    prompt["comics"] = comics
+    return True
+
+
+def note_written_ids(written: Mapping[int, Mapping[str, int]]) -> bool:
+    """
+    Note queued writes' issue ids on every pending prompt and persist.
+
+    Read, change and write back in one call on the online tag thread, as
+    every other change to the map is, so a scan's persist cannot land in
+    between. Returns whether any prompt changed.
+    """
+    if not written:
+        return False
+    prompts = get_pending_prompts()
+    changed = [note_tagged_ids(prompt, written) for prompt in prompts.values()]
+    if any(changed):
+        set_pending_prompts(prompts)
+    return any(changed)
 
 
 def _merge_prompt(

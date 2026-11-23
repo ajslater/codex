@@ -27,7 +27,10 @@ and comicbox lets the first source in the run's order win every single-valued
 tag they disagree on. Written alone, a lower-priority pick would overwrite
 what a higher-priority source already gave the comic, so each comic's
 higher-priority issue ids are fetched again with the pick and comicbox merges
-them in that order (see ``_higher_priority_ids``).
+them in that order (see ``_higher_priority_ids``). Two prompts on one comic
+answered in a row find each other the same way: once a pick's write is
+queued, its issue id is noted on that comic in every other pending prompt,
+since the database has it only after the write is re-imported.
 
 Split out of :mod:`~codex.librarian.onlinetag.session_manager`, which owns the
 scan; this owns what happens after one.
@@ -49,7 +52,11 @@ from codex.librarian.onlinetag.explicit_id import (
     fetch_tags_by_explicit_id,
     fetched_issue_id,
 )
-from codex.librarian.onlinetag.session_cache import add_pending_prompts, prompt_comics
+from codex.librarian.onlinetag.session_cache import (
+    add_pending_prompts,
+    note_written_ids,
+    prompt_comics,
+)
 from codex.librarian.onlinetag.session_state import CLIENT_NAME, serialize_prompt
 from codex.librarian.onlinetag.sources import configured_sources
 from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
@@ -59,7 +66,7 @@ from codex.models.comic import Comic
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from multiprocessing import Queue
     from typing import Literal
 
@@ -69,6 +76,8 @@ if TYPE_CHECKING:
 #: (action, payload, chosen_volume_id) — the admin's answer as the review
 #: dialog sends it, carried together because every step needs all three.
 type Resolution = tuple[str, Any, int | None]
+#: pk -> {source: issue id}: the ids an answer's queued writes carry.
+type WrittenIds = dict[int, dict[str, int]]
 
 
 def comic_prompt(prompt: dict[str, Any], comic: dict[str, Any]) -> dict[str, Any]:
@@ -101,6 +110,7 @@ class PromptApplier:
         self.log = log
         self.librarian_queue = librarian_queue
         self._build_credentials = build_credentials
+        self._written: WrittenIds = {}
 
     def apply(
         self,
@@ -108,8 +118,26 @@ class PromptApplier:
         action: str,
         payload: Any,
         chosen_volume_id: int | None,
+    ) -> WrittenIds:
+        """
+        Apply the admin's pick to every comic this one question answers for.
+
+        Returns the issue id each comic's write was queued with. Every
+        pending prompt is noted with them already; a caller holding answers
+        it has taken out of the cache notes them on those itself.
+        """
+        self._written = {}
+        self._apply_to_comics(prompt, action, payload, chosen_volume_id)
+        return self._written
+
+    def _apply_to_comics(
+        self,
+        prompt: dict[str, Any],
+        action: str,
+        payload: Any,
+        chosen_volume_id: int | None,
     ) -> None:
-        """Apply the admin's pick to every comic this one question answers for."""
+        """Write the pick to the representative, then to its followers."""
         comics = prompt_comics(prompt)
         source = prompt.get("source") or ""
         if not comics or not source:
@@ -367,7 +395,7 @@ class PromptApplier:
             )
             return
         if tags:
-            self._enqueue_resolved_write(prompt, pk, tags, path_str)
+            self._enqueue_resolved_write(prompt, pk, tags, path_str, source=src)
         else:
             # The id itself didn't resolve (wrong/unknown issue). Don't re-queue
             # a fresh ambiguous prompt — the admin made an explicit choice.
@@ -427,7 +455,7 @@ class PromptApplier:
             self._handle_unresolved(prompt, path_str, session)
             return
         tags = self._merge_in_run_order(prompt, pk, path_str, credentials, tags)
-        self._enqueue_resolved_write(prompt, pk, tags, path_str)
+        self._enqueue_resolved_write(prompt, pk, tags, path_str, source=source)
 
     def _merge_in_run_order(
         self,
@@ -475,9 +503,15 @@ class PromptApplier:
             self.log.warning(f"Online tag: no tags resolved for {path_str}.")
 
     def _enqueue_resolved_write(
-        self, prompt: dict[str, Any], pk: int, tags: dict[str, Any], path_str: str
+        self,
+        prompt: dict[str, Any],
+        pk: int,
+        tags: dict[str, Any],
+        path_str: str,
+        *,
+        source: str,
     ) -> None:
-        """Queue the write for a successfully resolved prompt match."""
+        """Queue the write for ``source``'s resolved match on one comic."""
         write_task = BulkTagWriteTask(
             comic_pks=frozenset({pk}),
             per_comic_patches={pk: tags},
@@ -488,6 +522,22 @@ class PromptApplier:
         )
         self.librarian_queue.put(write_task)
         self.log.info(f"Online tag: applied resolved match for {path_str}.")
+        self._note_written(pk, source, tags)
+
+    def _note_written(self, pk: int, source: str, tags: Mapping[str, Any]) -> None:
+        """
+        Note the queued write's issue id on the comic's other pending prompts.
+
+        The id is the one the written tags carry, so a replay is noted with
+        the issue it landed on. Nothing is noted for a write without one.
+        """
+        issue_id = fetched_issue_id(tags, source)
+        if issue_id is None:
+            return
+        self._written.setdefault(pk, {})[source] = issue_id
+        if note_written_ids({pk: {source: issue_id}}):
+            # The review dialog's copy of those prompts is now stale.
+            self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
     def _repersist_drifted_prompt(
         self, prompt: dict[str, Any], session: OnlineSession

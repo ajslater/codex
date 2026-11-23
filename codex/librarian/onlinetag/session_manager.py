@@ -64,6 +64,7 @@ from codex.librarian.onlinetag.prompt_apply import PromptApplier
 from codex.librarian.onlinetag.session_cache import (
     add_pending_prompts,
     get_pending_prompts,
+    note_tagged_ids,
     prompt_comics,
     remove_pending_prompt,
     set_active_scan_id,
@@ -562,19 +563,30 @@ class OnlineTagSessionManager:
         self.log.info(f"Online tag: skipped {len(prompts)} prompt(s) mid-scan.")
 
     def _apply_deferred_resolutions(self, state: SessionState) -> None:
-        """Apply mid-scan "choose"/"manual" answers once the scan is done."""
+        """
+        Apply mid-scan "choose"/"manual" answers once the scan is done.
+
+        These answers left the cache when they were given, so the ids an
+        earlier one's writes carry are noted on the later ones here: the
+        applier notes them only on the prompts still cached.
+        """
         if not state.deferred_applies:
             return
         applies = list(state.deferred_applies)
         state.deferred_applies.clear()
-        for prompt, action, payload, chosen_volume_id in applies:
+        for index, (prompt, action, payload, chosen_volume_id) in enumerate(applies):
             try:
-                self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+                written = self._prompt_applier.apply(
+                    prompt, action, payload, chosen_volume_id
+                )
             except Exception:
                 path = prompt.get("path")
                 self.log.exception(
                     f"Online tag: applying deferred prompt resolution for {path!r}"
                 )
+                continue
+            for later, *_ in applies[index + 1 :]:
+                note_tagged_ids(later, written)
 
     def _merge_task(self, state: SessionState, task: Any) -> None:
         """Merge a new BulkOnlineTagTask's comics into the running session."""
