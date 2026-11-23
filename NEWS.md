@@ -6,6 +6,23 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.8.0
+
+### ✨ Added
+
+- The Tagging tab outlines the source that tags first, or every source when
+  merging.
+
+### ♻️ Changed
+
+- With Merge all sources on, the source higher in the Tagging tab's list wins
+  where sources disagree.
+
+### 🐛 Fixed
+
+- Answering a tagging prompt from a Merge all sources run no longer overwrites
+  tags a higher-priority source already wrote.
+
 ## v2.7.1
 
 ### 🐛 Fixed
