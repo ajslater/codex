@@ -40,9 +40,8 @@ export const SOURCE_DESCRIPTORS = Object.freeze({
     tokenLinkText: "VerseDB Custom Apps",
     // comicbox takes a url, but nobody runs a VerseDB mirror.
     customUrl: false,
-    // VerseDB's free API terms, and where its tags land in a merge.
-    terms:
-      "Non-commercial use only. Its tags fill gaps: where sources disagree, Metron and Comic Vine win.",
+    // VerseDB's free API terms.
+    terms: "Non-commercial use only.",
   }),
 });
 

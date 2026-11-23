@@ -27,7 +27,8 @@ class BulkOnlineTagTask(OnlineTagTask):
     effort: str = ""
     delete_original: bool = False
     # Query every source per comic and merge (comicbox first_wins=False)
-    # instead of stopping at the first match.
+    # instead of stopping at the first match. ``sources`` order decides who
+    # wins where they disagree: the first listed.
     merge_all_sources: bool = False
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False

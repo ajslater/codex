@@ -398,7 +398,7 @@ export default {
       sourceDisabledTooltip:
         "A source can only be enabled once its API key is saved.",
       sourcesOrderHint:
-        "Enabled sources run in priority order — use the arrows to reorder. With Merge all sources off, the highest-priority source that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried for each comic and their results are merged into one record for the most complete metadata.",
+        "The enabled sources below are listed in priority order, highest first; use the arrows to reorder them. With Merge all sources off, the first source in the list that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried and their results are merged into one record; where they disagree, the source higher in the list wins.",
       mergeAllSourcesHint:
         "Merging queries every enabled source for each comic instead of stopping at the first match, so it roughly multiplies online API calls by the number of enabled sources — scans take longer and hit rate limits sooner. Can be overridden per scan in the Tag Online dialog.",
       sources: SOURCE_ROWS,
@@ -507,8 +507,9 @@ export default {
       return Object.keys(this.credentialInput(source)).length > 0;
     },
     setSourceEnabled(source, enabled) {
-      // defaultSources order is run priority; a newly enabled source
-      // joins at the end (lowest priority).
+      // defaultSources order is priority: run order, and with Merge all
+      // sources on, who wins where sources disagree. A newly enabled
+      // source joins at the end (lowest priority).
       const sources = (this.draft.defaultSources || []).filter(
         (s) => s !== source,
       );

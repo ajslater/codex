@@ -16,8 +16,9 @@
  *     ``configuredSources``.
  *   - A disabled source checkbox explains itself with a title tooltip (on a
  *     wrapper element, since Vuetify kills pointer events on disabled controls).
- *   - ``defaultSources`` order is run priority; enabling appends to the end,
- *     and per-row arrows reorder it. The section shows a hint explaining this.
+ *   - ``defaultSources`` order is priority (run order, and the merge winner
+ *     where sources disagree); enabling appends to the end, and per-row
+ *     arrows reorder it. The section shows a hint explaining this.
  *   - A source with no stored credentials always reads as off, even if it
  *     lingers in ``defaultSources``.
  *   - Saving credentials for a source that had none enables it as a default
@@ -137,6 +138,16 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
 
   test("renders the priority-order hint paragraph", () => {
     expect(mountTab().find(".sourcesHint").exists()).toBe(true);
+  });
+
+  test("the priority hint says the list order is the precedence order", () => {
+    const hint = mountTab().find(".sourcesHint").text();
+    expect(hint).toContain(
+      "The enabled sources below are listed in priority order, highest first",
+    );
+    expect(hint).toContain(
+      "where they disagree, the source higher in the list wins.",
+    );
   });
 
   test("saving credentials for a new source enables it automatically", async () => {

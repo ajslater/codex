@@ -77,7 +77,9 @@ describe("Tagging tab — VerseDB card", () => {
     expect(notes).toContain("Non-commercial use only.");
     // The budget line already says "Free tier"; the terms do not repeat it.
     expect(notes.match(/Free/gv)).toHaveLength(1);
-    expect(notes).toContain("Metron and Comic Vine win");
+    // Who wins a merge is the priority order's to say, not VerseDB's card.
+    expect(notes).not.toContain("Metron and Comic Vine win");
+    expect(notes).not.toContain("fill gaps");
     // No mirror exists, so no custom url field.
     expect(panel.text()).not.toContain("Custom URL");
   });

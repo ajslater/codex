@@ -159,11 +159,14 @@ class ComicboxTaggingDefaults(BaseModel):
         default=EffortChoices.AUTO,
         blank=True,
     )
+    # Enabled sources in priority order: the order they run in and, when
+    # merging, which one wins where they disagree.
     default_sources = JSONField(default=list)
     # When True, query every enabled source per comic and merge the results
-    # (comicbox first_wins=False) instead of stopping at the first match. More
-    # complete metadata, but roughly multiplies online API calls by the number
-    # of enabled sources. Admin default; overridable per scan.
+    # (comicbox first_wins=False) instead of stopping at the first match, the
+    # higher-priority source winning where they disagree. More complete
+    # metadata, but roughly multiplies online API calls by the number of
+    # enabled sources. Admin default; overridable per scan.
     merge_all_sources = BooleanField(default=False)
 
     metron_key = EncryptedCharField()

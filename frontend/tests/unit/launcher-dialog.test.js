@@ -579,6 +579,20 @@ describe("OnlineTagLauncherDialog", () => {
       );
     });
 
+    test("its hint says the higher-priority source wins a merge", async () => {
+      const { wrapper } = mountDialog();
+
+      wrapper.vm.sources = ["metron", "comicvine"];
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.vm.mergeAllSourcesHint).toContain(
+        "their results are merged, the higher-priority source winning where they disagree",
+      );
+      expect(wrapper.text()).toContain(
+        "the higher-priority source winning where they disagree",
+      );
+    });
+
     test("is enabled only with two or more sources selected", async () => {
       const { wrapper } = mountDialog();
 

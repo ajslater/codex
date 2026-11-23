@@ -25,9 +25,9 @@ def _validate_ordered_sources(value: list) -> list:
     """
     Validate an ordered source list: known names, deduped, order kept.
 
-    List order is run priority (comicbox tries the first source first and,
-    under first-wins, its match ends the lookup), so order must survive
-    validation untouched.
+    List order is priority: comicbox tries the first source first and, under
+    first-wins, its match ends the lookup; when merging, the first source wins
+    where sources disagree. So order must survive validation untouched.
     """
     sources = list(dict.fromkeys(value))
     unknown = [s for s in sources if s not in KNOWN_SOURCES]

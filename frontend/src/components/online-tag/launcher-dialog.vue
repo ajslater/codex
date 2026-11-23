@@ -310,7 +310,7 @@ export default {
       promptsMode: "ask",
       mergeAllSources: false,
       mergeAllSourcesBaseHint:
-        "Off: the highest-priority selected source that matches tags the comic and the rest are skipped. On: every selected source is queried and their results are merged for the most complete tags — but that roughly multiplies API calls by the number of sources, so it's slower and rate-limited sooner.",
+        "Off: the highest-priority selected source that matches tags the comic and the rest are skipped. On: every selected source is queried and their results are merged, the higher-priority source winning where they disagree — but that roughly multiplies API calls by the number of sources, so it's slower and rate-limited sooner.",
       // A pinned source is always fetched, first-wins or not, so with every
       // selected source pinned their results merge no matter the setting.
       allPinnedMergeHint:
@@ -333,8 +333,9 @@ export default {
     orderedSelectedSources() {
       // Checkbox v-model arrays append in click order; submit in the
       // admin-configured priority order instead, since source order is
-      // run priority (first match wins). Unlisted sources keep their
-      // relative selection order after the listed ones.
+      // priority: the first match wins, and when merging the first source
+      // wins where sources disagree. Unlisted sources keep their relative
+      // selection order after the listed ones.
       const priority = this.taggingDefaults?.defaultSources || [];
       const rank = (s) => {
         const index = priority.indexOf(s);
