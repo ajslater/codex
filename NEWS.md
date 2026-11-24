@@ -10,6 +10,8 @@ border-radius: 128px;
 
 ### ✨ Added
 
+- VerseDB is a third online tagging source. Add its API token on the Tagging
+  tab.
 - The Tagging tab numbers its online sources by priority, labels each one's role
   and reorders them by drag, under a First match / Merge all sources switch.
 
@@ -22,6 +24,10 @@ border-radius: 128px;
 
 - Answering a tagging prompt from a Merge all sources run no longer overwrites
   tags a higher-priority source already wrote.
+
+### 🧑‍💻 Developer
+
+- Require comicbox 5.7.0.
 
 ## v2.7.1
 
