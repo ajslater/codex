@@ -36,6 +36,22 @@ class RestoreReport(Protocol):
 # List that favorites from a backup written before shelves existed are
 # filed on, matching what the shelves migration named their shelf.
 LEGACY_FAVORITES_SHELF_NAME: Final = "Favorites"
+# A shelf whose name cleans to nothing, as the shelves migration names it.
+_FALLBACK_LIST_NAME: Final = "Reading List"
+
+
+def shelf_list_name(name: str) -> str:
+    """
+    Name a shelf's list as the shelves migration does: cleaned, never empty.
+
+    A list name is cleaned on save and a shelf name never was. Unlike the
+    migration, two shelves that clean to one name share the list: a restore
+    reuses a list of that name, so running it again adds nothing.
+    """
+    from codex.models.readinglist import ReadingList
+
+    clean = ReadingList._meta.get_field("name").get_prep_value
+    return (clean(name) or "").strip() or _FALLBACK_LIST_NAME
 
 
 def has_table(store: SidecarStore, table: str) -> bool:
@@ -73,7 +89,7 @@ def restore_shelves(
         if user is None:
             report.note_skipped("shelves", f"missing user {row['username']!r}")
             continue
-        _list_of(user, row["name"])
+        _list_of(user, shelf_list_name(row["name"]))
         report.note_written("shelves")
 
 
@@ -126,6 +142,53 @@ class _ShelfRows:
             for index, comic in enumerate(comics)
         )
 
+    @staticmethod
+    def _add_missing(reading_list, path: str) -> bool:
+        """
+        Keep a shelved comic the library lacks as a missing issue.
+
+        Named from its file, so the rematch after an import finds it; a
+        restore run before the import finished used to drop it for good.
+        Returns whether it is on the list.
+        """
+        from pathlib import Path
+
+        from comicbox.readinglists import parse_issue
+        from comicfn2dict import comicfn2dict
+        from django.db.models import Max
+
+        from codex.librarian.scribe.readinglists.references import issue_name
+        from codex.models.readinglist import ReadingListEntry, ReadingListMatchTier
+
+        parsed = comicfn2dict(Path(path).name)
+        if not (series := str(parsed.get("series") or "")):
+            return False
+        number = parse_issue(parsed.get("issue"))
+        issue = issue_name(number.number, number.suffix)
+        year = int(raw) if (raw := str(parsed.get("year") or "")).isdigit() else None
+        entries = ReadingListEntry.objects.filter(reading_list=reading_list)
+        if entries.filter(
+            comic__isnull=True, manual=True, series_name=series, issue=issue, year=year
+        ).exists():
+            return True
+        reference: dict = {"series": {"name": series}}
+        if issue:
+            reference["issue"] = {"name": issue}
+        if year:
+            reference["date"] = {"year": year}
+        top = entries.aggregate(top=Max("position"))["top"]
+        ReadingListEntry.objects.create(
+            reading_list=reading_list,
+            position=0 if top is None else top + 1,
+            reference=reference,
+            series_name=series,
+            issue=issue,
+            year=year,
+            match_tier=ReadingListMatchTier.NONE,
+            manual=True,
+        )
+        return True
+
     def _add_item(self, reading_list, collection: str, identity: str, pks) -> None:
         from codex.librarian.scribe.readinglists.live import (
             COLLECTION_KIND,
@@ -175,12 +238,12 @@ class _ShelfRows:
         identity = row["identifier_json"]
         parts = json.loads(identity)[1:]
         pks = self.resolve_pks(collection, parts, target_model)
-        reading_list = _list_of(user, list_name)
+        reading_list = _list_of(user, shelf_list_name(list_name))
         if collection in ITEM_MODELS:
             self._add_item(reading_list, collection, identity, pks)
         elif pks:
             self._add_comics(reading_list, list(pks))
-        else:
+        elif not (parts and self._add_missing(reading_list, str(parts[0]))):
             self.report.note_skipped(
                 table, f"unresolvable comic {parts!r} for user {row['username']!r}"
             )
@@ -230,7 +293,7 @@ def resolve_filter_shelves(row, row_keys, browser) -> list[int]:
 
     names: list = []
     if "shelves" in row_keys:
-        names = json.loads(row["shelves"] or "[]")
+        names = [shelf_list_name(name) for name in json.loads(row["shelves"] or "[]")]
     if "favorite" in row_keys and row["favorite"]:
         names.append(LEGACY_FAVORITES_SHELF_NAME)
     if not names or browser.user_id is None:
