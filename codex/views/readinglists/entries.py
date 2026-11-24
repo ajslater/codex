@@ -262,9 +262,10 @@ def add_comics(
     Put comics into a list by hand, in order, at ``position`` or the end.
 
     A comic the list already shows is skipped; one it holds hidden shows
-    again, where it was. One a collection item delivers becomes a hand
-    entry, and the item stops delivering it. An insert inside a block goes
-    in before the block.
+    again, where it was, as hand-added: a source's row then outlives its
+    source, as a folded entry does. One a collection item delivers becomes
+    a hand entry, and the item stops delivering it. An insert inside a
+    block goes in before the block.
     """
     if not pks:
         return 0
@@ -297,7 +298,7 @@ def add_comics(
         return 0
     with transaction.atomic():
         lock_list(reading_list)
-        own.filter(ignored=True, comic_id__in=hidden).update(ignored=False)
+        own.filter(ignored=True, comic_id__in=hidden).update(ignored=False, manual=True)
         ordered = _order(reading_list)
         at = _boundary(ordered, position)
         ReadingListEntry.objects.bulk_create(new_entries)

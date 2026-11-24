@@ -219,3 +219,17 @@ class FoldedTagsTests(ReadingListFixture):
         sync_tag_lists()
         assert ReadingList.objects.filter(pk=self.reading_list.pk).exists()
         assert _shown(self.reading_list) == [comic.pk for comic in self.comics[:3]]
+
+
+class ReAddHiddenTests(ReadingListFixture):
+    """A person hides a source's #2, then adds #2 by hand."""
+
+    def test_the_shown_again_row_is_hand_added(self) -> None:
+        """It was added by hand, so it stays when the source goes."""
+        _, c2, _, _ = self.comics
+        owner = User.objects.create_user(username="owner", password=_PW)
+        reading_list = import_document(_cbl("A", 1, 2), _upload("a.cbl"), user=owner)
+        remove_comics(reading_list, [c2.pk])
+        assert add_comics(reading_list, [c2.pk]) == 1
+        assert remove_source(ReadingListSource.objects.get(reading_list=reading_list))
+        assert _shown(reading_list) == [c2.pk]
