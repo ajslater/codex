@@ -347,6 +347,9 @@ class ReadingListEntryView(ReadingListAccessView):
         data = self.request.data
         if "comic" in data:
             self._pick(entry, data["comic"])
+            # A pick replaces the comic a folded entry was added for: it is
+            # its source row's again, and the pick holds on that row.
+            entry.manual = entry.manual and not entry.source_ids
         if "ignored" in data:
             entry.ignored = bool(data["ignored"])
         if "needs_review" in data:
@@ -358,11 +361,17 @@ class ReadingListEntryView(ReadingListAccessView):
         return Response(entry_repr(entry))
 
     def delete(self, *_args, **_kwargs) -> Response:
-        """Remove a hand-added entry; any other entry is hidden instead."""
+        """
+        Remove a hand-added entry; any other entry is hidden instead.
+
+        A hand-added entry a source row holds is hidden too: the source
+        would bring it back.
+        """
         reading_list = self.get_reading_list()
         entry = self._entry(reading_list)
+        deleted = entry.manual and not entry.source_ids
         with transaction.atomic():
-            if entry.manual:
+            if deleted:
                 entry.delete()
                 _renumber(reading_list, _order(reading_list))
             else:
@@ -370,7 +379,7 @@ class ReadingListEntryView(ReadingListAccessView):
                 entry.save()
                 reading_list.save()
         _settle(reading_list)
-        return Response({"deleted": entry.manual})
+        return Response({"deleted": deleted})
 
 
 def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, Any]:
@@ -378,8 +387,9 @@ def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, An
     Take comics out of a list, in place; say how many of each kind.
 
     An entry added by hand goes; any other is hidden, since its source
-    would bring it back. A comic a collection item delivers is refused,
-    and the answer names the item, to remove instead.
+    would bring it back, a hand-added one a source row holds included. A
+    comic a collection item delivers is refused, and the answer names the
+    item, to remove instead.
     """
     pks = list(pks)
     if not pks:
@@ -393,11 +403,13 @@ def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, An
             "live_source"
         )
     ]
-    own = entries.filter(live_source__isnull=True)
+    listed = entries.filter(live_source__isnull=True)
+    # Only what no source supplies is the list's own to delete.
+    own = listed.filter(source_ids=[])
     with transaction.atomic():
         lock_list(reading_list)
         removed, _ = own.filter(manual=True).delete()
-        hidden = own.filter(manual=False, ignored=False).update(ignored=True)
+        hidden = listed.filter(ignored=False).update(ignored=True)
         if removed:
             _renumber(reading_list, _order(reading_list))
         else:
