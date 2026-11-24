@@ -219,6 +219,23 @@ def _dump_sources(
     return refs
 
 
+# What ``serialize_reading_list_entry`` reads.
+_ENTRY_FIELDS: Final = (
+    "reading_list_id",
+    "comic__path",
+    "reference",
+    "series_name",
+    "issue",
+    "year",
+    "match_tier",
+    "needs_review",
+    "ignored",
+    "manual",
+    "entry_type",
+    "source_ids",
+)
+
+
 def _dump_entries(
     store: SidecarStore,
     uuids: dict[int, str],
@@ -233,8 +250,11 @@ def _dump_entries(
     entries = ReadingListEntry.objects.filter(
         reading_list_id__in=uuids, live_source__isnull=True
     )
-    for entry in entries.select_related("comic").order_by(
-        "reading_list_id", "position", "pk"
+    # Of its comic an entry row keeps the path alone.
+    for entry in (
+        entries.select_related("comic")
+        .only(*_ENTRY_FIELDS)
+        .order_by("reading_list_id", "position", "pk")
     ):
         list_pk: int = entry.reading_list_id  # pyright: ignore[reportAttributeAccessIssue]
         row = serialize_reading_list_entry(
