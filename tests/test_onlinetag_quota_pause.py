@@ -16,7 +16,15 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Final
 
-from comicbox.events import SKIP_QUOTA_RESERVED, FileFinished, Skipped
+from comicbox.events import (
+    SKIP_QUOTA_RESERVED,
+    AutoWritten,
+    FileFinished,
+    NoMatch,
+    PromptDeferred,
+    Skipped,
+    SourceStarted,
+)
 from loguru import logger
 
 from codex.librarian.onlinetag.outcome_stats import (
@@ -49,6 +57,30 @@ class _QuotaStoppedSession:
                 error=None,
                 matched=not cancelled,
                 cancelled=cancelled,
+            )
+
+    def cancel(self) -> None:
+        pass
+
+
+class _QuotaSkippingSession:
+    """
+    Comicbox while VerseDB's daily cap is spent and the others carry on.
+
+    VerseDB reports each comic ``Skipped(reason=quota_reserved)``; the run
+    itself is not aborted, so no result comes back cancelled.
+    """
+
+    abort_reason = None
+
+    def __init__(self, paths: list[Path]) -> None:
+        self._paths = paths
+
+    def tag_many(self, paths):
+        _ = paths
+        for path in self._paths:
+            yield SimpleNamespace(
+                path=path, tags=None, error=None, matched=False, cancelled=False
             )
 
     def cancel(self) -> None:
@@ -94,6 +126,24 @@ class TestQuotaPause:
         _state, status = self._pass_over(3, stop_after=1)
 
         assert _QUOTA_REASON in status.subtitle
+
+    def test_a_versedb_quota_skip_does_not_pause_the_scan(self) -> None:
+        """One source out of budget is not the run out of budget."""
+        paths = [Path(f"/c/v{n}.cbz") for n in range(3)]
+        state = SessionState(
+            session=double(_QuotaSkippingSession(paths)),
+            path_to_pk={path: n for n, path in enumerate(paths, start=1)},
+            sources=("metron", "versedb"),
+        )
+        state.total_comics = len(paths)
+        status = OnlineLookupStatus()
+        status.total = len(paths)
+        runner = self._runner()
+        runner.lookup_status = status
+        runner._run_pass(state, paths, status, {}, flush_writes=False)  # noqa: SLF001
+
+        assert state.cancelled is False
+        assert state.completed_comics == len(paths)
 
     def test_the_comics_it_never_reached_stay_resumable(self) -> None:
         """``cancelled`` is what keeps the remainder in the resume set."""
@@ -143,6 +193,60 @@ class TestQuotaReservedOutcome:
 
         assert stats.quota_reserved_paths == set()
         assert path in stats.no_change_paths
+
+    def test_a_comic_every_other_source_missed_stays_resumable(self) -> None:
+        """VerseDB never looked, so the miss is not final."""
+        from codex.librarian.onlinetag.session_snapshot import remaining_pks
+
+        path = Path("/c/a.cbz")
+        state = SessionState(
+            session=None,  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+            path_to_pk={path: 1},
+            sources=("metron", "versedb"),
+        )
+        for event in (
+            SourceStarted(path=path, source="metron"),
+            NoMatch(path=path, source="metron"),
+            Skipped(path=path, source="versedb", reason=SKIP_QUOTA_RESERVED),
+            FileFinished(path=path, outcome="no_change"),
+        ):
+            state.stats.record(event)
+
+        assert remaining_pks(state, set()) == [1]
+        assert state.stats.left_for_next_run == 1
+        assert state.stats.source_status_by_path[path] == {"metron": "no_match"}
+
+    def test_a_comic_another_source_wrote_is_counted_once(self) -> None:
+        """Matched, not also left for the next run."""
+        path = Path("/c/a.cbz")
+        stats = OnlineTagOutcomeStats()
+        for event in (
+            Skipped(path=path, source="versedb", reason=SKIP_QUOTA_RESERVED),
+            AutoWritten(path=path, source="metron"),
+            FileFinished(path=path, outcome="written"),
+        ):
+            stats.record(event)
+
+        assert stats.matched == 1
+        assert stats.left_for_next_run == 0
+        summary = stats.summary(elapsed="2 seconds")
+        assert "1 comic — matched 1 (metron 1)" in summary
+        assert "left for the next run" not in summary
+
+    def test_a_comic_another_source_deferred_is_deferred_once(self) -> None:
+        """It waits on its prompt, not on the next run."""
+        path = Path("/c/a.cbz")
+        stats = OnlineTagOutcomeStats()
+        for event in (
+            Skipped(path=path, source="versedb", reason=SKIP_QUOTA_RESERVED),
+            PromptDeferred(path=path, source="metron"),
+            FileFinished(path=path, outcome="no_change"),
+        ):
+            stats.record(event)
+
+        assert stats.deferred == 1
+        assert stats.left_for_next_run == 0
+        assert "left for the next run" not in stats.summary(elapsed="2 seconds")
 
     def test_the_summary_says_what_is_left_for_next_time(self) -> None:
         stats = self._skipped_comic(Path("/c/a.cbz"))

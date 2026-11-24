@@ -26,6 +26,10 @@ border-radius: 128px;
 - Remote reading list sources refresh weekly.
 - Admins can write a reading list into its comics' files as a story arc.
 - User data backups keep imported and hand-made reading lists.
+- VerseDB is a third online tagging source. Add its API token on the Tagging
+  tab.
+- The Tagging tab numbers its online sources by priority, labels each one's role
+  and reorders them by drag, under a First match / Merge all sources switch.
 
 ### ♻️ Changed
 
@@ -36,6 +40,8 @@ border-radius: 128px;
   saved views, filters, columns, backups and OPDS start pages.
 - Filters take several values while the menu stays open, and tag filters can
   match all ticked values.
+- With Merge all sources on, the source higher in the Tagging tab's list wins
+  where sources disagree.
 
 ### 🔥 Removed
 
@@ -49,10 +55,12 @@ border-radius: 128px;
 - A comic tagged twice in one story arc no longer counts its pages twice.
 - In a filter's choices, arrow keys step one row and letter keys no longer close
   the menu.
+- Answering a tagging prompt from a Merge all sources run no longer overwrites
+  tags a higher-priority source already wrote.
 
 ### 🧑‍💻 Developer
 
-- Require comicbox 5.7.
+- Require comicbox 5.7.0.
 
 ## v2.7.1
 

@@ -25,6 +25,7 @@ from codex.librarian.onlinetag.session_snapshot import (
     get_snapshot,
     overlay_resolutions,
 )
+from codex.librarian.onlinetag.sources import configured_sources
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
@@ -51,18 +52,6 @@ _FLAG_DEFAULT_FIELDS: Final = MappingProxyType(
         "rename": "rename_files",
     }
 )
-
-
-def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[str]:
-    """Which online sources actually have credentials configured."""
-    if not defaults:
-        return frozenset()
-    sources = set()
-    if defaults.metron_key:
-        sources.add("metron")
-    if defaults.comicvine_key:
-        sources.add("comicvine")
-    return frozenset(sources)
 
 
 class AdminOnlineTagActiveView(AdminAPIView):
@@ -206,7 +195,9 @@ class AdminOnlineTagStartView(FilteredComicPksView):
 
         try:
             ids = self._parse_pinned_ids(
-                data.get("ids") or {}, data["sources"], _configured_sources(defaults)
+                data.get("ids") or {},
+                data["sources"],
+                frozenset(configured_sources(defaults)),
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)

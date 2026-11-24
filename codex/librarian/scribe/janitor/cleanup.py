@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.onlinetag.session_cache import (
+    TAGGING_STATE_LOCK,
     get_active_scan_id,
     get_pending_prompts,
     prune_stale_prompts,
@@ -501,15 +502,21 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         state, not something to clear. This nightly sweep only drops prompts
         whose comic has since been deleted, and clears an active-scan marker
         left behind by a crash mid-scan.
+
+        Each step reads, prunes and writes back state the online tag thread
+        also writes, so the sweep holds the state lock throughout: a write
+        landing between a step's read and its write-back would be dropped.
+        The queries it runs under the lock only read.
         """
         status = JanitorCleanupTaggingStateStatus()
         try:
             self.status_controller.start(status)
-            self._prune_stale_scheme_prompts()
-            self._prune_dead_prompts()
-            self._prune_dead_resolutions()
-            self._prune_dead_resume_state()
-            self._clear_stale_scan_marker()
+            with TAGGING_STATE_LOCK:
+                self._prune_stale_scheme_prompts()
+                self._prune_dead_prompts()
+                self._prune_dead_resolutions()
+                self._prune_dead_resume_state()
+                self._clear_stale_scan_marker()
         finally:
             self.status_controller.finish(status)
 

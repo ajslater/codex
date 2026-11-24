@@ -777,3 +777,96 @@ class OnlineConnectionReleaseTests(OnlineTagSessionTestCase):
         # The assertion that fails a straight `import ... ; close()`
         # rewrite: that spelling re-imports simyan to call a no-op.
         assert not reimported
+
+
+_VERSEDB_RELEASE_TARGET: Final = (
+    "comicbox.formats.versedb_api.online_source.close_shared_sessions"
+)
+
+
+class VerseDBScanTests(OnlineTagSessionTestCase):
+    """VerseDB runs through the same scan path as the other two sources."""
+
+    def _no_op_pass(self) -> None:
+        """Stub out Pass 1: only the steps around it are under test."""
+        self.manager._pass_runner = double(FakePassRunner())  # noqa: SLF001
+
+    @staticmethod
+    def _task(comic: Comic, sources: tuple[str, ...]) -> BulkOnlineTagTask:
+        return BulkOnlineTagTask(
+            comic_pks=frozenset({comic.pk}),
+            session_id="scan-versedb",
+            sources=sources,
+            mode="auto",
+        )
+
+    def test_a_versedb_only_install_builds_a_session(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "", "versedb_key": "v"}
+        )
+        comic = make_comic()
+        self._no_op_pass()
+
+        with patch(PATCH_TARGET, FakeSession):
+            self.manager.run_session(self._task(comic, ("versedb",)))
+
+        assert FakeSession.last_kwargs["sources"] == ("versedb",)
+        assert FakeSession.last_kwargs["credentials"].versedb_key == "v"
+
+    def test_an_unkeyed_versedb_is_left_out_of_the_prepass(self) -> None:
+        """A stored VerseDB id is not fetched without a key; the comic is searched."""
+        comic = make_comic()
+        source, _ = IdentifierSource.objects.get_or_create(name="versedb")
+        identifier = Identifier.objects.create(
+            source=source, id_type="comic", key="1215061"
+        )
+        comic.identifiers.add(identifier)
+        searched: list = []
+        self.manager._pass_runner = double(  # noqa: SLF001
+            FakePassRunner(lambda _state, paths, **_kw: searched.extend(paths))
+        )
+        fetched: list = []
+
+        def _fake_fetch(_path, source, issue_id, _credentials, **_kwargs):
+            fetched.append((source, issue_id))
+            return {"series": "X"}
+
+        with patch(PATCH_TARGET, FakeSession), patch(FETCH_TARGET, _fake_fetch):
+            self.manager.run_session(self._task(comic, ("metron", "versedb")))
+
+        assert fetched == []
+        assert searched == [Path(comic.path)]
+
+    def test_a_keyed_versedb_fetches_its_stored_id(self) -> None:
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(versedb_key="v")
+        comic = make_comic()
+        source, _ = IdentifierSource.objects.get_or_create(name="versedb")
+        identifier = Identifier.objects.create(
+            source=source, id_type="comic", key="1215061"
+        )
+        comic.identifiers.add(identifier)
+        self._no_op_pass()
+        fetched: list = []
+
+        def _fake_fetch(_path, source, issue_id, _credentials, **_kwargs):
+            fetched.append((source, issue_id))
+            return {"series": "X"}
+
+        with patch(PATCH_TARGET, FakeSession), patch(FETCH_TARGET, _fake_fetch):
+            self.manager.run_session(self._task(comic, ("versedb",)))
+
+        assert fetched == [("versedb", 1215061)]
+
+    def test_a_finished_scan_releases_versedb(self) -> None:
+        """VerseDB's shared client is released with the others'."""
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(versedb_key="v")
+        comic = make_comic()
+        self._no_op_pass()
+
+        with (
+            patch(PATCH_TARGET, FakeSession),
+            patch(_VERSEDB_RELEASE_TARGET) as versedb_release,
+        ):
+            self.manager.run_session(self._task(comic, ("versedb",)))
+
+        versedb_release.assert_called_once_with()

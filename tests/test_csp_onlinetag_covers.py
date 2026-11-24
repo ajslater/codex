@@ -20,6 +20,7 @@ from codex.settings import SECURE_CSP
 
 _COMICVINE_UPLOADS: Final = "https://comicvine.gamespot.com/a/uploads/"
 _METRON_MEDIA: Final = "https://static.metron.cloud/media/"
+_VERSEDB_UPLOADS: Final = "https://media.versedb.com/uploads/"
 # The tiers comicbox reports as ``cover_url_full``. They differ from the
 # thumbnail only in the tier segment, so the existing prefix already
 # covers them and the hover needs no policy change.
@@ -27,10 +28,14 @@ _FULL_SIZE_TIERS: Final = (
     "https://comicvine.gamespot.com/a/uploads/original/12/1234/5678-9.jpg",
     "https://comicvine.gamespot.com/a/uploads/scale_large/12/1234/5678-9.jpg",
     "https://static.metron.cloud/media/issue/2019/01/01/fc3-1.jpg",
+    "https://media.versedb.com/uploads/issues/covers/lg/1215061.webp",
 )
 _TOO_BROAD: Final = (
     "https://comicvine.gamespot.com",
     "https://static.metron.cloud",
+    "https://media.versedb.com",
+    "https://versedb.com",
+    "http://media.versedb.com/uploads/",
     "https:",
     "*",
     "http://comicvine.gamespot.com",
@@ -40,10 +45,11 @@ _TOO_BROAD: Final = (
 class OnlineTagCoverCSPTests(TestCase):
     """``img-src`` allows the two cover CDNs, and nothing wider."""
 
-    def test_both_cdn_prefixes_are_allowed(self) -> None:
+    def test_each_cdn_prefix_is_allowed(self) -> None:
         sources = SECURE_CSP["img-src"]
         assert _COMICVINE_UPLOADS in sources, sources
         assert _METRON_MEDIA in sources, sources
+        assert _VERSEDB_UPLOADS in sources, sources
 
     def test_the_full_size_tiers_need_no_policy_change(self) -> None:
         """

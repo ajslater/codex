@@ -22,6 +22,16 @@ usually has several comics to write:
   go back in the queue for an answer of their own rather than being written
   from another issue's match.
 
+In a Merge all sources run the pick is one source's answer among several,
+and comicbox lets the first source in the run's order win every single-valued
+tag they disagree on. Written alone, a lower-priority pick would overwrite
+what a higher-priority source already gave the comic, so each comic's
+higher-priority issue ids are fetched again with the pick and comicbox merges
+them in that order (see ``_higher_priority_ids``). Two prompts on one comic
+answered in a row find each other the same way: once a pick's write is
+queued, its issue id is noted on that comic in every other pending prompt,
+since the database has it only after the write is re-imported.
+
 Split out of :mod:`~codex.librarian.onlinetag.session_manager`, which owns the
 scan; this owns what happens after one.
 """
@@ -38,16 +48,25 @@ from codex.librarian.notifier.tasks import (
     ONLINE_TAG_PROMPT_TASK,
     TAG_WRITE_ERRORS_CHANGED_TASK,
 )
-from codex.librarian.onlinetag.explicit_id import fetch_tags_by_explicit_id
-from codex.librarian.onlinetag.session_cache import add_pending_prompts, prompt_comics
+from codex.librarian.onlinetag.explicit_id import (
+    fetch_tags_by_explicit_id,
+    fetched_issue_id,
+)
+from codex.librarian.onlinetag.session_cache import (
+    add_pending_prompts,
+    note_written_ids,
+    prompt_comics,
+)
 from codex.librarian.onlinetag.session_state import CLIENT_NAME, serialize_prompt
+from codex.librarian.onlinetag.sources import configured_sources
+from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
 from codex.librarian.scribe.tagwrite_errors import add_tag_write_error
 from codex.librarian.scribe.tasks import BulkTagWriteTask
 from codex.models.comic import Comic
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from multiprocessing import Queue
     from typing import Literal
 
@@ -57,6 +76,8 @@ if TYPE_CHECKING:
 #: (action, payload, chosen_volume_id) — the admin's answer as the review
 #: dialog sends it, carried together because every step needs all three.
 type Resolution = tuple[str, Any, int | None]
+#: pk -> {source: issue id}: the ids an answer's queued writes carry.
+type WrittenIds = dict[int, dict[str, int]]
 
 
 def comic_prompt(prompt: dict[str, Any], comic: dict[str, Any]) -> dict[str, Any]:
@@ -89,6 +110,7 @@ class PromptApplier:
         self.log = log
         self.librarian_queue = librarian_queue
         self._build_credentials = build_credentials
+        self._written: WrittenIds = {}
 
     def apply(
         self,
@@ -96,8 +118,26 @@ class PromptApplier:
         action: str,
         payload: Any,
         chosen_volume_id: int | None,
+    ) -> WrittenIds:
+        """
+        Apply the admin's pick to every comic this one question answers for.
+
+        Returns the issue id each comic's write was queued with. Every
+        pending prompt is noted with them already; a caller holding answers
+        it has taken out of the cache notes them on those itself.
+        """
+        self._written = {}
+        self._apply_to_comics(prompt, action, payload, chosen_volume_id)
+        return self._written
+
+    def _apply_to_comics(
+        self,
+        prompt: dict[str, Any],
+        action: str,
+        payload: Any,
+        chosen_volume_id: int | None,
     ) -> None:
-        """Apply the admin's pick to every comic this one question answers for."""
+        """Write the pick to the representative, then to its followers."""
         comics = prompt_comics(prompt)
         source = prompt.get("source") or ""
         if not comics or not source:
@@ -237,6 +277,77 @@ class PromptApplier:
             return None
         return (src or default_source), issue_id
 
+    @staticmethod
+    def _sources_above(
+        prompt: dict[str, Any], source: str, credentials: OnlineCredentials
+    ) -> tuple[str, ...]:
+        """
+        Name the run's sources ranked above ``source``, in priority order.
+
+        Empty, so the pick applies on its own, for a first-wins run, a
+        prompt cached before the run's order was recorded, and the run's
+        top source. A source that has lost its credentials since is left
+        out.
+        """
+        order = tuple(str(name) for name in prompt.get("source_order") or ())
+        if not prompt.get("merge_all_sources") or source not in order:
+            return ()
+        configured = configured_sources(credentials)
+        return tuple(
+            name for name in order[: order.index(source)] if name in configured
+        )
+
+    @staticmethod
+    def _tagged_ids(prompt: dict[str, Any], pk: int) -> dict[str, Any]:
+        """Return the issue ids the scan saw other sources write this comic with."""
+        comic = next((c for c in prompt_comics(prompt) if c["pk"] == pk), {})
+        return comic.get("tagged_ids") or {}
+
+    @classmethod
+    def _higher_priority_ids(
+        cls,
+        prompt: dict[str, Any],
+        pk: int,
+        source: str,
+        credentials: OnlineCredentials,
+    ) -> dict[str, int]:
+        """
+        Name the issue ids the sources ranked above ``source`` gave this comic.
+
+        comicbox merges only the sources one lookup fetched, so the apply
+        fetches these again by id with the pick, in the run's order. An id
+        comes from the database, where the re-import after a write leaves
+        it, else from what the scan saw that source write (the comic's
+        ``tagged_ids``): the scan writes only once it ends, so an answer
+        given before that write is re-imported finds nothing in the
+        database. A source with neither is left out, never searched.
+        """
+        higher = cls._sources_above(prompt, source, credentials)
+        if not higher:
+            return {}
+        stored = build_stored_id_map((pk,), higher).get(pk, {})
+        scanned = cls._tagged_ids(prompt, pk)
+        found = {name: stored.get(name) or scanned.get(name) for name in higher}
+        return {name: id_ for name, id_ in found.items() if isinstance(id_, int)}
+
+    @staticmethod
+    def _fetch_in_run_order(
+        explicit: tuple[str, int],
+        higher: dict[str, int],
+        path_str: str,
+        credentials: OnlineCredentials,
+    ) -> dict[str, Any] | None:
+        """Fetch the picked issue by id, merged under the higher-priority ids."""
+        src, issue_id = explicit
+        return fetch_tags_by_explicit_id(
+            Path(path_str),
+            src,
+            issue_id,
+            credentials,
+            extra_ids=tuple(higher.items()),
+            order=(*higher, src),
+        )
+
     def _report_apply_failure(self, path_str: str, msg: str) -> None:
         """Log + surface a failed prompt apply in the admin Tagging error panel."""
         self.log.warning(f"Online tag: {msg} ({path_str})")
@@ -273,8 +384,9 @@ class PromptApplier:
     ) -> None:
         """Fetch the picked issue by id and enqueue its write (no re-search)."""
         src, issue_id = explicit
+        higher = self._higher_priority_ids(prompt, pk, src, credentials)
         try:
-            tags = fetch_tags_by_explicit_id(Path(path_str), src, issue_id, credentials)
+            tags = self._fetch_in_run_order(explicit, higher, path_str, credentials)
         except (ComicboxError, OSError) as exc:
             # The prompt is already consumed, so a swallowed failure would
             # silently discard the admin's pick — put it on the error panel.
@@ -283,7 +395,7 @@ class PromptApplier:
             )
             return
         if tags:
-            self._enqueue_resolved_write(prompt, pk, tags, path_str)
+            self._enqueue_resolved_write(prompt, pk, tags, path_str, source=src)
         else:
             # The id itself didn't resolve (wrong/unknown issue). Don't re-queue
             # a fresh ambiguous prompt — the admin made an explicit choice.
@@ -342,7 +454,42 @@ class PromptApplier:
         if not tags:
             self._handle_unresolved(prompt, path_str, session)
             return
-        self._enqueue_resolved_write(prompt, pk, tags, path_str)
+        tags = self._merge_in_run_order(prompt, pk, path_str, credentials, tags)
+        self._enqueue_resolved_write(prompt, pk, tags, path_str, source=source)
+
+    def _merge_in_run_order(
+        self,
+        prompt: dict[str, Any],
+        pk: int,
+        path_str: str,
+        credentials: OnlineCredentials,
+        tags: dict[str, Any],
+    ) -> dict[str, Any]:
+        """
+        Merge a replayed pick under the sources ranked above it.
+
+        The replay runs the pick's source alone because only that shows the
+        pick landed: comicbox reports a match per comic, not per source, so
+        a replay with the higher-priority ids pinned would read as matched
+        when the pick drifted or found nothing — and a Metron answer carries
+        a Comic Vine id of its own. Once it has landed, the issue it landed
+        on is fetched again by id with those ids, which comicbox's response
+        cache usually answers. Should that fail, the pick is written as the
+        replay found it, as it was before the run's order counted.
+        """
+        source = prompt.get("source") or ""
+        higher = self._higher_priority_ids(prompt, pk, source, credentials)
+        if not higher or (issue_id := fetched_issue_id(tags, source)) is None:
+            return tags
+        try:
+            merged = self._fetch_in_run_order(
+                (source, issue_id), higher, path_str, credentials
+            )
+        except (ComicboxError, OSError) as exc:
+            msg = f"merging in the run's source order failed: {exc}"
+            self.log.warning(f"Online tag: {msg}; writing the pick alone ({path_str})")
+            return tags
+        return merged or tags
 
     def _handle_unresolved(
         self, prompt: dict[str, Any], path_str: str, session: OnlineSession
@@ -356,9 +503,15 @@ class PromptApplier:
             self.log.warning(f"Online tag: no tags resolved for {path_str}.")
 
     def _enqueue_resolved_write(
-        self, prompt: dict[str, Any], pk: int, tags: dict[str, Any], path_str: str
+        self,
+        prompt: dict[str, Any],
+        pk: int,
+        tags: dict[str, Any],
+        path_str: str,
+        *,
+        source: str,
     ) -> None:
-        """Queue the write for a successfully resolved prompt match."""
+        """Queue the write for ``source``'s resolved match on one comic."""
         write_task = BulkTagWriteTask(
             comic_pks=frozenset({pk}),
             per_comic_patches={pk: tags},
@@ -369,6 +522,22 @@ class PromptApplier:
         )
         self.librarian_queue.put(write_task)
         self.log.info(f"Online tag: applied resolved match for {path_str}.")
+        self._note_written(pk, source, tags)
+
+    def _note_written(self, pk: int, source: str, tags: Mapping[str, Any]) -> None:
+        """
+        Note the queued write's issue id on the comic's other pending prompts.
+
+        The id is the one the written tags carry, so a replay is noted with
+        the issue it landed on. Nothing is noted for a write without one.
+        """
+        issue_id = fetched_issue_id(tags, source)
+        if issue_id is None:
+            return
+        self._written.setdefault(pk, {})[source] = issue_id
+        if note_written_ids({pk: {source: issue_id}}):
+            # The review dialog's copy of those prompts is now stale.
+            self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
 
     def _repersist_drifted_prompt(
         self, prompt: dict[str, Any], session: OnlineSession
@@ -399,6 +568,8 @@ class PromptApplier:
                 formats,
                 delete_original=delete_original,
                 rename=rename,
+                source_order=tuple(prompt.get("source_order") or ()),
+                merge_all_sources=bool(prompt.get("merge_all_sources")),
             )
             for dp in session.deferred_prompts()
         }

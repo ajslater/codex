@@ -23,7 +23,7 @@ story-arc tag tables, which stay the importer's. In order:
    becoming "in no list", and ``story_arcs`` is dropped. The ``story_arcs``
    sort key and table column become ``reading_lists`` wherever browser
    settings store one.
-7. Shelves become personal reading lists (``_0061_shelves_to_lists``),
+7. Shelves become personal reading lists (``_0062_shelves_to_lists``),
    and the shelf models and the shelves filter go.
 
 Self-contained on purpose: it reads historical models only, so later
@@ -40,7 +40,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import codex.models.fields
-from codex.migrations._0061_shelves_to_lists import (
+from codex.migrations._0062_shelves_to_lists import (
     lists_to_shelves,
     shelves_to_lists,
 )
@@ -336,7 +336,7 @@ class Migration(migrations.Migration):
     """Move the arcs collection onto reading lists."""
 
     dependencies = [
-        ("codex", "0060_post_v2_6_0_schema"),
+        ("codex", "0061_comicboxtaggingdefaults_versedb_key"),
         ("sessions", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]

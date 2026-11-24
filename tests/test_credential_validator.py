@@ -5,9 +5,12 @@ from pathlib import Path
 from typing import Any, Final
 from unittest.mock import MagicMock, patch
 
+import httpx
 from comicbox.config.online.settings import OnlineSourceCredentials
+from comicbox.formats.base.online.retry import MAX_RATE_LIMIT_WAIT_S
 from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
 from comicbox.formats.metron_api.online_source import MetronOnlineSource
+from comicbox.formats.versedb_api.online_source import VerseDBOnlineSource
 from comicbox.online_session import OnlineCredentials
 
 from codex.librarian.onlinetag.credential_validator import (
@@ -37,7 +40,9 @@ _COMICVINE_WINDOWS: Final = {
 
 
 def _full_creds() -> OnlineCredentials:
-    return OnlineCredentials(metron_key="token", comicvine_key="key")
+    return OnlineCredentials(
+        metron_key="token", comicvine_key="key", versedb_key="versedb-token"
+    )
 
 
 def _probe(source_cls: type, **kwargs: Any):
@@ -55,7 +60,7 @@ class TestValidateCredentials:
     """Cover success, auth-error, transport-error, and missing-creds paths."""
 
     def test_known_sources_set(self) -> None:
-        assert frozenset({"metron", "comicvine"}) == KNOWN_SOURCES
+        assert frozenset({"metron", "comicvine", "versedb"}) == KNOWN_SOURCES
 
     def test_metron_success(self) -> None:
         with _probe(MetronOnlineSource, return_value=_EMPTY_METRON_WINDOWS) as probe:
@@ -250,6 +255,7 @@ class TestValidateCredentials:
         with (
             _probe(MetronOnlineSource, return_value=_EMPTY_METRON_WINDOWS),
             _probe(ComicVineOnlineSource, return_value=_COMICVINE_WINDOWS),
+            _probe(VerseDBOnlineSource, return_value=None),
         ):
             results = validate_credentials(_full_creds())
         assert set(results) == KNOWN_SOURCES
@@ -260,14 +266,119 @@ class TestValidateCredentials:
         assert results == {}
 
 
+# One page of VerseDB's series list with no rows: the smallest body the
+# ``versedb`` SDK parses, which is all a probe needs.
+_VERSEDB_EMPTY_PAGE: Final = {
+    "data": [],
+    "links": {"first": None, "last": None, "prev": None, "next": None},
+    "meta": {
+        "current_page": 1,
+        "from": None,
+        "last_page": 1,
+        "links": [],
+        "path": "https://versedb.com/api/v1/series",
+        "per_page": 1,
+        "to": None,
+        "total": 0,
+    },
+}
+_VERSEDB_BUDGET_HEADERS: Final = {
+    "X-RateLimit-Limit": "300",
+    "X-RateLimit-Remaining": "287",
+}
+
+
+def _versedb_replies(response: httpx.Response):
+    """Answer every VerseDB request with ``response``; keep the requests."""
+    requests: list[httpx.Request] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return response
+
+    transport = httpx.MockTransport(handle)
+    return patch.object(VerseDBOnlineSource, "http_transport", transport), requests
+
+
+class TestValidateVerseDB:
+    """VerseDB's probe, answered by a mock transport: no live request."""
+
+    @staticmethod
+    def _validate(
+        response: httpx.Response, creds=None
+    ) -> tuple[ValidationResult, list[httpx.Request]]:
+        """Validate VerseDB against ``response``; return the result and requests."""
+        replies, requests = _versedb_replies(response)
+        with replies:
+            results = validate_credentials(creds or _full_creds(), {"versedb"})
+        return results["versedb"], requests
+
+    def test_ok_reports_the_hourly_window(self) -> None:
+        response = httpx.Response(
+            200, json=_VERSEDB_EMPTY_PAGE, headers=_VERSEDB_BUDGET_HEADERS
+        )
+        result, requests = self._validate(response)
+        assert result == ValidationResult(
+            ok=True,
+            rate_limits=RateLimitInfo(
+                hourly=RateLimitWindowInfo(limit=300, remaining=287)
+            ),
+        )
+        # One request, carrying the token, for one row.
+        (request,) = requests
+        assert request.headers["Authorization"] == "Bearer versedb-token"
+        assert request.url.params["limit"] == "1"
+
+    def test_ok_without_budget_headers_reports_no_limits(self) -> None:
+        result, _ = self._validate(httpx.Response(200, json=_VERSEDB_EMPTY_PAGE))
+        assert result == ValidationResult(ok=True)
+
+    def test_missing_key(self) -> None:
+        result, requests = self._validate(
+            httpx.Response(200, json=_VERSEDB_EMPTY_PAGE),
+            creds=OnlineCredentials(versedb_key=""),
+        )
+        assert result.ok is False
+        assert "required" in (result.error or "").lower()
+        assert requests == []
+
+    def test_auth_failure(self) -> None:
+        result, _ = self._validate(httpx.Response(401, json={"message": "nope"}))
+        assert result.ok is False
+        assert "HTTP 401" in (result.error or "")
+        assert "token" in (result.error or "")
+
+    def test_a_spent_daily_quota_reads_as_a_request_limit(self) -> None:
+        wait = str(int(MAX_RATE_LIMIT_WAIT_S) + 3600)
+        result, _ = self._validate(
+            httpx.Response(
+                429, json={"message": "slow down"}, headers={"Retry-After": wait}
+            )
+        )
+        assert result.ok is False
+        assert "request limit is reached" in (result.error or "")
+
+    def test_a_short_rate_limit_reads_as_rate_limited(self) -> None:
+        result, _ = self._validate(
+            httpx.Response(
+                429, json={"message": "slow down"}, headers={"Retry-After": "5"}
+            )
+        )
+        assert result.ok is False
+        assert "rate limited" in (result.error or "").lower()
+
+
 # Sanity: catch accidental drift in the comicbox dataclass. Codex forwards
-# every field here except ``metron_url``, which mokkari ignores entirely.
+# every field here except ``metron_url``, which mokkari ignores entirely, and
+# ``versedb_url``: no VerseDB mirror exists, so codex stores no url for it.
 _EXPECTED_CRED_FIELDS: Final = frozenset(
     {
         "metron_key",
         "metron_url",
         "comicvine_key",
         "comicvine_url",
+        "versedb_key",
+        "versedb_url",
     }
 )
 

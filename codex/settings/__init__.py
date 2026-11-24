@@ -422,7 +422,7 @@ _PDFJS_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
 )
 
 # Online-tagging match candidates draw their cover thumbnails straight
-# from the two source CDNs; codex never proxies or caches them. An
+# from the sources' CDNs; codex never proxies or caches them. An
 # ``<img>`` load is exempt from CORS, so codex's own ``img-src`` was the
 # only thing blocking it — the same relaxation ``_PDFJS_SECURE_CSP``
 # makes for unpkg above.
@@ -438,6 +438,7 @@ _ONLINE_TAG_COVER_SECURE_CSP: Mapping[str, tuple[str, ...]] = MappingProxyType(
         "img-src": (
             "https://comicvine.gamespot.com/a/uploads/",
             "https://static.metron.cloud/media/",
+            "https://media.versedb.com/uploads/",
         ),
     }
 )

@@ -252,6 +252,30 @@ class TelemeterStatsTestCase(TestCase):
             for key in keys:
                 assert key in stats[section], (section, key)
 
+    def test_tagging_reports_versedb_as_a_boolean_and_a_bucket_key(self) -> None:
+        """The key itself never leaves; only that it is set, and the source name."""
+        from codex.models.admin import ComicboxTaggingDefaults
+
+        secret = "versedb-telemetry-secret"  # noqa: S105
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"versedb_key": secret, "default_sources": ["metron", "versedb"]},
+        )
+        stats = CodexStats().get()
+        tagging = stats["tagging"]
+        assert tagging["has_versedb_credentials"] is True
+        assert tagging["default_sources"] == {"metron": 1, "versedb": 1}
+        assert secret not in json.dumps(stats, default=str)
+
+    def test_a_versedb_identifier_is_its_own_bucket(self) -> None:
+        """``versedb`` is in comicbox's closed source list, so it is not "other"."""
+        from codex.librarian.telemeter.count_stats import get_identifier_stats
+        from codex.models.identifier import Identifier, IdentifierSource
+
+        source = IdentifierSource.objects.create(name="versedb")
+        Identifier.objects.create(source=source, id_type="comic", key="1215061")
+        assert get_identifier_stats() == {"versedb:comic": 1}
+
     def test_manga_counts_cover_every_manga_value(self) -> None:
         """
         Every manga value has a payload key, and they partition the library.

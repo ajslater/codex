@@ -8,6 +8,8 @@ map the session snapshot reads.
 
 from typing import Final
 
+from comicbox.online_estimate import requests_per_comic
+
 from codex.librarian.onlinetag.estimate import (
     SOURCE_RATE_PER_MINUTE,
     estimate_seconds,
@@ -17,6 +19,7 @@ from codex.librarian.onlinetag.estimate import (
 _METRON_SECONDS: Final = 60.0
 _METRON_RATE: Final = 20
 _COMICVINE_RATE: Final = 3
+_VERSEDB_RATE: Final = 5
 
 
 def test_estimate_seconds_delegates_to_comicbox() -> None:
@@ -58,10 +61,28 @@ def test_metron_ignores_effort() -> None:
         assert estimate_seconds(10, ("metron",), effort=effort) == _METRON_SECONDS
 
 
+def test_versedb_is_priced_at_comicbox_s_number() -> None:
+    """VerseDB costs comicbox's requests per comic, paced at its own rate."""
+    comics = 10
+    per_comic = requests_per_comic("versedb")
+    expected = 60.0 * comics * per_comic / _VERSEDB_RATE
+    assert estimate_seconds(comics, ("versedb",)) == expected
+
+
+def test_versedb_ignores_effort() -> None:
+    """VerseDB lists every kept series' issues in one call; effort buys nothing."""
+    estimates = {
+        estimate_seconds(10, ("versedb",), effort=effort)
+        for effort in ("minimal", "balanced", "thorough")
+    }
+    assert len(estimates) == 1
+
+
 def test_source_rate_per_minute_reexported() -> None:
     """The snapshot reads the per-source rate map through this seam."""
     assert SOURCE_RATE_PER_MINUTE["metron"] == _METRON_RATE
     assert SOURCE_RATE_PER_MINUTE["comicvine"] == _COMICVINE_RATE
+    assert SOURCE_RATE_PER_MINUTE["versedb"] == _VERSEDB_RATE
 
 
 def test_source_rate_per_minute_falls_back_to_the_documented_default() -> None:

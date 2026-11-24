@@ -1,8 +1,8 @@
 """
-Migration 0061 moves the ``arcs`` collection onto reading lists.
+Migration 0062 moves the ``arcs`` collection onto reading lists.
 
-Runs the real migration both ways: back to 0060 to seed story arcs and the
-rows that pointed at them, forward to 0061 to check what they became, then
+Runs the real migration both ways: back to 0061 to seed story arcs and the
+rows that pointed at them, forward to 0062 to check what they became, then
 back again to test the reverse data step.
 """
 
@@ -14,8 +14,8 @@ from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
-_BEFORE: Final = [("codex", "0060_post_v2_6_0_schema")]
-_AFTER: Final = [("codex", "0061_reading_lists")]
+_BEFORE: Final = [("codex", "0061_comicboxtaggingdefaults_versedb_key")]
+_AFTER: Final = [("codex", "0062_reading_lists")]
 _OLD_FIT: Final = "W"
 _NEW_FIT: Final = "H"
 

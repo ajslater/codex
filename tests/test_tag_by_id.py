@@ -80,10 +80,36 @@ class ParseIdentifierInputTests(SimpleTestCase):
         assert got == ("metron", 12345)
 
     def test_bare_int_ambiguous_raises(self) -> None:
-        with pytest.raises(ValueError, match="could be Metron or Comic Vine"):
+        with pytest.raises(
+            ValueError, match="could be Metron, Comic Vine, or VerseDB"
+        ) as exc_info:
             parse_identifier_input(
                 "12345", configured_sources=frozenset({"metron", "comicvine"})
             )
+        assert "(metron:ID / comicvine:ID / versedb:ID)" in str(exc_info.value)
+
+    def test_bare_int_ambiguous_among_three_raises(self) -> None:
+        with pytest.raises(ValueError, match="could be"):
+            parse_identifier_input(
+                "12345",
+                configured_sources=frozenset({"metron", "comicvine", "versedb"}),
+            )
+
+    def test_bare_int_sole_configured_versedb(self) -> None:
+        got = parse_identifier_input("12345", configured_sources=frozenset({"versedb"}))
+        assert got == ("versedb", 12345)
+
+    def test_versedb_prefixed(self) -> None:
+        assert parse_identifier_input("versedb:1215061") == ("versedb", 1215061)
+
+    def test_versedb_issue_url(self) -> None:
+        # VerseDB issue pages carry a slug after the id.
+        url = "https://versedb.com/issue/1215061/amazing-spider-man-1"
+        assert parse_identifier_input(url) == ("versedb", 1215061)
+
+    def test_versedb_series_url_rejected(self) -> None:
+        with pytest.raises(ValueError, match="not an issue"):
+            parse_identifier_input("https://versedb.com/series/4242/some-series")
 
     def test_unknown_source_prefix_rejected(self) -> None:
         with pytest.raises(ValueError, match="Unknown source"):
@@ -147,6 +173,28 @@ class ExplicitIdHelpersTests(SimpleTestCase):
         assert dict(settings.online.lookup.ids) == {"metron": 123, "comicvine": 456}
         assert settings.online.lookup.first_wins is False
         assert set(settings.online.auth.sources) == {"metron", "comicvine"}
+
+    def test_build_explicit_id_config_follows_the_order(self) -> None:
+        """
+        The caller's order lists the pinned sources, so its first one wins.
+
+        comicbox merges in ``sources`` order, so a lower-priority primary
+        must not be listed first. A source the order leaves out goes last.
+        """
+        creds = OnlineCredentials(metron_key="t", comicvine_key="k", versedb_key="v")
+        settings = build_explicit_id_config(
+            "comicvine",
+            456,
+            creds,
+            extra_ids=(("versedb", 789), ("metron", 123)),
+            order=("metron", "comicvine"),
+        )
+        assert settings.online.lookup.sources == ("metron", "comicvine", "versedb")
+        assert dict(settings.online.lookup.ids) == {
+            "metron": 123,
+            "comicvine": 456,
+            "versedb": 789,
+        }
 
 
 def _make_admin() -> User:

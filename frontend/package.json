@@ -17,8 +17,8 @@
     "test:update": "vitest run --update"
   },
   "dependencies": {
-    "@unhead/vue": "^3.4.3",
-    "@vueuse/core": "^15.0.0",
+    "@unhead/vue": "^3.5.1",
+    "@vueuse/core": "^15.1.0",
     "dequal": "^2.0.3",
     "eslint-import-resolver-oxc": "^0.15.0",
     "pinia": "^4.1.0",
@@ -34,7 +34,7 @@
     "@mdi/js": "^7.4.47",
     "@pinia/testing": "^2.0.2",
     "@types/node": "^26.6.6",
-    "@unhead/bundler": "^3.4.3",
+    "@unhead/bundler": "^3.5.1",
     "@vitejs/plugin-vue": "^6.0.11",
     "@vue/test-utils": "^2.6.0",
     "@vue/typescript-plugin": "^3.3.14",
