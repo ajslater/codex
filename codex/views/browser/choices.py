@@ -1,6 +1,7 @@
 """View for marking comics read and unread."""
 
 from collections.abc import Iterable
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any, cast, override
 
@@ -35,6 +36,7 @@ from codex.views.browser.filters.reading_lists import (
     READING_LIST_KIND_FILTER,
     READING_LISTS_FILTER,
     listed_comics,
+    listed_q,
 )
 from codex.views.readinglists.access import (
     LIST_KINDS,
@@ -106,6 +108,8 @@ _M2M_DISTINCT_PROBE_LIMIT = 2
 # The Reading List Kind is offered when it has two kinds to choose between.
 _KINDS_TO_CHOOSE = 2
 _KIND_OMITTED = frozenset({READING_LIST_KIND_FILTER})
+# The filters about lists: they need a list the user can see.
+_LIST_FIELDS = frozenset({READING_LISTS_FILTER, READING_LIST_KIND_FILTER})
 # Choice models the menu shows in rating order, by ``index``.
 _INDEX_ORDERED_MODELS = frozenset({AgeRating, AgeRatingMetron})
 
@@ -200,10 +204,7 @@ class BrowserChoicesViewBase(BrowserFilterView):
                 for kind in kinds
             }
         comics = self.get_filtered_queryset(Comic, omit=_KIND_OMITTED)
-        return {
-            kind: comics.filter(pk__in=listed_comics(user, kinds=(kind,)))
-            for kind in kinds
-        }
+        return {kind: comics.filter(listed_q(user, kinds=(kind,))) for kind in kinds}
 
     def unlisted(self, comic_qs: QuerySet) -> QuerySet:
         """Return the comics in no list the user may see, the "None" choice."""
@@ -278,12 +279,10 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 # filtering by it, so it must be available.
                 early_data[field_name] = True
                 continue
-            if field_name == READING_LISTS_FILTER:
-                self._reading_lists_probes(qs, aggregates, m2m_specs)
-                continue
-            if field_name == READING_LIST_KIND_FILTER:
-                for kind, rows in self.list_kind_probes().items():
-                    aggregates[f"_kind_{kind}"] = Exists(rows.values("pk")[:1])
+            if field_name in _LIST_FIELDS:
+                self._list_field_probes(
+                    field_name, qs, early_data, aggregates, m2m_specs
+                )
                 continue
             rel, m2m_model = self.get_rel_and_model(field_name)
             if m2m_model is None and field_name not in _NULL_CHOICE_FIELDS:
@@ -304,17 +303,40 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 )
         return early_data, aggregates, m2m_specs
 
+    def _list_field_probes(
+        self,
+        field_name: str,
+        qs: QuerySet,
+        early_data: dict[str, bool],
+        aggregates: dict[str, Exists],
+        m2m_specs: dict[str, str],
+    ) -> None:
+        """Probe the Reading Lists or the Reading List Kind filter."""
+        if not self._sees_lists:
+            # No list to be on, and no kind to pick.
+            early_data[field_name] = False
+        elif field_name == READING_LISTS_FILTER:
+            self._reading_lists_probes(qs, aggregates, m2m_specs)
+        else:
+            for kind, rows in self.list_kind_probes().items():
+                aggregates[f"_kind_{kind}"] = Exists(rows.values("pk")[:1])
+
+    @cached_property
+    def _sees_lists(self) -> bool:
+        """Whether the user sees any list: the list probes need one."""
+        return visible_lists(self.request.user).exists()
+
     def _reading_lists_probes(
         self, qs: QuerySet, aggregates: dict[str, Exists], m2m_specs: dict[str, str]
     ) -> None:
         """Probe the reading lists like an m2m field, over visible lists only."""
-        listed = listed_comics(self.request.user)
+        listed = listed_q(self.request.user)
         m2m_specs[READING_LISTS_FILTER] = ""
         aggregates[f"_has_{READING_LISTS_FILTER}"] = Exists(
-            qs.filter(pk__in=listed).values("pk")[:1]
+            qs.filter(listed).values("pk")[:1]
         )
         aggregates[f"_null_{READING_LISTS_FILTER}"] = Exists(
-            qs.exclude(pk__in=listed).values("pk")[:1]
+            qs.filter(~listed).values("pk")[:1]
         )
 
     def _resolve_m2m_field(

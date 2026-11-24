@@ -9,9 +9,9 @@ user's personal list pk matches nothing, and its comics never count as
 from collections.abc import Mapping
 from typing import Any, Final
 
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 
-from codex.models import Comic
+from codex.models import Comic, ReadingListEntry
 from codex.views.readinglists.access import list_kind_q, visible_lists
 
 READING_LISTS_FILTER: Final = "reading_lists"
@@ -49,6 +49,24 @@ def listed_comics(user, pks=None, kinds=None) -> QuerySet[Comic]:
     if kinds is not None:
         lists = lists.filter(list_kind_q(kinds, user))
     return Comic.objects.filter(**{_IN_LISTS: lists.values("pk"), _SHOWN: False})
+
+
+def listed_q(user, kinds=None) -> Exists:
+    """
+    Whether a comic is shown on a list the user sees, of any of ``kinds``.
+
+    A correlated ``EXISTS`` per comic, for a probe that stops at the first
+    row: :func:`listed_comics` gathers every listed comic first, which on a
+    library of thousands of lists costs more than the whole probe.
+    """
+    lists = visible_lists(user)
+    if kinds is not None:
+        lists = lists.filter(list_kind_q(kinds, user))
+    return Exists(
+        ReadingListEntry.objects.filter(
+            comic_id=OuterRef("pk"), ignored=False, reading_list__in=lists.values("pk")
+        )
+    )
 
 
 def reading_lists_filter(
