@@ -204,7 +204,24 @@ class BrowserChoicesViewBase(BrowserFilterView):
                 for kind in kinds
             }
         comics = self.get_filtered_queryset(Comic, omit=_KIND_OMITTED)
-        return {kind: comics.filter(listed_q(user, kinds=(kind,))) for kind in kinds}
+        return {
+            kind: comics.filter(listed_q(user, kinds=(kind,)))
+            for kind in self._kinds_with_lists(kinds)
+        }
+
+    def _kinds_with_lists(self, kinds: Iterable[str]) -> tuple[str, ...]:
+        """
+        Return the kinds the viewer sees a list of: only those can be offered.
+
+        A kind with no list would otherwise probe every comic here for an
+        entry it cannot have, a scan of the whole library for a reader
+        with only lists of their own.
+        """
+        lists = visible_lists(self.request.user)
+        user = self.request.user
+        return tuple(
+            kind for kind in kinds if lists.filter(list_kind_q((kind,), user)).exists()
+        )
 
     def unlisted(self, comic_qs: QuerySet) -> QuerySet:
         """Return the comics in no list the user may see, the "None" choice."""

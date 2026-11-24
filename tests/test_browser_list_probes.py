@@ -7,7 +7,8 @@ each asks per comic with a correlated EXISTS that stops at the first row,
 and none runs when the viewer sees no list. These tests compare the whole
 availability answer with the old probes on a fixture that tells them
 apart: lists of each kind, another user's list, a hidden entry, a comic on
-two lists, signed in and not, with a search, and with no list at all.
+two lists, signed in and not, with a search, and with no list at all. A kind
+the viewer has no list of is not probed at all.
 """
 
 import json
@@ -123,3 +124,36 @@ class ListProbeTests(ReadingListFixture):
         ReadingList.objects.all().delete()
         available = self._same_as_before("publishers")
         assert not available["readingLists"]
+
+    def test_a_kind_probe_sees_its_entries_change(self) -> None:
+        """
+        The same request after an entry changes sees it: no stale cache.
+
+        The curated list stays, so only the kind probe's subquery over
+        entries can tell that its comics left: Mine and Tags are then the
+        two kinds offered, and with Tags emptied too, one.
+        """
+        self.client.force_login(self.user)
+        assert self._available("publishers")["readingListKind"]
+        ReadingListEntry.objects.filter(reading_list__name="Curated").delete()
+        assert self._available("publishers")["readingListKind"]
+        ReadingListEntry.objects.filter(reading_list__name="Civil War").delete()
+        assert not self._available("publishers")["readingListKind"]
+
+    def test_a_kind_with_no_list_is_not_probed(self) -> None:
+        """A reader with only lists of their own: Tags and Curated never scan."""
+        self.client.force_login(self.user)
+        ReadingList.objects.exclude(user=self.user).delete()
+        kinds = BrowserChoicesAvailableView._kinds_with_lists  # noqa: SLF001
+        probed: list[tuple[str, ...]] = []
+
+        def recorded(view, wanted):
+            result = kinds(view, wanted)
+            probed.append(result)
+            return result
+
+        with patch.object(BrowserChoicesAvailableView, "_kinds_with_lists", recorded):
+            available = self._same_as_before("publishers")
+        assert probed
+        assert probed[0] == ("mine",)
+        assert not available["readingListKind"]

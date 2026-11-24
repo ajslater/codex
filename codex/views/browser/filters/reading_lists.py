@@ -9,7 +9,7 @@ user's personal list pk matches nothing, and its comics never count as
 from collections.abc import Mapping
 from typing import Any, Final
 
-from django.db.models import Exists, OuterRef, Q, QuerySet
+from django.db.models import Exists, F, OuterRef, Q, QuerySet
 
 from codex.models import Comic, ReadingListEntry
 from codex.views.readinglists.access import list_kind_q, visible_lists
@@ -58,14 +58,20 @@ def listed_q(user, kinds=None) -> Exists:
     A correlated ``EXISTS`` per comic, for a probe that stops at the first
     row: :func:`listed_comics` gathers every listed comic first, which on a
     library of thousands of lists costs more than the whole probe.
+
+    The list is tested as ``reading_list_id + 0``, which no index can key
+    on. As a bare column, SQLite searched the comic-and-list index once per
+    visible list for every comic: a reader sees every tags list, so two
+    thousand seeks a comic made the reader's menu eight times slower. Now
+    it seeks a comic's few entries and checks each against the lists.
     """
     lists = visible_lists(user)
     if kinds is not None:
         lists = lists.filter(list_kind_q(kinds, user))
     return Exists(
-        ReadingListEntry.objects.filter(
-            comic_id=OuterRef("pk"), ignored=False, reading_list__in=lists.values("pk")
-        )
+        ReadingListEntry.objects.filter(comic_id=OuterRef("pk"), ignored=False)
+        .alias(_list_key=F("reading_list_id") + 0)
+        .filter(_list_key__in=lists.values("pk"))
     )
 
 
