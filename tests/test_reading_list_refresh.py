@@ -4,6 +4,7 @@ from threading import Lock
 from typing import Any, Final, override
 from unittest.mock import patch
 
+import pytest
 from comicbox.readinglists import loads
 from django.contrib.auth.models import User
 from django.test import Client
@@ -21,6 +22,7 @@ from codex.librarian.scribe.readinglists.errors import (
 from codex.librarian.scribe.readinglists.service import (
     SourceSpec,
     import_document,
+    rank_sources,
     refresh_source,
 )
 from codex.librarian.scribe.readinglists.tasks import (
@@ -40,6 +42,7 @@ from tests.test_reading_lists import ReadingListFixture
 _URL: Final = "https://example.invalid/cw.cbl"
 _PW: Final = "test-pw-hush-S106"
 _TABLE_QUEUE: Final = "codex.views.admin.reading_lists.table.LIBRARIAN_QUEUE"
+_RECOMBINE: Final = "codex.librarian.scribe.readinglists.service.recombine"
 _EMPTY_CBL: Final = (
     '<?xml version="1.0"?><ReadingList><Name>Civil War</Name><Books /></ReadingList>'
 )
@@ -103,6 +106,47 @@ class RefreshSourceTests(ReadingListFixture):
         source.refresh_from_db()
         assert source.attribution_url == "https://cbro.invalid/cw"
         assert source.attribution_source == "CBRO"
+
+
+class FailedRecombineTests(ReadingListFixture):
+    """A recombine that fails leaves the source as it was, to try again."""
+
+    def test_a_failed_refresh_keeps_the_old_revision(self) -> None:
+        """The next refresh of the same revision still recombines."""
+        _reading_list, source = _url_list()
+        with (
+            patch(_RECOMBINE, side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError),
+        ):
+            refresh_source(source, _with_curator("https://cbro.invalid/cw"))
+        source.refresh_from_db()
+        assert source.revision == "r1"
+        assert refresh_source(source, _with_curator("https://cbro.invalid/cw"))
+
+    def test_a_failed_reorder_keeps_the_old_ranks(self) -> None:
+        """The sources keep their order when the recompute fails."""
+        reading_list, url = _url_list()
+        upload = SourceSpec(kind=ReadingListSourceKind.UPLOAD, ref="cw.cbl")
+        import_document(_document(), upload, into=reading_list)
+        ranks = dict(
+            ReadingListSource.objects.filter(reading_list=reading_list).values_list(
+                "pk", "rank"
+            )
+        )
+        other = next(pk for pk in ranks if pk != url.pk)
+        with (
+            patch(_RECOMBINE, side_effect=RuntimeError("boom")),
+            pytest.raises(RuntimeError),
+        ):
+            rank_sources(reading_list, [other, url.pk])
+        assert (
+            dict(
+                ReadingListSource.objects.filter(
+                    reading_list=reading_list
+                ).values_list("pk", "rank")
+            )
+            == ranks
+        )
 
 
 class EmptyFetchTests(ReadingListFixture):

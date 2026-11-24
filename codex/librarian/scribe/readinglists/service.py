@@ -302,8 +302,11 @@ def refresh_source(
     source.attribution_source = spec.attribution_source or source.attribution_source
     source.attribution_url = spec.attribution_url or source.attribution_url
     source.ordered = document.get(ORDERED_KEY) is not False
-    source.save()
-    recombine(source.reading_list, matcher)
+    # One change: a recombine that fails must not leave the new revision,
+    # or every later refresh would read the list as unchanged.
+    with transaction.atomic():
+        source.save()
+        recombine(source.reading_list, matcher)
     return True
 
 
@@ -331,8 +334,9 @@ def rank_sources(reading_list: ReadingList, source_pks: Iterable[int]) -> None:
     tail = len(order)
     for source in sources:
         source.rank = order.get(source.pk, tail)
-    ReadingListSource.objects.bulk_update(sources, ("rank",))
-    recombine(reading_list)
+    with transaction.atomic():
+        ReadingListSource.objects.bulk_update(sources, ("rank",))
+        recombine(reading_list)
 
 
 def _overlay_of(reading_list: ReadingList) -> Overlay:
