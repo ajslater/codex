@@ -94,6 +94,25 @@ class _PreflightTestBase(TestCase):
             self.writer.write_tags(task)
         return seen
 
+    def _write_with_results(self, comics: dict[Comic, object]) -> None:
+        """Run a tag write whose bulk_write yields the given results."""
+        results = list(comics.values())
+
+        def fake_bulk_write(_items, **_kwargs):
+            return iter(results)
+
+        task = BulkTagWriteTask(
+            comic_pks=frozenset(comic.pk for comic in comics),
+            patch=_PATCH,
+            delete_original=False,
+            rename=False,
+        )
+        with (
+            patch(_COMICBOX_TARGET, _FakeComicbox),
+            patch(_BULK_WRITE_TARGET, fake_bulk_write),
+        ):
+            self.writer.write_tags(task)
+
 
 class TagWriterTwinRefusalTests(_PreflightTestBase):
     """A CBR that has already been converted refuses, and says why."""
@@ -290,25 +309,6 @@ class TagWriterInBatchCollisionTests(_PreflightTestBase):
     archive is, so the admin can go straight to it.
     """
 
-    def _write_with_results(self, comics: dict[Comic, object]) -> None:
-        """Run a tag write whose bulk_write yields the given results."""
-        results = list(comics.values())
-
-        def fake_bulk_write(_items, **_kwargs):
-            return iter(results)
-
-        task = BulkTagWriteTask(
-            comic_pks=frozenset(comic.pk for comic in comics),
-            patch=_PATCH,
-            delete_original=False,
-            rename=False,
-        )
-        with (
-            patch(_COMICBOX_TARGET, _FakeComicbox),
-            patch(_BULK_WRITE_TARGET, fake_bulk_write),
-        ):
-            self.writer.write_tags(task)
-
     def test_the_rival_archive_is_linked(self) -> None:
         cbr = _make_comic(events=False, name="Foo.cbr")
         cbt = _make_comic(
@@ -380,8 +380,6 @@ class TagWriterResultShapeTests(_PreflightTestBase):
     RAR or 7z named ``.cbz`` is an ``UnsupportedArchiveTypeError``. A
     result that wrote nothing and failed nothing is neither.
     """
-
-    _write_with_results = TagWriterInBatchCollisionTests._write_with_results  # noqa: SLF001
 
     def test_a_metadata_error_is_recorded(self) -> None:
         comic = _make_comic(events=False, name="Bad.cbz")
