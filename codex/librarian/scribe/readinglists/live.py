@@ -625,22 +625,29 @@ def _close_gaps(reading_list: ReadingList) -> bool:
     return True
 
 
-def reconcile_list(reading_list: ReadingList, read: _Read | None = None) -> bool:
+def reconcile_list(
+    reading_list: ReadingList,
+    read: _Read | None = None,
+    skip: Sequence[int] = (),
+) -> bool:
     """
     Bring a list's live entries in line with its items; return if it changed.
 
     A full diff of every item, in order, against the rows: everything that
     changes a list calls it, so the comics a list holds otherwise are
     re-read each time. ``read`` is what a staleness check just read.
+    ``skip`` names items, just added and too large to sync inline, that a
+    librarian job syncs instead: they bring no rows yet, and keep their
+    blank revision for that job.
     """
     read = read or _Read()
     read.forget_lists()
     with transaction.atomic():
         lock_list(reading_list)
         items = list(
-            ReadingListSource.objects.filter(
-                reading_list=reading_list, **items_q()
-            ).order_by("rank", "pk")
+            ReadingListSource.objects.filter(reading_list=reading_list, **items_q())
+            .exclude(pk__in=skip)
+            .order_by("rank", "pk")
         )
         live_rows = ReadingListEntry.objects.filter(
             reading_list=reading_list, live_source__isnull=False
