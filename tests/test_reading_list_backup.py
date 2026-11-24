@@ -23,6 +23,12 @@ from codex.models import (
     ReadingListSource,
 )
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
+from codex.models.settings import (
+    ClientChoices,
+    SettingsBrowser,
+    SettingsBrowserFilters,
+    SettingsBrowserShow,
+)
 from codex.user_data import store as store_module
 from codex.user_data.dump import dump_user_data
 from codex.user_data.dump_reading_lists import READING_LIST_TABLES
@@ -239,6 +245,33 @@ class ReadingListBackupTests(ReadingListFixture):
             uuid for uuid, row in before["lists"].items() if row["name"] == "Civil War"
         )
         assert [str(uuid) for uuid in holders] == [civil_war]
+
+    def test_a_filter_on_a_tag_list_survives_a_rebuild(self) -> None:
+        """
+        A saved filter on a list made from tags alone names the rebuilt list.
+
+        Such a list is not backed up: the tag sync makes it again, under a
+        new uuid, so the filter's uuid alone named nothing after a rebuild.
+        """
+        self._seed()
+        other = ReadingList.objects.get(name="Other Arc")
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(
+            user=self.user, client=ClientChoices.API, show=show
+        )
+        SettingsBrowserFilters.objects.create(browser=browser, reading_lists=[other.pk])
+        snapshot = self._snapshot()
+        # The database rebuilt: the lists and settings gone, the tags read again.
+        ReadingList.objects.all().delete()
+        SettingsBrowser.objects.filter(user=self.user).delete()
+        sync_tag_lists()
+        rebuilt = ReadingList.objects.get(name="Other Arc")
+        assert rebuilt.uuid != other.uuid
+
+        restore(sidecar_path=snapshot)
+
+        filters = SettingsBrowserFilters.objects.get(browser__user=self.user)
+        assert filters.reading_lists == [rebuilt.pk]
 
     def test_restore_is_idempotent(self) -> None:
         """A second restore changes nothing."""
