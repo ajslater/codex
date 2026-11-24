@@ -78,7 +78,11 @@ describe("MetadataReadingListDetails", () => {
   });
 
   test("Continue Reading is off, with why, when everything is read", () => {
-    const wrapper = mountDetails({ ...DETAILS, continue: null });
+    const wrapper = mountDetails({
+      ...DETAILS,
+      continue: null,
+      continueBlocked: "all_read",
+    });
     const button = wrapper
       .findAll("button")
       .find((b) => b.text() === "Continue Reading");
@@ -86,6 +90,23 @@ describe("MetadataReadingListDetails", () => {
     // In words beside it: a title never shows on a disabled button.
     expect(wrapper.find(".detailsActions").text()).toContain("Every issue");
   });
+
+  test.each([
+    ["filtered", "filters hide every unread issue"],
+    ["none_in_library", "No issue of this list is in the library"],
+  ])(
+    "Continue Reading off for %s says so, not that all is read",
+    (blocked, why) => {
+      const wrapper = mountDetails({
+        ...DETAILS,
+        continue: null,
+        continueBlocked: blocked,
+      });
+      const hint = wrapper.find(".detailsActions").text();
+      expect(hint).toContain(why);
+      expect(hint).not.toContain("Every issue");
+    },
+  );
 
   test("nothing for a selection that is not one list", () => {
     expect(mountDetails(null).find(".readingListDetails").exists()).toBe(false);

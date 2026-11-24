@@ -85,6 +85,26 @@ def _continue_from(
     return None
 
 
+def continue_blocked(
+    present: Sequence[int],
+    bookmarks: Mapping[int, tuple[int, bool]],
+    continued: Mapping[str, int] | None,
+) -> str:
+    """
+    Say why a viewer has nowhere to continue a list, or ``""`` if they have.
+
+    ``none_in_library``: no issue of it is a comic the viewer can see.
+    ``filtered``: the browser's filters hide every unread one.
+    ``all_read``: every one the library has is read.
+    """
+    if continued:
+        return ""
+    if not present:
+        return "none_in_library"
+    unread = any(not bookmarks.get(pk, (0, False))[1] for pk in present)
+    return "filtered" if unread else "all_read"
+
+
 def continue_comic(
     acl, request, reading_list: ReadingList, filters: Mapping[str, Any]
 ) -> dict[str, int] | None:
@@ -166,6 +186,7 @@ def list_details(
     comics = _shown_comics(acl, request, reading_list)
     present = [comic_pk for comic_pk in comics if comic_pk is not None]
     bookmarks = _bookmarks(request, present)
+    continued = _continue_from(comics, bookmarks, _readable(request, present, filters))
     extra = reading_list.extra or {}
     return {
         "pk": reading_list.pk,
@@ -184,9 +205,8 @@ def list_details(
         "read": sum(1 for pk in present if bookmarks.get(pk, (0, False))[1]),
         "previous": _neighbour(request.user, extra.get(PREVIOUS_KEY)),
         "next": _neighbour(request.user, extra.get(NEXT_KEY)),
-        "continue": _continue_from(
-            comics, bookmarks, _readable(request, present, filters)
-        ),
+        "continue": continued,
+        "continue_blocked": continue_blocked(present, bookmarks, continued),
         "editable": can_edit(request.user, reading_list),
         "personal": reading_list.user_id is not None,  # pyright: ignore[reportAttributeAccessIssue]
     }

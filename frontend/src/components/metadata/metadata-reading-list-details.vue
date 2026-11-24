@@ -70,7 +70,7 @@
       </v-menu>
       <!-- In words: a title never shows on a disabled button. -->
       <span v-if="!details.continue" class="detailsHint">
-        {{ CONTINUE_DONE_HINT }}
+        {{ continueHint }}
       </span>
     </div>
   </section>
@@ -97,8 +97,15 @@ export default {
   components: { MetadataText, ReadingListExportMenu },
   data() {
     return {
-      CONTINUE_DONE_HINT:
-        "Every issue of this list the library has is read. Mark one unread to read it again.",
+      // Why there is nowhere to continue, by the details' continueBlocked.
+      CONTINUE_HINTS: Object.freeze({
+        all_read:
+          "Every issue of this list the library has is read. Mark one unread to read it again.",
+        filtered:
+          "The browser's filters hide every unread issue of this list. Clear them to continue.",
+        none_in_library:
+          "No issue of this list is in the library. Continue Reading opens once one is imported.",
+      }),
     };
   },
   computed: {
@@ -107,6 +114,9 @@ export default {
     }),
     typeLabel() {
       return listTypeLabel(this.details?.listType);
+    },
+    continueHint() {
+      return this.CONTINUE_HINTS[this.details?.continueBlocked] || "";
     },
     years() {
       const { startYear, endYear } = this.details || {};

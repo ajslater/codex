@@ -21,6 +21,7 @@ from codex.models import (
     ReadingListSource,
 )
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
+from codex.views.readinglists.details import continue_blocked
 from tests.test_reading_lists import ReadingListFixture
 
 _PW: Final = "test-pw-hush-S106"
@@ -206,6 +207,41 @@ class ContinueFilterTests(ListDetailsFixture):
         assert response.status_code == _OK, response.content
         found = response.json()["data"]["readingListDetails"]["continue"]
         assert found == {"pk": self.comics[2].pk, "page": 0}
+
+
+class ContinueBlockedTests(ListDetailsFixture):
+    """With nowhere to continue, the details say why, so the hint is true."""
+
+    def _blocked(self, filters: dict | None = None) -> tuple:
+        params = {"filters": json.dumps(filters or {}), "search": ""}
+        url = f"/api/v4/browse/arcs/{self.reading_list.pk}/metadata"
+        response = self.client.get(url, params)
+        assert response.status_code == _OK, response.content
+        details = response.json()["data"]["readingListDetails"]
+        return details["continue"], details["continueBlocked"]
+
+    def test_a_list_with_somewhere_to_go_is_not_blocked(self) -> None:
+        assert self._blocked() == ({"pk": self.comics[1].pk, "page": 4}, "")
+
+    def test_every_issue_read(self) -> None:
+        for comic in self.comics:
+            Bookmark.objects.update_or_create(
+                user=self.user, comic=comic, defaults={"finished": True}
+            )
+        assert self._blocked() == (None, "all_read")
+
+    def test_no_issue_in_the_library(self) -> None:
+        """
+        Said by the rule itself: no metadata dialog opens on such a list.
+
+        The browse metadata of a list with no comic in the library is a 404.
+        """
+        assert continue_blocked([], {}, None) == "none_in_library"
+
+    def test_the_filters_hide_every_unread_issue(self) -> None:
+        genre = Genre.objects.create(name="Read Only")
+        self.comics[0].genres.add(genre)
+        assert self._blocked({"genres": [genre.pk]}) == (None, "filtered")
 
 
 class ExportMissingTests(ListDetailsFixture):
