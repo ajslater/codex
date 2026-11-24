@@ -8,12 +8,13 @@ count twice in a card's pages and progress.
 """
 
 import json
+from decimal import Decimal
 from typing import Final, override
 
 from django.contrib.auth.models import User
 from django.test import Client
 
-from codex.models import ReadingList, ReadingListEntry
+from codex.models import Bookmark, ReadingList, ReadingListEntry
 from codex.models.readinglist import ReadingListMatchTier
 from tests.test_reading_lists import ReadingListFixture
 
@@ -74,3 +75,19 @@ class ListCardsTests(ReadingOrderFixture):
         (card,) = self.browse("arcs", {})["collections"]
         assert card["coverPk"] == c3.pk
 
+
+class SharedComicTests(ReadingOrderFixture):
+    """Two ticked lists that share a comic count it once."""
+
+    def test_progress_counts_a_shared_comic_once(self) -> None:
+        """Nine pages read of three ten-page comics, not of four."""
+        c1, c2, c3, _ = self.comics
+        first = self.make_list("First", [c1, c2])
+        second = self.make_list("Second", [c2, c3])
+        Bookmark.objects.create(user=self.user, comic=c1, page=9)
+        data = self.browse(
+            "publishers", {"filters": {"readingLists": [first.pk, second.pk]}}
+        )
+        (card,) = data["collections"]
+        # 9 * 100 / (30 - 1): three comics of ten pages.
+        assert Decimal(str(card["progress"])) == Decimal("31.03")

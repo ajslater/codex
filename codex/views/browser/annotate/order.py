@@ -7,8 +7,9 @@ from types import MappingProxyType
 from django.db.models import (
     F,
     FilteredRelation,
-    Q,
+    OuterRef,
     QuerySet,
+    Subquery,
     Value,
 )
 from django.db.models.aggregates import Avg, Count, Max, Min, Sum
@@ -20,6 +21,7 @@ from codex.models import (
     Comic,
     Folder,
     ReadingList,
+    ReadingListEntry,
 )
 from codex.models.collections import Volume
 from codex.models.functions import ComicFTSRank, JsonGroupArray
@@ -219,15 +221,26 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         return qs.alias(filename=filename)
 
     def _alias_reading_list_position(self, qs, list_pks):
-        """Order a list's comics by their first position in it."""
-        rel = self.get_rel_prefix(qs.model) + "reading_list_entries"
-        condition = Q(
-            **{f"{rel}__reading_list__in": list_pks, f"{rel}__ignored": False}
+        """
+        Order comics by their first shown position in the lists.
+
+        A subquery per comic, not a join to the entries: a comic that two
+        ticked lists share would join twice and count twice in every sum
+        over a card's comics, its pages and progress included.
+        """
+        position = "-position" if self.order_agg_func is Max else "position"
+        first = Subquery(
+            ReadingListEntry.objects.filter(
+                comic_id=OuterRef(self.get_rel_prefix(qs.model) + "pk"),
+                reading_list__in=list_pks,
+                ignored=False,
+            )
+            .order_by(position)
+            .values("position")[:1]
         )
-        qs = qs.alias(
-            selected_reading_list_entry=FilteredRelation(rel, condition=condition),
-        )
-        return qs, self.order_agg_func("selected_reading_list_entry__position")
+        if qs.model is Comic:
+            return qs, first
+        return qs, self.order_agg_func(first)
 
     def _filtered_list_pks(self) -> list[int]:
         """Return the Reading Lists filter's lists that the viewer may see."""
