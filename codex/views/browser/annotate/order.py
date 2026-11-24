@@ -258,6 +258,10 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         pks = self.kwargs["pks"]
         if qs.model is ReadingList:
             story_arc_number = NONE_INTEGERFIELD
+        elif self.model_collection == STORY_ARC_COLLECTION:
+            # The cover of a list card: its comic at the first position,
+            # read off the entry join the cover subquery correlates on.
+            story_arc_number = F("reading_list_entries__position")
         elif collection == STORY_ARC_COLLECTION and pks:
             qs, story_arc_number = self._alias_reading_list_position(qs, pks)
         elif list_pks := self._filtered_list_pks():
