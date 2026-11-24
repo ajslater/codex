@@ -702,17 +702,18 @@ export default {
 
 @layer codex-components {
   .filters,
-  .bulkHint {
-    flex-basis: 100%;
-    margin-top: 0;
-  }
-
   .bulkBar {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: $space-2;
     margin-bottom: $space-2;
+  }
+
+  // The bulk bar's reasons for its disabled buttons, on a line of their own.
+  .bulkHint {
+    flex-basis: 100%;
+    margin-top: 0;
   }
 
   // Wrap rather than squeeze: three fields on a phone row left Name unreadable.
