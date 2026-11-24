@@ -1,8 +1,14 @@
 """
-Reading lists behind the ``arcs`` collection.
+Everything the schema gained after v2.7.1, as one migration.
 
-The browser's ``arcs`` collection reads reading lists instead of the
-story-arc tag tables, which stay the importer's. In order:
+v2.7.1 shipped through 0060, so nothing here has reached a release. The two
+migrations that landed on develop since are folded together: an upgrading
+install applies one migration instead of a chain of two.
+
+First the VerseDB API token, ``ComicboxTaggingDefaults.versedb_key``, added
+empty. Then reading lists behind the ``arcs`` collection: the browser's
+``arcs`` collection reads reading lists instead of the story-arc tag tables,
+which stay the importer's. In order:
 
 1. Create the reading-list tables.
 2. Relabel the collection "Reading Lists" in the choice fields.
@@ -23,7 +29,7 @@ story-arc tag tables, which stay the importer's. In order:
    becoming "in no list", and ``story_arcs`` is dropped. The ``story_arcs``
    sort key and table column become ``reading_lists`` wherever browser
    settings store one.
-7. Shelves become personal reading lists (``_0062_shelves_to_lists``),
+7. Shelves become personal reading lists (``_0061_shelves_to_lists``),
    and the shelf models and the shelves filter go.
 
 Self-contained on purpose: it reads historical models only, so later
@@ -40,7 +46,7 @@ from django.conf import settings
 from django.db import migrations, models
 
 import codex.models.fields
-from codex.migrations._0062_shelves_to_lists import (
+from codex.migrations._0061_shelves_to_lists import (
     lists_to_shelves,
     shelves_to_lists,
 )
@@ -333,15 +339,22 @@ def _move_reading_lists_to_arcs(apps, _schema_editor) -> None:
 
 
 class Migration(migrations.Migration):
-    """Move the arcs collection onto reading lists."""
+    """Add the VerseDB API token and move the arcs collection onto reading lists."""
 
     dependencies = [
-        ("codex", "0061_comicboxtaggingdefaults_versedb_key"),
+        ("codex", "0060_post_v2_6_0_schema"),
         ("sessions", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
+        migrations.AddField(
+            model_name="comicboxtaggingdefaults",
+            name="versedb_key",
+            field=codex.models.fields.EncryptedCharField(
+                blank=True, default="", max_length=512
+            ),
+        ),
         migrations.CreateModel(
             name="ReadingList",
             fields=[

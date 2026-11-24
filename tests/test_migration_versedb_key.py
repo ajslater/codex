@@ -7,7 +7,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
 _BEFORE: Final = [("codex", "0060_post_v2_6_0_schema")]
-_AFTER: Final = [("codex", "0061_comicboxtaggingdefaults_versedb_key")]
+_AFTER: Final = [("codex", "0061_post_v2_7_1_schema")]
 _TABLE: Final = "codex_comicboxtaggingdefaults"
 
 

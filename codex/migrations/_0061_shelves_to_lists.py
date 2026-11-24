@@ -1,5 +1,5 @@
 """
-Migration 0062's last data step: shelves become reading lists.
+Migration 0061's last data step: shelves become reading lists.
 
 Kept apart so the migration stays readable; the loader skips modules whose
 name starts with an underscore. Like the migration, it reads historical

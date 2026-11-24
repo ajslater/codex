@@ -1,5 +1,5 @@
 """
-Migration 0062's shelves step keeps its own copies of two live rules.
+Migration 0061's shelves step keeps its own copies of two live rules.
 
 A migration must not change when application code does, so the step that
 turns shelves into lists carries frozen copies of the sort-name rule and the
@@ -32,7 +32,7 @@ from codex.user_data.identifiers import (
 )
 from tests.tmp_dirs import tmp_dir
 
-_STEP: Final = import_module("codex.migrations._0062_shelves_to_lists")
+_STEP: Final = import_module("codex.migrations._0061_shelves_to_lists")
 _TMP_DIR: Final = tmp_dir("codex.tests.migration.frozen")
 
 

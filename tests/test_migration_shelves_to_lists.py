@@ -1,11 +1,11 @@
 """
-Migration 0062 folds shelves into reading lists.
+Migration 0061 folds shelves into reading lists.
 
-Seeds shelves at 0061 and migrates forward: each shelf becomes a personal
+Seeds shelves at 0060 and migrates forward: each shelf becomes a personal
 list of its name, its comics entries added by hand, and every other item a
 collection item whose comics are written in the same step. The live sync
 must find nothing to change in what the migration wrote. Then back to
-0061 and forward again.
+0060 and forward again.
 """
 
 from datetime import date
@@ -23,8 +23,8 @@ from codex.librarian.scribe.readinglists.live import (
 )
 from codex.models import ReadingList, ReadingListSource
 
-_BEFORE: Final = [("codex", "0061_comicboxtaggingdefaults_versedb_key")]
-_AFTER: Final = [("codex", "0062_reading_lists")]
+_BEFORE: Final = [("codex", "0060_post_v2_6_0_schema")]
+_AFTER: Final = [("codex", "0061_post_v2_7_1_schema")]
 _GONE: Final = 9999
 
 
@@ -160,7 +160,7 @@ def _assert_in_sync(reading_list) -> None:
 
 
 class _Fixture(TransactionTestCase):
-    """Two users; the schema back at 0062 after each test."""
+    """Two users; the schema back at 0061 after each test."""
 
     @override
     def setUp(self) -> None:
@@ -401,7 +401,7 @@ def _snapshot(apps) -> dict:
 
 
 class RoundTripTests(_Fixture):
-    """Back to 0061 rebuilds shelves; forward again makes the same lists."""
+    """Back to 0060 rebuilds shelves; forward again makes the same lists."""
 
     def test_reverse_and_forward_again(self) -> None:
         """Shelves come back holding what the lists held, then lists again."""
