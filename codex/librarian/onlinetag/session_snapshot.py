@@ -47,7 +47,11 @@ from typing import TYPE_CHECKING, Any, Final
 
 from codex.cache import tagging_cache as cache
 from codex.librarian.onlinetag.estimate import source_rate_per_minute
-from codex.librarian.onlinetag.session_cache import get_pending_prompts, prompt_comics
+from codex.librarian.onlinetag.session_cache import (
+    get_pending_prompts,
+    prompt_comics,
+    under_state_lock,
+)
 
 # Re-exported so callers can keep reading the status vocabulary off the module
 # that renders it.
@@ -84,16 +88,19 @@ def get_snapshot() -> dict[str, Any] | None:
     return cache.get(_SNAPSHOT_KEY) or None
 
 
+@under_state_lock
 def set_snapshot(snapshot: dict[str, Any]) -> None:
     """Persist the session snapshot with no TTL."""
     cache.set(_SNAPSHOT_KEY, snapshot, timeout=_NO_TIMEOUT)
 
 
+@under_state_lock
 def clear_snapshot() -> None:
     """Drop the session snapshot entirely."""
     cache.delete(_SNAPSHOT_KEY)
 
 
+@under_state_lock
 def deactivate_snapshot() -> None:
     """
     Mark a lingering snapshot inactive without dropping it.
@@ -180,6 +187,7 @@ def get_resolved_outcomes() -> dict[int, Any]:
     return cache.get(_RESOLVED_KEY, {}) or {}
 
 
+@under_state_lock
 def set_resolved_outcomes(outcomes: dict[int, Any]) -> None:
     """Replace the resolution record, or clear it when empty."""
     if outcomes:
@@ -206,6 +214,7 @@ def _normalize_resolution(value: Any) -> dict[str, Any]:
     return {"status": "", "sources": {}}
 
 
+@under_state_lock
 def record_resolution(pk: int | None, status: str, source: str | None = None) -> None:
     """Record one comic's match-review outcome by source (no-op without a pk)."""
     if pk is None:
@@ -223,6 +232,7 @@ def record_resolution(pk: int | None, status: str, source: str | None = None) ->
     set_resolved_outcomes(outcomes)
 
 
+@under_state_lock
 def clear_resolved_outcomes() -> None:
     """Drop the whole resolution record (a fresh scan starts clean)."""
     cache.delete(_RESOLVED_KEY)
@@ -277,6 +287,7 @@ def get_resume_state() -> dict[str, Any] | None:
     return cache.get(_RESUME_KEY) or None
 
 
+@under_state_lock
 def set_resume_state(params: dict[str, Any], remaining: list[int]) -> None:
     """Persist the resume descriptor, or clear it when nothing remains."""
     if remaining:
@@ -289,6 +300,7 @@ def set_resume_state(params: dict[str, Any], remaining: list[int]) -> None:
         cache.delete(_RESUME_KEY)
 
 
+@under_state_lock
 def clear_resume_state() -> None:
     """Drop the resume descriptor (a fresh scan starts clean)."""
     cache.delete(_RESUME_KEY)

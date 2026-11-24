@@ -32,23 +32,25 @@ that changed anything, on Library/Group CRUD, and at startup — any of
 which would have stranded prompts mid-answer.
 
 All writes happen on the single ``OnlineTagThread`` (run/resolve/skip) plus
-the nightly janitor prune; the admin views only read prompts and enqueue
-tasks. A resolve runs only between scans, never inside one, so its changes
-and a scan's persists take turns. The janitor's prune runs on the scribe
-thread and does not take turns: a change the online tag thread makes
-between the prune's read and its write is lost. Not to be confused with
+the nightly janitor sweep on the scribe thread; the admin views only read
+prompts and enqueue tasks. A resolve runs only between scans, never inside
+one, so its changes and a scan's persists take turns. The janitor's sweep
+reads, prunes and writes back, so it and every writer here hold
+:data:`TAGGING_STATE_LOCK`. Not to be confused with
 :mod:`codex.librarian.onlinetag.session_state`, which holds the in-process
 ``SessionState`` for a running job.
 """
 
 from __future__ import annotations
 
+from functools import wraps
+from threading import RLock
 from typing import TYPE_CHECKING, Any
 
 from codex.cache import tagging_cache as cache
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
 
 _SCAN_KEY = "onlinetag:active_scan_id"
 _PROMPTS_KEY = "onlinetag:pending_prompts"
@@ -61,6 +63,26 @@ PROMPT_VERSION = 2
 # No TTL: pending prompts linger until answered/skipped/pruned; the active
 # scan id is cleared explicitly at scan end and at daemon startup.
 _NO_TIMEOUT = None
+#: Serializes every write to the online tagging state: the pending prompts
+#: and active scan id here, and session_snapshot's snapshot, resolution
+#: record and resume descriptor. The online tag thread and the nightly
+#: janitor on the scribe thread both read, change and write them back, and
+#: the file cache has no compare-and-set, so without it one thread's
+#: write-back drops what the other wrote in between. The janitor holds it
+#: for its whole sweep. Readers need none, as the file cache replaces an
+#: entry whole. Reentrant, as the locked writers call one another.
+TAGGING_STATE_LOCK = RLock()
+
+
+def under_state_lock[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+    """Run ``func`` holding :data:`TAGGING_STATE_LOCK`."""
+
+    @wraps(func)
+    def locked(*args: P.args, **kwargs: P.kwargs) -> R:
+        with TAGGING_STATE_LOCK:
+            return func(*args, **kwargs)
+
+    return locked
 
 
 def get_active_scan_id() -> str:
@@ -68,6 +90,7 @@ def get_active_scan_id() -> str:
     return cache.get(_SCAN_KEY, "") or ""
 
 
+@under_state_lock
 def set_active_scan_id(scan_id: str) -> None:
     """Persist the active scan id, or clear it when ``scan_id`` is empty."""
     if scan_id:
@@ -81,6 +104,7 @@ def get_pending_prompts() -> dict[str, Any]:
     return cache.get(_PROMPTS_KEY, {}) or {}
 
 
+@under_state_lock
 def set_pending_prompts(prompts: dict[str, Any]) -> None:
     """Replace the pending-prompt map, or clear it when empty."""
     if prompts:
@@ -156,13 +180,12 @@ def note_tagged_ids(
     return True
 
 
+@under_state_lock
 def note_written_ids(written: Mapping[int, Mapping[str, int]]) -> bool:
     """
     Note queued writes' issue ids on every pending prompt and persist.
 
-    Read, change and write back in one call on the online tag thread, as
-    every other change to the map is, so a scan's persist cannot land in
-    between. Returns whether any prompt changed.
+    Returns whether any prompt changed.
     """
     if not written:
         return False
@@ -199,6 +222,7 @@ def _merge_prompt(
     return merged
 
 
+@under_state_lock
 def add_pending_prompts(new_prompts: dict[str, Any]) -> dict[str, Any]:
     """Merge ``new_prompts`` into the map (keyed by fingerprint) and persist."""
     if not new_prompts:
@@ -211,6 +235,7 @@ def add_pending_prompts(new_prompts: dict[str, Any]) -> dict[str, Any]:
     return prompts
 
 
+@under_state_lock
 def remove_pending_prompt(fingerprint: str) -> dict[str, Any]:
     """Drop one prompt by fingerprint and persist; return what remains."""
     prompts = get_pending_prompts()
@@ -219,6 +244,7 @@ def remove_pending_prompt(fingerprint: str) -> dict[str, Any]:
     return prompts
 
 
+@under_state_lock
 def prune_stale_prompts() -> int:
     """
     Drop prompts fingerprinted under an older scheme; return how many.
@@ -242,6 +268,7 @@ def prune_stale_prompts() -> int:
     return dropped
 
 
+@under_state_lock
 def clear_all() -> None:
     """Drop the active scan id and every pending prompt."""
     cache.delete_many((_SCAN_KEY, _PROMPTS_KEY))
