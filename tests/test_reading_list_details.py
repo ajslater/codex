@@ -13,7 +13,13 @@ from comicbox.readinglists import loads
 from django.contrib.auth.models import User
 from django.test import Client
 
-from codex.models import Bookmark, ReadingList, ReadingListEntry, ReadingListSource
+from codex.models import (
+    Bookmark,
+    Genre,
+    ReadingList,
+    ReadingListEntry,
+    ReadingListSource,
+)
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
 from tests.test_reading_lists import ReadingListFixture
 
@@ -154,6 +160,52 @@ class ContinueEndpointTests(ListDetailsFixture):
             f"/api/v4/reading-lists/{self.reading_list.pk}/continue"
         )
         assert response.json()["data"]["continue"] is None
+
+
+class ContinueFilterTests(ListDetailsFixture):
+    """Continue Reading skips a comic the browser's filters leave out."""
+
+    @override
+    def setUp(self) -> None:
+        super().setUp()
+        genre = Genre.objects.create(name="Event")
+        c1, _, c3, c4 = self.comics
+        for comic in (c1, c3, c4):
+            comic.genres.add(genre)
+        self.filters = {"genres": [genre.pk]}  # pyright: ignore[reportUninitializedInstanceVariable]
+        response = self.client.patch(
+            "/api/v4/browse/arcs/settings",
+            data=json.dumps({"filters": self.filters}),
+            content_type="application/json",
+        )
+        assert response.status_code == _OK, response.content
+
+    def _reads(self, comic_pk: int) -> int:
+        """Open the comic in the reader through this list."""
+        arc = {"collection": "arcs", "ids": [self.reading_list.pk]}
+        response = self.client.get(
+            f"/api/v4/reader/comics/{comic_pk}", {"arc": json.dumps(arc)}
+        )
+        return response.status_code
+
+    def test_the_endpoint_skips_a_filtered_comic(self) -> None:
+        """#2 is filtered out, so Continue is #3, which the reader opens."""
+        response = self.client.get(
+            f"/api/v4/reading-lists/{self.reading_list.pk}/continue"
+        )
+        assert response.status_code == _OK, response.content
+        found = response.json()["data"]["continue"]
+        assert found == {"pk": self.comics[2].pk, "page": 0}
+        assert self._reads(found["pk"]) == _OK
+
+    def test_the_details_skip_a_filtered_comic(self) -> None:
+        """The metadata dialog's Continue follows the same filters."""
+        params = {"filters": json.dumps(self.filters), "search": ""}
+        url = f"/api/v4/browse/arcs/{self.reading_list.pk}/metadata"
+        response = self.client.get(url, params)
+        assert response.status_code == _OK, response.content
+        found = response.json()["data"]["readingListDetails"]["continue"]
+        assert found == {"pk": self.comics[2].pk, "page": 0}
 
 
 class ExportMissingTests(ListDetailsFixture):

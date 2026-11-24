@@ -42,6 +42,7 @@ from codex.models.readinglist import (
     ReadingListSource,
     ReadingListSourceKind,
 )
+from codex.models.settings import ClientChoices, SettingsBrowser
 from codex.views.readinglists.access import (
     ReadingListAccessView,
     can_edit,
@@ -50,6 +51,7 @@ from codex.views.readinglists.access import (
 from codex.views.readinglists.details import continue_comic
 from codex.views.readinglists.entries import add_comics, entry_count, entry_counts
 from codex.views.readinglists.items import COMICS, ITEM_TARGETS, visible_items_q
+from codex.views.settings import SettingsBaseView
 
 _KEYLESS_KINDS: Final = frozenset(
     {ReadingListSourceKind.TAGS, ReadingListSourceKind.UPLOAD}
@@ -317,13 +319,20 @@ class ReadingListDuplicateView(ReadingListAccessView):
         return Response(list_repr(copy, user, count), status=201)
 
 
-class ReadingListContinueView(ReadingListAccessView):
+class ReadingListContinueView(ReadingListAccessView, SettingsBaseView):
     """GET where a viewer continues a list: its first unfinished comic."""
+
+    # Only the browser settings are read: the filters the reader applies.
+    MODEL = SettingsBrowser
+    CLIENT = ClientChoices.API
 
     def get(self, *_args, **_kwargs) -> Response:
         """Return ``{continue: {pk, page} | null}``."""
         reading_list = self.get_reading_list(edit=False)
-        return Response({"continue": continue_comic(self, self.request, reading_list)})
+        filters = self.get_from_settings("filters", browser=True) or {}
+        return Response(
+            {"continue": continue_comic(self, self.request, reading_list, filters)}
+        )
 
 
 class ReadingListExportView(ReadingListAccessView):
