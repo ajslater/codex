@@ -72,6 +72,7 @@ class StartValidationTests(TestCase):
         """Naming no source at all is a 400, not every keyed source."""
         response, tasks = self._start(sources=[])
         assert response.status_code == HTTPStatus.BAD_REQUEST, response.content
+        assert "Choose at least one source." in response.content.decode()
         assert tasks == []
 
     def test_an_unkeyed_source_is_refused(self) -> None:

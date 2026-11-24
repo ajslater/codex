@@ -125,7 +125,12 @@ class OnlineTagStartSerializer(Serializer):
     pks = ListField(child=CharField())
     # Omitted: the sources with keys, in the admin's default order. An
     # explicit empty list names no source, which is a 400.
-    sources = ListField(child=CharField(), required=False, allow_empty=False)
+    sources = ListField(
+        child=CharField(),
+        required=False,
+        allow_empty=False,
+        error_messages={"empty": "Choose at least one source."},
+    )
     mode = ChoiceField(
         choices=ComicboxTaggingDefaults.MatchModeChoices.values,
         required=False,
