@@ -4,27 +4,36 @@
       <v-card-title class="dialogTitle">{{ readingList.name }}</v-card-title>
       <v-card-text>
         <div class="reviewBar">
-          <v-btn-toggle
-            v-model="filter"
-            density="compact"
-            mandatory
-            variant="outlined"
+          <!-- A checklist: nothing ticked is every issue. -->
+          <v-chip-group
+            v-model="filters"
+            class="reviewFilter"
+            column
+            filter
+            multiple
           >
-            <v-btn value="review">Needs Review</v-btn>
-            <v-btn value="missing">Missing</v-btn>
-            <v-btn value="all">All</v-btn>
-            <v-btn value="hidden">Hidden</v-btn>
-          </v-btn-toggle>
+            <v-chip
+              v-for="choice of filterChoices"
+              :key="choice.value"
+              :value="choice.value"
+              size="small"
+              variant="outlined"
+            >
+              {{ choice.title }}
+            </v-chip>
+          </v-chip-group>
           <v-spacer />
           <v-btn
             size="small"
             variant="tonal"
             :disabled="!reviewCount"
-            :title="reviewCount ? '' : 'No issue needs review.'"
             @click="acceptAll"
           >
             Accept All Best Guesses
           </v-btn>
+          <span v-if="!reviewCount" class="adminHint reviewHint">
+            {{ noReviewHint }}
+          </span>
         </div>
         <p class="adminProse">
           Edits here are saved in Codex only and never change a comic file.
@@ -87,7 +96,7 @@
                 dragOver: dragOverPk === entry.pk,
                 hidden: entry.ignored,
               }"
-              :draggable="filter === 'all'"
+              :draggable="!filters.length"
               @dragstart="dragStart(entry)"
               @dragover.prevent="dragOverPk = entry.pk"
               @dragleave="dragOverPk = null"
@@ -111,7 +120,7 @@
                     @change="move(entry, $event.target.value - 1)"
                   />
                   <span
-                    v-if="filter === 'all' && entry.liveSource == null"
+                    v-if="!filters.length && entry.liveSource == null"
                     class="moveArrows"
                   >
                     <v-btn
@@ -246,8 +255,17 @@ const ENTRY_FILTERS = Object.freeze({
   review: (entry) => entry.needsReview && !entry.ignored,
   missing: (entry) => !entry.comic && !entry.ignored,
   hidden: (entry) => entry.ignored,
-  all: () => true,
 });
+const FILTER_CHOICES = Object.freeze([
+  { value: "review", title: "Needs Review" },
+  { value: "missing", title: "Missing" },
+  { value: "hidden", title: "Hidden" },
+]);
+
+// The ticked filters an opener asks for: "all" ticks none.
+function initialFilters(filter) {
+  return filter in ENTRY_FILTERS ? [filter] : [];
+}
 
 export default {
   name: "ReviewDialog",
@@ -270,7 +288,9 @@ export default {
       mdiMagnify,
       mdiSourceMerge,
       mdiTrashCanOutline,
-      filter: this.initialFilter,
+      noReviewHint: "No issue needs review.",
+      filterChoices: FILTER_CHOICES,
+      filters: initialFilters(this.initialFilter),
       allEntries: [],
       // The list's held collections: their issues fold into one row each.
       items: [],
@@ -292,9 +312,12 @@ export default {
       return Boolean(this.readingList?.sources?.length);
     },
     entries() {
-      // One fetch of every entry; the filters narrow it here.
-      const test = ENTRY_FILTERS[this.filter] || ENTRY_FILTERS.all;
-      return this.allEntries.filter((entry) => test(entry));
+      // One fetch of every entry; the ticked filters narrow it here.
+      if (!this.filters.length) return this.allEntries;
+      const tests = this.filters.map((name) => ENTRY_FILTERS[name]);
+      return this.allEntries.filter((entry) =>
+        tests.some((test) => test?.(entry)),
+      );
     },
     rows() {
       /*
@@ -305,7 +328,7 @@ export default {
       const rows = this.entries
         .filter((entry) => entry.liveSource == null)
         .map((entry) => ({ key: `e${entry.pk}`, entry, at: entry.position }));
-      if (this.filter === "all") {
+      if (!this.filters.length) {
         for (const item of this.items) {
           rows.push({ key: `i${item.pk}`, item, at: item.position ?? Infinity });
         }
@@ -328,7 +351,7 @@ export default {
   watch: {
     modelValue(value) {
       if (value) {
-        this.filter = this.initialFilter;
+        this.filters = initialFilters(this.initialFilter);
         this.load();
       }
     },
@@ -478,9 +501,14 @@ export default {
 @layer codex-components {
   .reviewBar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: $space-2;
     margin-bottom: $space-2;
+  }
+
+  .reviewHint {
+    margin-top: 0;
   }
 
   .positionCol {

@@ -170,11 +170,6 @@
         size="small"
         variant="tonal"
         :disabled="selected.length < 2"
-        :title="
-          selected.length < 2
-            ? 'Select at least two lists to combine them.'
-            : ''
-        "
         @click="openCombine(selected)"
       >
         Combine
@@ -192,7 +187,6 @@
         size="small"
         variant="text"
         :disabled="!selectedWritable.length"
-        :title="selectedWritable.length ? '' : WRITE_NONE_HINT"
         @click="confirmWrite(selectedWritable)"
       >
         Write to Files
@@ -207,6 +201,10 @@
         :text="`Delete ${selected.length} reading lists? Lists from story arc tags come back on the next import. No comic file changes.`"
         @confirm="bulk('delete')"
       />
+      <!-- Why a button here is off, in words: a title never shows. -->
+      <p v-if="bulkHints.length" class="adminHint bulkHint">
+        {{ bulkHints.join(" ") }}
+      </p>
     </div>
 
     <AdminTable
@@ -504,6 +502,7 @@ export default {
       showWrite: false,
       writeLists: [],
       WRITE_NONE_HINT,
+      COMBINE_TWO_HINT: "Select at least two lists to combine them.",
     };
   },
   computed: {
@@ -567,6 +566,12 @@ export default {
       return count === 1
         ? "1 saved series mapping"
         : `${count} saved series mappings`;
+    },
+    bulkHints() {
+      const hints = [];
+      if (this.selected.length < 2) hints.push(this.COMBINE_TWO_HINT);
+      if (!this.selectedWritable.length) hints.push(this.WRITE_NONE_HINT);
+      return hints;
     },
     selectedWritable() {
       const selected = new Set(this.selected);
@@ -697,6 +702,11 @@ export default {
 
 @layer codex-components {
   .filters,
+  .bulkHint {
+    flex-basis: 100%;
+    margin-top: 0;
+  }
+
   .bulkBar {
     display: flex;
     flex-wrap: wrap;

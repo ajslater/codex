@@ -192,9 +192,8 @@ describe("rows", () => {
   test("lists every list the user may change, global ones marked", async () => {
     const { wrapper } = mountMenu({ collection: "series", pk: 1 });
     const content = await openMenu(wrapper);
-    expect(content.querySelector(".menuSectionTitle").textContent).toBe(
-      "Reading Lists",
-    );
+    // No header repeating "Reading Lists": every opener already says it.
+    expect(content.querySelector(".menuSectionTitle")).toBeNull();
     expect(rowTitles(content)).toEqual([
       "Favorites",
       "Want to Read",

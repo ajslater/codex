@@ -51,7 +51,6 @@
         variant="tonal"
         size="small"
         :disabled="!details.continue"
-        :title="details.continue ? '' : CONTINUE_DONE_HINT"
         @click="continueReading(details.pk)"
       >
         Continue Reading
@@ -69,6 +68,10 @@
           />
         </v-list>
       </v-menu>
+      <!-- In words: a title never shows on a disabled button. -->
+      <span v-if="!details.continue" class="detailsHint">
+        {{ CONTINUE_DONE_HINT }}
+      </span>
     </div>
   </section>
 </template>
@@ -164,8 +167,17 @@ export default {
 
   .detailsActions {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
     margin-top: 8px;
+  }
+
+  .detailsHint {
+    flex-basis: 100%;
+    order: 1;
+    font-size: 12px;
+    color: rgb(var(--v-theme-text-secondary));
   }
 }
 </style>

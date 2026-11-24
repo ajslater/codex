@@ -603,12 +603,30 @@ describe("review dialog — loading", () => {
     expect(API.getEntries).toHaveBeenCalledWith(3, "all");
     expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([1]);
     expect(wrapper.vm.reviewCount).toBe(1);
-    wrapper.vm.filter = "missing";
+    wrapper.vm.filters = ["missing"];
     await flushPromises();
     expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([2]);
-    wrapper.vm.filter = "hidden";
+    wrapper.vm.filters = ["hidden"];
     expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([3]);
     expect(API.getEntries).toHaveBeenCalledTimes(1);
+  });
+
+  test("the filter is a checklist: nothing ticked is every issue", async () => {
+    // No toggle with an "All" beside choices it overlaps (AJ's rule).
+    API.getEntries.mockResolvedValue({ data: { entries: ENTRIES } });
+    const wrapper = mount(ReviewDialog, {
+      props: { modelValue: true, readingList: { pk: 3, name: "CW" } },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    const labels = wrapper
+      .findAll(".reviewFilter .v-chip")
+      .map((chip) => chip.text());
+    expect(labels).toEqual(["Needs Review", "Missing", "Hidden"]);
+    expect(wrapper.vm.filters).toEqual([]);
+    expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([1, 2, 3]);
+    wrapper.vm.filters = ["missing", "hidden"];
+    expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([2, 3]);
   });
 
   test("another list clears the rows before its own arrive", async () => {
@@ -837,5 +855,73 @@ describe("export menu", () => {
       ["ComicRack CBL", "/export/4/cbl"],
     ]);
     wrapper.unmount();
+  });
+});
+
+describe("disabled controls say why, in words on the page", () => {
+  /*
+   * A title never shows on a disabled button, so each reason is text
+   * beside the control while it is off (AJ's rule for disabled controls).
+   */
+  test("the bulk bar's Combine and Write to Files", async () => {
+    API.getAdminLists.mockResolvedValue({ data: { lists: MORE_LISTS } });
+    API.getSuggestions.mockResolvedValue({ data: { suggestions: [] } });
+    const wrapper = mount(ReadingListsTab, {
+      global: { plugins: [pinia(), vuetify] },
+    });
+    await flushPromises();
+    // One personal list: too few to combine, and never written to files.
+    wrapper.vm.selected = [3];
+    await flushPromises();
+    const bar = wrapper.find(".bulkBar").text();
+    expect(bar).toContain("Select at least two lists to combine them.");
+    expect(bar).toContain("Only global lists with issues in your library");
+  });
+
+  test("Accept All Best Guesses in Edit Issues", async () => {
+    API.getEntries.mockResolvedValue({ data: { entries: [] } });
+    const wrapper = mount(ReviewDialog, {
+      props: { modelValue: true, readingList: { pk: 3, name: "CW" } },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    expect(wrapper.find(".reviewBar").text()).toContain("No issue needs review.");
+  });
+
+  test("Preview and Import in Add Lists", async () => {
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("Pick at least one list on any tab.");
+    wrapper.vm.cards = [{ kind: "url", ref: "x", name: "x", error: "Gone." }];
+    await flushPromises();
+    expect(wrapper.text()).toContain("Every list here failed to load.");
+  });
+
+  test("Combine in the combine dialog", async () => {
+    const testingPinia = pinia();
+    setActivePinia(testingPinia);
+    useReadingListsStore().lists = LISTS;
+    const wrapper = mount(CombineDialog, {
+      props: { modelValue: true, pks: [1] },
+      global: { plugins: [testingPinia, vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("Choose at least two lists to combine.");
+  });
+
+  test("a source with nothing to fetch has no Refresh", () => {
+    const testingPinia = pinia();
+    setActivePinia(testingPinia);
+    useReadingListsStore().lists = LISTS;
+    const wrapper = mount(SourcesDialog, {
+      props: { modelValue: true, readingList: LISTS[0] },
+      global: { plugins: [testingPinia, vuetify], stubs: STUBS },
+    });
+    const titles = wrapper.findAll("button").map((b) => b.attributes("title"));
+    expect(titles).not.toContain("Uploads and tags have nothing to fetch.");
+    expect(titles).not.toContain("Fetch again");
   });
 });

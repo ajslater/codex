@@ -83,7 +83,8 @@ describe("MetadataReadingListDetails", () => {
       .findAll("button")
       .find((b) => b.text() === "Continue Reading");
     expect(button.attributes("disabled")).toBeDefined();
-    expect(button.attributes("title")).toContain("Every issue");
+    // In words beside it: a title never shows on a disabled button.
+    expect(wrapper.find(".detailsActions").text()).toContain("Every issue");
   });
 
   test("nothing for a selection that is not one list", () => {
