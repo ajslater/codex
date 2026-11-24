@@ -180,8 +180,9 @@ CREATE TABLE IF NOT EXISTS settings_browser (
 -- before shelves folded into reading lists; an older backup's restore reads
 -- it as the names of the owner's lists, and new backups leave it empty.
 -- ``reading_lists`` holds the filtered lists' uuids, ``reading_list_tags``
--- the tags refs (arc sort names) of those made from tags: a list from tags
--- alone is not backed up, and the tag sync makes it again under a new uuid.
+-- a JSON object of the tags ref (arc sort name) of each list holding tags,
+-- by its uuid: a list from tags alone is not backed up, and the tag sync
+-- makes it again under a new uuid, which only its tags then find.
 CREATE TABLE IF NOT EXISTS settings_filters (
     username TEXT NOT NULL,
     client TEXT NOT NULL,
@@ -206,7 +207,7 @@ CREATE TABLE IF NOT EXISTS settings_filters (
     original_format TEXT NOT NULL DEFAULT '[]',
     reading_direction TEXT NOT NULL DEFAULT '[]',
     reading_lists TEXT NOT NULL DEFAULT '[]',
-    reading_list_tags TEXT NOT NULL DEFAULT '[]',
+    reading_list_tags TEXT NOT NULL DEFAULT '{}',
     reprints TEXT NOT NULL DEFAULT '[]',
     series_end_year TEXT NOT NULL DEFAULT '[]',
     series_groups TEXT NOT NULL DEFAULT '[]',

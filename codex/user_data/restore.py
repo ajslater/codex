@@ -29,6 +29,7 @@ from codex.user_data.identifiers import (
     watched_path_pks,
 )
 from codex.user_data.restore_api_keys import restore_api_keys
+from codex.user_data.restore_filter_lists import resolve_filter_reading_lists
 from codex.user_data.restore_filters import restore_list_kinds, restore_match_all
 from codex.user_data.restore_reading_lists import restore_reading_lists
 from codex.user_data.restore_shelves import (
@@ -839,82 +840,6 @@ def _resolve_filter_tags(column: str, raw: list, browser, report: RestoreReport)
     return pks
 
 
-def _story_arc_list_pks(row_keys, row) -> list[int]:
-    """
-    Resolve an old backup's story-arc filter to the global lists of its names.
-
-    Story arcs and reading lists are one concept now, so a filter on an arc
-    is a filter on the arc's list. Of several global lists of one name the
-    first made is the one the tags built.
-    """
-    from codex.models.readinglist import ReadingList
-
-    if "story_arcs" not in row_keys:
-        return []
-    names = json.loads(row["story_arcs"] or "[]")
-    first: dict[str, int] = {}
-    rows = (
-        ReadingList.objects.filter(user__isnull=True, name__in=names)
-        .order_by("pk")
-        .values_list("name", "pk")
-    )
-    for name, pk in rows:
-        first.setdefault(name, pk)
-    return [first[name] for name in names if name in first]
-
-
-def _tag_list_pks(row_keys, row, browser) -> list[int]:
-    """
-    Resolve the filter's tags refs to the lists now holding those tags.
-
-    A list from tags alone is not backed up, so after a rebuild the tag
-    sync made it again under a new uuid; its tags source still has the ref.
-    """
-    from codex.models.readinglist import ReadingListSource, ReadingListSourceKind
-    from codex.views.auth import GroupACLMixin
-
-    if "reading_list_tags" not in row_keys or not (
-        refs := json.loads(row["reading_list_tags"] or "[]")
-    ):
-        return []
-    visible = GroupACLMixin.reading_list_visibility_filter(
-        browser.user, "reading_list__"
-    )
-    return list(
-        ReadingListSource.objects.filter(
-            visible, kind=ReadingListSourceKind.TAGS, ref__in=refs
-        )
-        .order_by("reading_list_id")
-        .values_list("reading_list_id", flat=True)
-    )
-
-
-def _resolve_filter_reading_lists(row_keys, row, browser) -> list[int]:
-    """Resolve reading list uuids to the pks of lists the owner may see."""
-    from codex.models.readinglist import ReadingList
-    from codex.views.auth import GroupACLMixin
-
-    pks: list[int] = []
-    if "reading_lists" in row_keys and (
-        uuids := json.loads(row["reading_lists"] or "[]")
-    ):
-        visible = GroupACLMixin.reading_list_visibility_filter(browser.user)
-        pks = list(
-            ReadingList.objects.filter(visible, uuid__in=uuids)
-            .order_by("pk")
-            .values_list("pk", flat=True)
-        )
-    return list(
-        dict.fromkeys(
-            [
-                *pks,
-                *_tag_list_pks(row_keys, row, browser),
-                *_story_arc_list_pks(row_keys, row),
-            ]
-        )
-    )
-
-
 def _restore_one_filter(row, browser, report: RestoreReport) -> None:
     """Resolve tag-name lists in the sidecar back to PK lists."""
     from codex.models.settings import SettingsBrowserFilters
@@ -929,7 +854,7 @@ def _restore_one_filter(row, browser, report: RestoreReport) -> None:
         "reading_lists": list(
             dict.fromkeys(
                 [
-                    *_resolve_filter_reading_lists(row_keys, row, browser),
+                    *resolve_filter_reading_lists(row_keys, row, browser, report),
                     *resolve_filter_shelves(row, row_keys, browser),
                 ]
             )
