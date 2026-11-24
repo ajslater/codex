@@ -458,6 +458,7 @@ export const useReadingListsStore = defineStore("readingLists", {
         this._undoRefused(list, data.refused, on);
         if (Number.isSafeInteger(data.count)) list.count = data.count;
         this.membershipVersion += 1;
+        void useBrowserStore().refreshIfShowingLists();
         return true;
       } catch (error) {
         for (const [collection, pks] of Object.entries(changed)) {

@@ -51,7 +51,7 @@
       v-model="showEditor"
       :reading-list="editing"
       :admin="false"
-      @changed="loadMyLists"
+      @changed="onEdited"
     />
   </div>
   <v-divider v-if="isLoggedIn" />
@@ -130,7 +130,11 @@ export default {
       "loadMyLists",
       "renameList",
     ]),
-    ...mapActions(useBrowserStore, ["refreshBrowserPage", "routeWithSettings"]),
+    ...mapActions(useBrowserStore, [
+      "refreshBrowserPage",
+      "refreshIfShowingLists",
+      "routeWithSettings",
+    ]),
     /*
      * The user's lists are cards in the reading lists grid too, so every
      * change refetches the shown page in place.
@@ -154,6 +158,11 @@ export default {
         params: { collection: ARCS, pks: String(item.pk), page: 1 },
       };
       this.routeWithSettings({ topCollection: ARCS }, route);
+    },
+    async onEdited() {
+      // The menus, and the grid when it shows this or any list.
+      await this.loadMyLists();
+      await this.refreshIfShowingLists();
     },
     edit(item) {
       this.editing = { pk: item.pk, name: item.name };

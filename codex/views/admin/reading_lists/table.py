@@ -12,6 +12,10 @@ from rest_framework.response import Response
 from codex.choices.readinglists import SOURCE_LABELS
 from codex.choices.tagging import KEEP_WRITE_FORMAT, NAMED_WRITE_FORMATS
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.notifier.tasks import (
+    LIBRARY_CHANGED_TASK,
+    READING_LISTS_CHANGED_TASK,
+)
 from codex.librarian.onlinetag.readinglists import (
     FetchRequest,
     ReadingListFetchAbortTask,
@@ -163,6 +167,17 @@ class AdminReadingListsView(AdminAPIView):
         return Response({"lists": rows, "error_count": len(get_reading_list_errors())})
 
 
+def notify_lists_changed() -> None:
+    """
+    Tell every client the lists changed, as a librarian job's change does.
+
+    For changes made here in the request: menus, drawers and the admin
+    table reload their lists, and browsed pages check whether to refresh.
+    """
+    LIBRARIAN_QUEUE.put(READING_LISTS_CHANGED_TASK)
+    LIBRARIAN_QUEUE.put(LIBRARY_CHANGED_TASK)
+
+
 def get_list(pk) -> ReadingList:
     """Return any list, for an admin."""
     reading_list = ReadingList.objects.filter(pk=pk).first()
@@ -217,11 +232,13 @@ class AdminReadingListDetailView(AdminAPIView):
         except IntegrityError as exc:
             reason = "Its owner already has a reading list with that name."
             raise ValidationError(reason) from exc
+        notify_lists_changed()
         return Response({"pk": reading_list.pk})
 
     def delete(self, *_args, pk: int, **_kwargs) -> Response:
         """Delete a list. A list from tags comes back on the next sync."""
         get_list(pk).delete()
+        notify_lists_changed()
         return Response({"deleted": True})
 
 
@@ -346,12 +363,16 @@ def _copy_global(reading_lists: list[ReadingList]) -> dict[str, int]:
             continue
         copy_list(reading_list, user=None, name=reading_list.name)
         copied += 1
+    if copied:
+        notify_lists_changed()
     return {"copied": copied}
 
 
 def _delete(reading_lists: list[ReadingList]) -> dict[str, int]:
     pks = [reading_list.pk for reading_list in reading_lists]
     count, _ = ReadingList.objects.filter(pk__in=pks).delete()
+    if count:
+        notify_lists_changed()
     return {"deleted": count}
 
 

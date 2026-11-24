@@ -176,6 +176,14 @@ describe("BrowserSettingsReadingLists", () => {
     expect(useBrowserStore().routeWithSettings).not.toHaveBeenCalled();
   });
 
+  test("an edit in Edit Issues reloads the menus and the grid", async () => {
+    // The grid used to stay as it was when it showed the edited list.
+    const { wrapper, store } = mountBlock();
+    await wrapper.vm.onEdited();
+    expect(store.loadMyLists).toHaveBeenCalledOnce();
+    expect(useBrowserStore().refreshIfShowingLists).toHaveBeenCalledOnce();
+  });
+
   test("edit opens the entry editor without admin powers", async () => {
     const { wrapper } = mountBlock();
     await clickMenuItem(wrapper, "Edit Issues");

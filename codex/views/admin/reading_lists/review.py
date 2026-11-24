@@ -19,7 +19,7 @@ from codex.models.readinglist import (
     ReadingListSeriesMapping,
 )
 from codex.views.admin.auth import AdminAPIView
-from codex.views.admin.reading_lists.table import get_list
+from codex.views.admin.reading_lists.table import get_list, notify_lists_changed
 from codex.views.readinglists.access import to_pk, to_pks
 
 
@@ -72,6 +72,7 @@ class AdminReadingListCombineView(AdminAPIView):
         if data.get("dry_run"):
             return Response(_dry_run([primary, *others]))
         combined = combine_lists(primary, others)
+        notify_lists_changed()
         return Response({"pk": combined.pk})
 
 
