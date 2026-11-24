@@ -206,9 +206,10 @@
             <!--
               Rows render a page at a time: a list of thousands built every
               row's controls at once and took seconds to open. Scrolling
-              this row into view shows the next page.
+              this row into view shows the next page. A function ref, so
+              each row v-if creates is watched, after a filter too.
             -->
-            <tr v-if="rows.length > shown" ref="more" class="moreRow">
+            <tr v-if="rows.length > shown" :ref="observeRow" class="moreRow">
               <td colspan="7" class="adminNoData">{{ moreCaption }}</td>
             </tr>
             <tr v-if="!rows.length">
@@ -252,7 +253,7 @@ import CandidatePicker from "@/components/reading-list-candidate-picker.vue";
 import { useCommonStore } from "@/stores/common";
 
 // Rows rendered at a time, and again each time the end comes into view.
-const PAGE = 200;
+const PAGE_SIZE = 200;
 const TIERS = Object.freeze({
   marked_missing: "Marked missing by hand",
   manual: "Picked by hand",
@@ -290,6 +291,8 @@ export default {
     initialFilter: { type: String, default: "all" },
     // Admins may save series mappings, which apply to every list.
     admin: { type: Boolean, default: true },
+    // Rows rendered at a time. Only tests set it, to page a short list.
+    pageSize: { type: Number, default: PAGE_SIZE },
   },
   emits: ["update:modelValue", "changed"],
   data() {
@@ -313,7 +316,7 @@ export default {
       dragPk: null,
       dragOverPk: null,
       pickEntry: null,
-      shown: PAGE,
+      shown: this.pageSize,
       pickMapsSeries: false,
       showPicker: false,
     };
@@ -404,12 +407,10 @@ export default {
   },
   watch: {
     filters() {
-      this.shown = PAGE;
+      this.shown = this.pageSize;
     },
     shown() {
-      this.observeMore();
-    },
-    allEntries() {
+      // The same row, re-watched, so it reports whether it is still in view.
       this.observeMore();
     },
     modelValue(value) {
@@ -423,7 +424,7 @@ export default {
       // Another list: never show the last one's rows while this one loads.
       this.allEntries = [];
       this.items = [];
-      this.shown = PAGE;
+      this.shown = this.pageSize;
       if (this.modelValue) this.load();
     },
   },
@@ -459,13 +460,18 @@ export default {
       }
     },
     showMore() {
-      this.shown += PAGE;
+      this.shown += this.pageSize;
     },
-    async observeMore() {
+    observeRow(row) {
+      // Vue calls this as the more row mounts (and with null as it goes).
+      if (row === this.moreRow) return;
+      this.moreRow = row;
+      this.observeMore();
+    },
+    observeMore() {
       // A fresh observer reports at once whether the end is in view.
-      await this.$nextTick();
       this.moreObserver?.disconnect();
-      const more = this.$refs.more;
+      const more = this.moreRow;
       if (!more || typeof IntersectionObserver === "undefined") return;
       this.moreObserver = new IntersectionObserver((entries) => {
         if (entries.some((entry) => entry.isIntersecting)) this.showMore();
