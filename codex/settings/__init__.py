@@ -892,6 +892,8 @@ COMICBOX_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 # walks the dir — negligible at 10k).
 TAGGING_CACHE_PATH = ROOT_CACHE_PATH / "tagging"
 TAGGING_CACHE_PATH.mkdir(exist_ok=True, parents=True)
+READING_LIST_PREVIEW_CACHE_PATH = ROOT_CACHE_PATH / "readinglist_previews"
+READING_LIST_PREVIEW_CACHE_PATH.mkdir(exist_ok=True, parents=True)
 
 CACHES = {
     "default": {
@@ -908,6 +910,15 @@ CACHES = {
     "tagging": {
         "BACKEND": "codex.cache.ResilientFileBasedCache",
         "LOCATION": str(TAGGING_CACHE_PATH),
+        "OPTIONS": {"MAX_ENTRIES": 1000},
+    },
+    # Reading-list previews: whole parsed lists waiting up to an hour for
+    # Import, which deletes them. Not in "tagging": at MAX_ENTRIES a
+    # file-based cache culls a random third of its files, which there
+    # would include the durable prompts and errors.
+    "readinglist_previews": {
+        "BACKEND": "codex.cache.ResilientFileBasedCache",
+        "LOCATION": str(READING_LIST_PREVIEW_CACHE_PATH),
         "OPTIONS": {"MAX_ENTRIES": 1000},
     },
 }

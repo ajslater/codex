@@ -22,8 +22,11 @@ Removing a source recomputes the list without it, so a combination can be
 undone.
 """
 
+from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from itertools import groupby
+from operator import itemgetter
 from typing import Any, Final
 
 from comicbox.readinglists import combine
@@ -241,17 +244,48 @@ def _match_rows(rows: Sequence[_Row], matcher: ListMatcher) -> None:
         row.needs_review = row.needs_review or found.needs_review
 
 
+def _source_rows_by_comic(rows: Sequence[_Row]) -> dict[int, deque[int]]:
+    """
+    Map each comic to the positions of the shown rows a source gives it.
+
+    The tags or the matcher gave the row its comic; a person's pick is a
+    hand edit of its own and holds nothing a hand-added entry folds into.
+    """
+    held: defaultdict[int, deque[int]] = defaultdict(deque)
+    for position, row in enumerate(rows):
+        if (
+            row.comic_pk is not None
+            and not row.ignored
+            and row.tier != ReadingListMatchTier.MANUAL.value
+        ):
+            held[row.comic_pk].append(position)
+    return held
+
+
 def _with_manual(
     rows: Sequence[_Row], overlay: Overlay, assigned: Sequence[int | None]
 ) -> list[_Row | ReadingListEntry]:
-    """Put each hand-added entry back after the entry it followed."""
+    """
+    Put each hand-added entry back after the entry it followed.
+
+    A shown hand-added entry whose comic a shown source row now holds folds
+    into that row, which takes its place for the hand-added entries after
+    it. A list written into its comics' files then reads back once, not
+    twice.
+    """
     if not overlay.manual:
         return list(rows)
     row_of = {index: row for row, index in enumerate(assigned) if index is not None}
+    held = _source_rows_by_comic(rows)
     after: dict[int | None, list[ReadingListEntry]] = {}
-    for previous, entry in overlay.manual:
+    for previous, run in groupby(overlay.manual, key=itemgetter(0)):
         target = None if previous is None else row_of.get(previous)
-        after.setdefault(target, []).append(entry)
+        for _, entry in run:
+            comic_pk = entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
+            if not entry.ignored and (positions := held.get(comic_pk)):
+                target = positions.popleft()
+                continue
+            after.setdefault(target, []).append(entry)
     ordered: list[_Row | ReadingListEntry] = list(after.pop(None, []))
     for position, row in enumerate(rows):
         ordered.append(row)

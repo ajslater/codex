@@ -125,26 +125,38 @@ def _next_rank(reading_list: ReadingList) -> int:
 
 
 def unique_name(name: str, user) -> str:
-    """Personal list names are unique per owner: number a repeat."""
+    """
+    Personal list names are unique per owner: number a repeat.
+
+    The name is cut so its `` (N)`` fits in ``MAX_NAME_LEN``: the field cuts
+    every lookup there, so a suffix past it would never be seen.
+    """
     if user is None:
         return name
     candidate, number = name, 2
     while ReadingList.objects.filter(user=user, name=candidate).exists():
-        candidate = f"{name} ({number})"
+        suffix = f" ({number})"
+        candidate = f"{name[: MAX_NAME_LEN - len(suffix)]}{suffix}"
         number += 1
     return candidate
 
 
 def copy_list(
-    original: ReadingList, *, user, name: str, entries_q: Q | None = None
+    original: ReadingList,
+    *,
+    user,
+    name: str,
+    entries_q: Q | None = None,
+    items_q: Q | None = None,
 ) -> ReadingList:
     """
     Copy a list's shown entries into a new list, as entries added by hand.
 
-    ``user`` owns the copy; None makes it global. ``entries_q`` narrows the
-    entries to what the copier sees. The copy's order is locked, since it
-    has no sources to follow. The header it copies counts as edited, so a
-    source added to the copy later does not overwrite it.
+    ``user`` owns the copy; None makes it global. ``entries_q`` and
+    ``items_q`` narrow the entries and the collection items to what the
+    copier sees. The copy's order is locked, since it has no sources to
+    follow. The header it copies counts as edited, so a source added to the
+    copy later does not overwrite it.
     """
     header = {
         "description": original.description,
@@ -185,7 +197,7 @@ def copy_list(
             )
             for position, entry in enumerate(entries)
         )
-        _copy_items(original, copy)
+        _copy_items(original, copy, items_q or Q())
         reconcile_list(copy)
     return copy
 
@@ -198,11 +210,13 @@ def _may_hold(reading_list: ReadingList, item: ReadingListSource) -> bool:
     return target is None or not list_refusal(reading_list, target)
 
 
-def _copy_items(original: ReadingList, copy: ReadingList) -> None:
+def _copy_items(original: ReadingList, copy: ReadingList, items_q: Q) -> None:
     """Copy a list's collection items into its copy, where they stay live."""
-    items = ReadingListSource.objects.filter(
-        reading_list=original, kind=COLLECTION_KIND
-    ).order_by("rank", "pk")
+    items = (
+        ReadingListSource.objects.filter(reading_list=original, kind=COLLECTION_KIND)
+        .filter(items_q)
+        .order_by("rank", "pk")
+    )
     copies = [
         ReadingListSource(
             reading_list=copy,

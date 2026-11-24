@@ -21,11 +21,16 @@ denominators:
   this option*, and it is deliberately not the same question: a value can be
   used by everybody occasionally and be nobody's main setting.
 
-Privacy boundary: every key is a closed enum fixed in codex source plus
-``""``/``"true"``/``"false"``, and every value is a count of users bounded by
-the registered user count already on the wire. Nothing here reads a name, a
-path, or any per-user identity. No library-derived quantity is computed, so
-nothing library-shaped can leak through a tie-break.
+The browser filters get the second family only, as two buckets keyed by the
+filter's name: the users who have each filter on anywhere, and the users who
+set each tag-like filter to match all ticked values. What a filter is set to
+is never selected: the query asks only whether the column is empty.
+
+Privacy boundary: every key is a closed enum or a column name fixed in codex
+source plus ``""``/``"true"``/``"false"``, and every value is a count of users
+bounded by the registered user count already on the wire. Nothing here reads a
+name, a path, or any per-user identity. No library-derived quantity is
+computed, so nothing library-shaped can leak through a tie-break.
 
 The section is always emitted when the collector runs, with zero counts when
 there are no registered users -- never omitted. An absent section has to mean
@@ -43,8 +48,14 @@ from typing import Any, Final
 
 from django.db.models import Count, Q
 
+from codex.choices.browser import BROWSER_MATCH_ALL_FILTERS
 from codex.choices.reader import READER_DEFAULTS
-from codex.models.settings import ClientChoices, SettingsBrowser, SettingsReader
+from codex.models.settings import (
+    ClientChoices,
+    SettingsBrowser,
+    SettingsBrowserFilters,
+    SettingsReader,
+)
 
 # Browser settings worth asking about. Every one is non-null, so the only
 # untouched marker among them is order_by's empty string.
@@ -53,7 +64,17 @@ BROWSER_FIELDS: Final[tuple[str, ...]] = (
     "order_by",
     "view_mode",
     "table_cover_size",
+    "show_missing_issues",
 )
+# SettingsBrowserFilters columns that are not a filter of comics: bookkeeping,
+# the settings row it belongs to, and the match-all switch list, which has a
+# bucket of its own.
+FILTER_BOOKKEEPING: Final = frozenset(
+    {"id", "created_at", "updated_at", "browser", "match_all"}
+)
+_MATCH_ALL_FILTERS: Final = frozenset(BROWSER_MATCH_ALL_FILTERS)
+# The match-all bucket for a stored name outside the vocabulary.
+_OTHER: Final = "other"
 # Ordered, unlike SettingsReader.DIRECT_KEYS which is a frozenset. A test pins
 # the two to the same set so this cannot drift from the model.
 READER_FIELDS: Final[tuple[str, ...]] = (
@@ -244,6 +265,60 @@ def _reader_untouched(field: str) -> object:
     return "" if isinstance(READER_DEFAULTS[field], str) else None
 
 
+def filter_columns() -> dict[str, object]:
+    """
+    Map each browser filter column to the value it holds while it is off.
+
+    Read off the model, so a new filter is counted without being listed
+    here: an empty list for the multi-pick filters, "" for the bookmark
+    choice.
+    """
+    return {
+        field.name: field.get_default()
+        for field in SettingsBrowserFilters._meta.concrete_fields
+        if field.name not in FILTER_BOOKKEEPING
+    }
+
+
+def _match_all_users(rows) -> dict[str, int]:
+    """
+    Count the users who set each tag-like filter to match all ticked values.
+
+    ``match_all`` holds filter names, not what a filter is set to. A stored
+    name outside ``BROWSER_MATCH_ALL_FILTERS`` is counted under "other".
+    """
+    users: dict[str, set[int]] = {}
+    switched = rows.exclude(match_all=[]).values_list("browser__user_id", "match_all")
+    for user_id, names in switched:
+        if not isinstance(names, list):
+            continue
+        for name in names:
+            known = isinstance(name, str) and name in _MATCH_ALL_FILTERS
+            users.setdefault(name if known else _OTHER, set()).add(user_id)
+    return {key: len(user_ids) for key, user_ids in sorted(users.items())}
+
+
+def _filter_stats() -> dict[str, Any]:
+    """
+    Browser filters in use, counted in users.
+
+    A user counts toward a filter that is on in any of their settings rows:
+    the live one, a saved view or OPDS. One count per column, and each asks
+    only whether the column differs from its off value, so what a filter is
+    set to never leaves the database. A filter nobody uses has no key.
+    """
+    rows = SettingsBrowserFilters.objects.filter(browser__user__isnull=False)
+    in_use: dict[str, int] = {}
+    for name, off in filter_columns().items():
+        users = rows.exclude(**{name: off}).values("browser__user_id").distinct()
+        if count := users.count():
+            in_use[name] = count
+    return {
+        "browser_filter_users": in_use,
+        "browser_match_all_users": _match_all_users(rows),
+    }
+
+
 def get_per_user_stats() -> dict[str, Any]:
     """
     Report browser and reader settings counted in registered users.
@@ -252,4 +327,4 @@ def get_per_user_stats() -> dict[str, Any]:
     and every bucket empty, which is a different and more useful statement
     than sending nothing at all.
     """
-    return _browser_stats() | _reader_stats()
+    return _browser_stats() | _filter_stats() | _reader_stats()

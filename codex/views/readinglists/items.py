@@ -9,10 +9,12 @@ the user may not see are dropped silently, so the answer never reveals
 whether one exists. Saved in Codex only: no comic file changes.
 """
 
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Final, override
 
 from django.db import transaction
+from django.db.models import Q
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import DictField, IntegerField, ListField
 from rest_framework.response import Response
@@ -31,6 +33,7 @@ from codex.librarian.scribe.readinglists.live import (
 from codex.librarian.scribe.readinglists.tasks import ReadingListLiveSyncTask
 from codex.models import Comic
 from codex.models.readinglist import ReadingList, ReadingListSource
+from codex.views.auth import GroupACLMixin
 from codex.views.readinglists.access import ReadingListAccessView, visible_lists
 from codex.views.readinglists.entries import add_comics, entry_count, remove_comics
 
@@ -59,21 +62,48 @@ class ReadingListItemsSerializer(Serializer):
     remove = _TargetsField(required=False)
 
 
+def visible_targets(
+    acl: GroupACLMixin, user, collection: str, pks: Sequence[int]
+) -> list[int]:
+    """Keep the targets ``user`` may see, in the order asked."""
+    if collection == "arcs":
+        queryset = visible_lists(user)
+    else:
+        model = Comic if collection == COMICS else ITEM_MODELS[collection]
+        # Writes land on rows whose file is briefly missing.
+        acl_filter = acl.get_acl_filter(model, user, include_missing=True)
+        queryset = model.objects.filter(acl_filter)
+    seen = set(queryset.filter(pk__in=set(pks)).values_list("pk", flat=True))
+    return [pk for pk in dict.fromkeys(pks) if pk in seen]
+
+
+def visible_items_q(acl: GroupACLMixin, user, reading_list: ReadingList) -> Q:
+    """
+    Return a list's collection items whose targets ``user`` may see.
+
+    A copy holds only these, so it never names a collection the copier
+    could not have added.
+    """
+    targets: defaultdict[str, list[int]] = defaultdict(list)
+    for collection, target_id in ReadingListSource.objects.filter(
+        reading_list=reading_list, kind=COLLECTION_KIND, target_id__isnull=False
+    ).values_list("collection", "target_id"):
+        targets[collection].append(target_id)
+    visible = Q(pk__in=())
+    for collection, pks in targets.items():
+        visible |= Q(
+            collection=collection,
+            target_id__in=visible_targets(acl, user, collection, pks),
+        )
+    return visible
+
+
 class ReadingListItemsView(ReadingListAccessView):
     """PATCH: add items to and remove items from one list, in bulk."""
 
     def _visible(self, collection: str, pks: Sequence[int]) -> list[int]:
         """Keep the targets the user may see, in the order asked."""
-        user = self.request.user
-        if collection == "arcs":
-            queryset = visible_lists(user)
-        else:
-            model = Comic if collection == COMICS else ITEM_MODELS[collection]
-            # Writes land on rows whose file is briefly missing.
-            acl = self.get_acl_filter(model, user, include_missing=True)
-            queryset = model.objects.filter(acl)
-        seen = set(queryset.filter(pk__in=set(pks)).values_list("pk", flat=True))
-        return [pk for pk in dict.fromkeys(pks) if pk in seen]
+        return visible_targets(self, self.request.user, collection, pks)
 
     def _add_items(
         self, reading_list: ReadingList, targets: Mapping[str, Sequence[int]]
@@ -152,6 +182,6 @@ class ReadingListItemsView(ReadingListAccessView):
                 **result,
                 "added": comics + len(added),
                 "queued": queued,
-                "count": entry_count(reading_list),
+                "count": entry_count(reading_list, self.shown_entries_q()),
             }
         )

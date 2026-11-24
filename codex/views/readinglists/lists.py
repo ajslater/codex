@@ -24,7 +24,7 @@ from comicbox.readinglists import (
     dumps,
 )
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import HttpResponse
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -48,8 +48,8 @@ from codex.views.readinglists.access import (
     menu_lists_q,
 )
 from codex.views.readinglists.details import continue_comic
-from codex.views.readinglists.entries import add_comics, entry_count
-from codex.views.readinglists.items import COMICS, ITEM_TARGETS
+from codex.views.readinglists.entries import add_comics, entry_count, entry_counts
+from codex.views.readinglists.items import COMICS, ITEM_TARGETS, visible_items_q
 
 _KEYLESS_KINDS: Final = frozenset(
     {ReadingListSourceKind.TAGS, ReadingListSourceKind.UPLOAD}
@@ -164,21 +164,22 @@ def _validated_name(data) -> str:
     return name
 
 
-# The entries a list's count counts: shown, never a dangling live entry.
-_COUNTED: Final = Q(entries__ignored=False) & ~Q(
-    entries__comic__isnull=True, entries__live_source__isnull=False
-)
-
-
 def list_repr(
-    reading_list: ReadingList, user, items: dict[str, list[int]] | None = None
+    reading_list: ReadingList,
+    user,
+    count: int,
+    items: dict[str, list[int]] | None = None,
 ) -> dict[str, Any]:
-    """Return a list for menus and the My Lists dialog, with its items if given."""
+    """
+    Return a list for menus and the My Lists dialog, with its items if given.
+
+    ``count`` is what :func:`entry_count` gives for this viewer.
+    """
     row = {
         "pk": reading_list.pk,
         "name": reading_list.name,
         "personal": reading_list.user_id is not None,  # pyright: ignore[reportAttributeAccessIssue]
-        "count": entry_count(reading_list),
+        "count": count,
         "editable": can_edit(user, reading_list),
     }
     if items is not None:
@@ -232,12 +233,21 @@ class ReadingListsView(ReadingListAccessView):
         """Return the user's own lists, and for an admin the curated global ones."""
         user = self.request.user
         lists = list(
-            ReadingList.objects.filter(menu_lists_q(user))
-            .annotate(count=Count("entries", filter=_COUNTED))
-            .order_by("user_id", "sort_name", "pk")
+            ReadingList.objects.filter(menu_lists_q(user)).order_by(
+                "user_id", "sort_name", "pk"
+            )
         )
-        held = direct_items([rl.pk for rl in lists])
-        return Response({"lists": [list_repr(rl, user, held[rl.pk]) for rl in lists]})
+        list_pks = [rl.pk for rl in lists]
+        counts = entry_counts(list_pks, self.shown_entries_q())
+        held = direct_items(list_pks)
+        return Response(
+            {
+                "lists": [
+                    list_repr(rl, user, counts.get(rl.pk, 0), held[rl.pk])
+                    for rl in lists
+                ]
+            }
+        )
 
     def post(self, *_args, **_kwargs) -> Response:
         """Make a personal list, empty or holding the ``comics`` the user sees."""
@@ -252,7 +262,8 @@ class ReadingListsView(ReadingListAccessView):
             reason = "You already have a reading list with that name."
             raise ValidationError(reason) from exc
         add_comics(reading_list, pks)
-        return Response(list_repr(reading_list, self.request.user), status=201)
+        count = entry_count(reading_list, self.shown_entries_q())
+        return Response(list_repr(reading_list, self.request.user, count), status=201)
 
 
 class ReadingListDetailView(ReadingListAccessView):
@@ -270,7 +281,8 @@ class ReadingListDetailView(ReadingListAccessView):
         except IntegrityError as exc:
             reason = "You already have a reading list with that name."
             raise ValidationError(reason) from exc
-        return Response(list_repr(reading_list, self.request.user))
+        count = entry_count(reading_list, self.shown_entries_q())
+        return Response(list_repr(reading_list, self.request.user, count))
 
     def delete(self, *_args, **_kwargs) -> Response:
         """Delete a list. Its comics and their files are untouched."""
@@ -287,14 +299,22 @@ class ReadingListDuplicateView(ReadingListAccessView):
     def post(self, *_args, **_kwargs) -> Response:
         """Copy every entry the user sees, as entries added by hand."""
         original = self.get_reading_list(edit=False)
-        name = str(self.request.data.get("name") or f"{original.name} (copy)")
+        name = (
+            _validated_name(self.request.data)
+            if "name" in self.request.data
+            else f"{original.name} (copy)"
+        )
+        user = self.request.user
+        shown_q = self.shown_entries_q()
         copy = copy_list(
             original,
-            user=self.request.user,
+            user=user,
             name=name,
-            entries_q=self.shown_entries_q(),
+            entries_q=shown_q,
+            items_q=visible_items_q(self, user, original),
         )
-        return Response(list_repr(copy, self.request.user), status=201)
+        count = entry_count(copy, shown_q)
+        return Response(list_repr(copy, user, count), status=201)
 
 
 class ReadingListContinueView(ReadingListAccessView):

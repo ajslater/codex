@@ -195,24 +195,22 @@ class ReaderArcsView(ReaderParamsView):
         requested_arc_ids = arc.get("ids", ())
         if not arcs.get(arc_collection):
             arc_collection = self._fallback_arc_collection(arcs)
-        arc_id_infos = arcs.get(arc_collection)
-        all_arc_ids: frozenset[tuple[int, ...]] = (
-            frozenset(arc_id_infos.keys()) if arc_id_infos else frozenset()
-        )
+        # Ordered: reading lists by sort name then pk, reprints by identity.
+        arc_id_infos: Mapping[tuple[int, ...], dict] = arcs.get(arc_collection) or {}
         arc_ids = ()
-        if arc_collection in _MULTI_ROW_ARC_COLLECTIONS:
-            if requested_arc_ids in all_arc_ids:
-                arc_ids = requested_arc_ids
-            else:
-                # Pre-build the frozenset cast for each candidate once,
-                # outside the per-iteration intersection compute (sub-plan 01 #6).
-                requested_set = frozenset(requested_arc_ids)
-                for candidate in all_arc_ids:
-                    if requested_set.intersection(candidate):
-                        arc_ids = candidate
-                        break
-        if not arc_ids and all_arc_ids:
-            arc_ids = next(iter(all_arc_ids))
+        if requested_arc_ids in arc_id_infos:
+            arc_ids = requested_arc_ids
+        elif arc_collection in _MULTI_ROW_ARC_COLLECTIONS:
+            # Pre-build the frozenset cast for each candidate once,
+            # outside the per-iteration intersection compute (sub-plan 01 #6).
+            requested_set = frozenset(requested_arc_ids)
+            for candidate in arc_id_infos:
+                if requested_set.intersection(candidate):
+                    arc_ids = candidate
+                    break
+        if not arc_ids:
+            # The first key in order, so the fallback is stable across requests.
+            arc_ids = next(iter(arc_id_infos), ())
         self._selected_arc_collection = arc_collection
         self._selected_arc_ids = arc_ids
 

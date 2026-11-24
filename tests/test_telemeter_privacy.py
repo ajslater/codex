@@ -36,8 +36,14 @@ from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
 from codex.models.readinglist import (
     ReadingList,
+    ReadingListEntry,
     ReadingListSource,
     ReadingListSourceKind,
+)
+from codex.models.settings import (
+    SettingsBrowser,
+    SettingsBrowserFilters,
+    SettingsBrowserShow,
 )
 from tests.api_key_factory import make_api_key
 from tests.tmp_dirs import tmp_dir
@@ -62,6 +68,7 @@ _BUCKET_PATHS: Final = frozenset(
         "stats.file_types",
         "stats.identifiers",
         "stats.usage.list_items",
+        "stats.usage.list_sources",
         "stats.tagging.default_sources",
         "stats.sessions.top_collection",
         "stats.sessions.order_by",
@@ -81,6 +88,12 @@ _BUCKET_PATHS: Final = frozenset(
         "stats.per_user.browser_chosen_view_mode_users",
         "stats.per_user.browser_table_cover_size_users",
         "stats.per_user.browser_chosen_table_cover_size_users",
+        "stats.per_user.browser_show_missing_issues_users",
+        "stats.per_user.browser_chosen_show_missing_issues_users",
+        # Keyed by a filter's name: the columns of SettingsBrowserFilters,
+        # fixed in codex source. What a filter is set to is never a key.
+        "stats.per_user.browser_filter_users",
+        "stats.per_user.browser_match_all_users",
         "stats.per_user.reader_global_fit_to_users",
         "stats.per_user.reader_chosen_fit_to_users",
         "stats.per_user.reader_global_two_pages_users",
@@ -147,6 +160,13 @@ def _identifier_bucket_vocabulary() -> set[str]:
     return {f"{source}:{kind}" for source in sources for kind in kinds}
 
 
+def _reading_vocabularies() -> set[str]:
+    """Collect the reading list source kinds and the browser's filter names."""
+    return _enum_values(ReadingListSourceKind) | {
+        field.name for field in SettingsBrowserFilters._meta.concrete_fields
+    }
+
+
 def _tagging_vocabularies() -> set[str]:
     """Tagging modes, plus the comicbox source names used as bucket keys."""
     from comicbox.formats.base.online import SOURCE_NAMES
@@ -166,6 +186,7 @@ def _vocabularies() -> frozenset[str]:
     values |= _choice_vocabularies()
     values |= _identifier_bucket_vocabulary()
     values |= _tagging_vocabularies()
+    values |= _reading_vocabularies()
     values |= set(AgeRatingMetron.objects.values_list("name", flat=True))
     return frozenset(values)
 
@@ -200,6 +221,11 @@ class TelemeterPrivacyTestCase(TestCase):
             versedb_key=f"{SENTINEL}-versedb-key",
             comicvine_url=f"https://{SENTINEL}-comicvine.example.com",
             default_sources=["metron", f"{SENTINEL}-source"],
+            # The columns carry choices, but a restore or a hand edit can
+            # store anything in them.
+            default_match_mode=f"{SENTINEL}-match-mode",
+            default_prompts_mode=f"{SENTINEL}-prompts-mode",
+            default_effort=f"{SENTINEL}-effort",
         )
         cls._set_singleton(
             OIDCSettings,
@@ -263,6 +289,27 @@ class TelemeterPrivacyTestCase(TestCase):
             target_id=1,
             ref=f'["{SENTINEL}-publisher"]',
             document={"label": f"{SENTINEL}-series"},
+        )
+        # An issue the user put on the list by hand: its series name is a
+        # library name, and with no comic it is a missing issue.
+        ReadingListEntry.objects.create(
+            reading_list=reading_list,
+            series_name=f"{SENTINEL}-series",
+            issue="1",
+            reference={"series": f"{SENTINEL}-series"},
+        )
+        # The user's settings: a search they typed, a filter on that list,
+        # and a match-all switch naming something that is not a filter.
+        show, _ = SettingsBrowserShow.objects.get_or_create(
+            publishers=True, imprints=False, series=True, volumes=False
+        )
+        browser = SettingsBrowser.objects.create(
+            user=user, show=show, search=f"{SENTINEL}-search"
+        )
+        SettingsBrowserFilters.objects.create(
+            browser=browser,
+            reading_lists=[reading_list.pk],
+            match_all=["reading_lists", f"{SENTINEL}-filter"],
         )
         # An API key's name is free text too, and its prefix is part of a
         # credential. One of each scope, seeded on the same user so the user
@@ -347,6 +394,60 @@ class TelemeterPrivacyTestCase(TestCase):
         assert usage["personal_list_user_count"] == 1
         assert usage["list_item_count"] == 1
         assert usage["list_items"] == {Collection.SERIES.value: 1}
+        assert usage["list_sources"] == {ReadingListSourceKind.COLLECTION.value: 1}
+        assert usage["personal_list_entry_count"] == 1
+        assert usage["list_entry_count"] == 1
+        assert usage["list_entry_missing_count"] == 1
+
+    def test_an_unknown_source_kind_folds_into_other(self) -> None:
+        """The source bucket's keys come from the source kind vocabulary."""
+        reading_list = ReadingList.objects.get()
+        ReadingListSource.objects.create(
+            reading_list=reading_list, kind=f"{SENTINEL}-kind", ref="other"
+        )
+        usage = CodexStats().get()["usage"]
+        assert usage["list_sources"] == {
+            ReadingListSourceKind.COLLECTION.value: 1,
+            "other": 1,
+        }
+        assert SENTINEL not in json.dumps(usage)
+
+    def test_live_entries_are_not_issues_people_added(self) -> None:
+        """An item's live entries count as issues, not as hand-added ones."""
+        reading_list = ReadingList.objects.get()
+        item = ReadingListSource.objects.get()
+        ReadingListEntry.objects.create(
+            reading_list=reading_list, live_source=item, position=1
+        )
+        usage = CodexStats().get()["usage"]
+        assert usage["list_entry_count"] == 2  # noqa: PLR2004
+        assert usage["personal_list_entry_count"] == 1
+        # A live entry with no comic is dangling, never missing.
+        assert usage["list_entry_missing_count"] == 1
+
+    def test_filters_report_names_and_user_counts_only(self) -> None:
+        """A filter is named by its column; what it is set to stays put."""
+        per_user = CodexStats().get()["per_user"]
+        assert per_user["browser_filter_users"] == {"reading_lists": 1}
+        assert per_user["browser_match_all_users"] == {"other": 1, "reading_lists": 1}
+
+    def test_tagging_modes_outside_their_vocabulary_report_other(self) -> None:
+        """A drifted mode column reports "other", never what it holds."""
+        tagging = CodexStats().get()["tagging"]
+        assert tagging["default_match_mode"] == "other"
+        assert tagging["default_prompts_mode"] == "other"
+        assert tagging["default_effort"] == "other"
+
+    def test_the_first_source_is_a_registered_name_or_other(self) -> None:
+        """The top-priority source is named only from the registry."""
+        assert CodexStats().get()["tagging"]["default_source_first"] == "metron"
+        defaults = ComicboxTaggingDefaults.objects.get()
+        defaults.default_sources = [f"{SENTINEL}-source", "metron"]
+        defaults.save()
+        assert CodexStats().get()["tagging"]["default_source_first"] == "other"
+        defaults.default_sources = []
+        defaults.save()
+        assert CodexStats().get()["tagging"]["default_source_first"] == ""
 
     def test_an_unknown_item_collection_folds_into_other(self) -> None:
         """

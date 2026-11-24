@@ -24,7 +24,7 @@ from codex.librarian.scribe.readinglists.live import (
 from codex.models import ReadingList, ReadingListSource
 
 _BEFORE: Final = [("codex", "0060_post_v2_6_0_schema")]
-_AFTER: Final = [("codex", "0061_post_v2_7_1_schema")]
+_AFTER: Final = [("codex", "0061_reading_lists_and_versedb_key")]
 _GONE: Final = 9999
 
 

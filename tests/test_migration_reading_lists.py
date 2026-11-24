@@ -15,7 +15,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 
 _BEFORE: Final = [("codex", "0060_post_v2_6_0_schema")]
-_AFTER: Final = [("codex", "0061_post_v2_7_1_schema")]
+_AFTER: Final = [("codex", "0061_reading_lists_and_versedb_key")]
 _OLD_FIT: Final = "W"
 _NEW_FIT: Final = "H"
 
@@ -230,3 +230,42 @@ class ReadingListsMigrationTests(TransactionTestCase):
             browser_id=seeded["browser"].pk
         )
         assert route.pks == [upper.pk]
+
+    def test_an_arc_whose_sort_name_cleans_differently_migrates(self) -> None:
+        """
+        A sort name the field would clean still makes its list, with its comics.
+
+        Rows from before v1.11.0 can carry outer whitespace; the field strips
+        it on write, so the list's stored sort name differs from the arc's.
+        The ORM strips it too, hence the raw UPDATE.
+        """
+        apps = _migrate(_BEFORE)
+        hierarchy = self._hierarchy(apps)
+        comic = self._comic(apps, hierarchy, "c1", date(2006, 9, 1))
+        arc = self._arc(apps, "Civil War")
+        self._link(apps, comic, arc, 1)
+        reader_model = apps.get_model("codex", "SettingsReader")
+        reader_model.objects.create(
+            user_id=self.user.pk, client="api", story_arc=arc, fit_to=_OLD_FIT
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE codex_storyarc SET name = %s, sort_name = %s WHERE id = %s",
+                ["Civil War ", "civil war ", arc.pk],
+            )
+
+        apps = _migrate(_AFTER)
+
+        reading_list: Any = apps.get_model("codex", "ReadingList").objects.get(
+            user__isnull=True
+        )
+        assert reading_list.name == "Civil War"
+        assert list(reading_list.entries.values_list("comic_id", flat=True)) == [
+            comic.pk
+        ]
+        # The tags sync keys sources by the arc's own sort name.
+        assert reading_list.sources.get().ref == "civil war "
+        reader: Any = apps.get_model("codex", "SettingsReader").objects.get(
+            user_id=self.user.pk
+        )
+        assert reader.reading_list_id == reading_list.pk
