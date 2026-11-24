@@ -97,7 +97,7 @@ FIELDMAP = MappingProxyType(
         "issue_number": ("number",),
         "issue_suffix": (),
         "locations": ("location", "loc"),
-        "language": ("lang"),
+        "language": ("lang",),
         "main_character": _get_fieldmap_values("main_character"),
         "main_team": _get_fieldmap_values("main_team"),
         "month": (),
