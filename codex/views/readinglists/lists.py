@@ -24,7 +24,7 @@ from comicbox.readinglists import (
     dumps,
 )
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import HttpResponse
 from django.utils.http import (
     content_disposition_header,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-module-member]
@@ -238,9 +238,10 @@ class ReadingListsView(ReadingListAccessView):
     def get(self, *_args, **_kwargs) -> Response:
         """Return the user's own lists, and for an admin the curated global ones."""
         user = self.request.user
+        # Own lists first: SQLite sorts a NULL owner, a global list, first.
         lists = list(
             ReadingList.objects.filter(menu_lists_q(user)).order_by(
-                "user_id", "sort_name", "pk"
+                F("user_id").asc(nulls_last=True), "sort_name", "pk"
             )
         )
         list_pks = [rl.pk for rl in lists]
