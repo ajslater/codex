@@ -18,11 +18,14 @@ import json
 import uuid
 from collections import defaultdict
 from importlib import import_module
+from itertools import batched
 
 from django.conf import settings
 
 _ARCS = "arcs"
 _BATCH = 1000
+# Values bound per query: a stock SQLite allows 32,766 variables.
+_PK_BATCH = 10000
 _READING_LISTS_KEY = "reading_lists"
 _POST_V2_6_0 = import_module("codex.migrations.0060_post_v2_6_0_schema")
 _rename_sort_key = _POST_V2_6_0._rename_sort_key  # noqa: SLF001
@@ -136,19 +139,28 @@ def _issue_name(number, suffix) -> str:
     return f"{text}{suffix or ''}"
 
 
+def _in_batches(queryset, pks):
+    """Yield the rows of the pks, a batch a query: a stock SQLite binds 32,766."""
+    for batch in batched(pks, _PK_BATCH):
+        yield from queryset.filter(pk__in=batch)
+
+
 def _comic_references(comic_model, pks) -> dict:
     """Return a comicbox entry per comic, so a hand entry can be found again."""
     references = {}
-    rows = comic_model.objects.filter(pk__in=list(pks)).values_list(
-        "pk",
-        "series__name",
-        "series__start_year",
-        "volume__name",
-        "issue_number",
-        "issue_suffix",
-        "year",
-        "month",
-        "day",
+    rows = _in_batches(
+        comic_model.objects.values_list(
+            "pk",
+            "series__name",
+            "series__start_year",
+            "volume__name",
+            "issue_number",
+            "issue_suffix",
+            "year",
+            "month",
+            "day",
+        ),
+        sorted(pks),
     )
     for pk, series, start, volume, number, suffix, year, month, day in rows:
         reference: dict = {}
@@ -248,7 +260,7 @@ class _ShelfList:
         comic_model = self.apps.get_model("codex", "Comic")
         comic_pks = [pk for collection, pk in self.items if collection == _COMICS]
         live = set(
-            comic_model.objects.filter(pk__in=comic_pks).values_list("pk", flat=True)
+            _in_batches(comic_model.objects.values_list("pk", flat=True), comic_pks)
         )
         references = _comic_references(comic_model, live)
         delivered = set(live)
@@ -295,8 +307,8 @@ class _ShelfList:
         manual_pks = [pk for kind, pk, _ in self.rows if kind == "manual"]
         comics = {
             comic.pk: comic
-            for comic in comic_model.objects.filter(pk__in=manual_pks).select_related(
-                "series"
+            for comic in _in_batches(
+                comic_model.objects.select_related("series"), manual_pks
             )
         }
         entries = []

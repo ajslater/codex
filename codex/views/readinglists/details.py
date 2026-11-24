@@ -7,6 +7,7 @@ a missing issue counts for everyone, a comic only for those who may see it.
 """
 
 from collections.abc import Collection, Mapping, Sequence
+from itertools import batched
 from typing import Any
 from uuid import UUID
 
@@ -22,6 +23,7 @@ from django.db.models import Q
 
 from codex.choices.readinglists import SOURCE_LABELS, ReadingListSourceKind
 from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS
+from codex.librarian.scribe.readinglists.references import PK_BATCH
 from codex.models import Bookmark, Comic
 from codex.models.readinglist import ReadingList, ReadingListEntry, ReadingListSource
 from codex.views.browser.filters.field import ComicFieldFilterView
@@ -40,8 +42,12 @@ def _bookmarks(request, comic_pks: Sequence[int]) -> dict[int, tuple[int, bool]]
         owner = Q(session_id=session_key)
     else:
         return {}
-    rows = Bookmark.objects.filter(owner, comic_id__in=comic_pks).values_list(
-        "comic_id", "page", "finished"
+    rows = (
+        row
+        for batch in batched(comic_pks, PK_BATCH)
+        for row in Bookmark.objects.filter(owner, comic_id__in=batch).values_list(
+            "comic_id", "page", "finished"
+        )
     )
     return {pk: (page or 0, bool(finished)) for pk, page, finished in rows}
 

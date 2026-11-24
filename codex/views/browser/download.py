@@ -1,5 +1,6 @@
 """Download a collection of comics in a zipfile."""
 
+from itertools import batched
 from pathlib import Path
 from typing import Final, override
 
@@ -9,6 +10,7 @@ from drf_spectacular.utils import extend_schema
 from loguru import logger
 from zipstream import ZipStream
 
+from codex.librarian.scribe.readinglists.references import PK_BATCH
 from codex.models import ReadingListEntry
 from codex.views.browser.filters.filter import BrowserFilterView
 from codex.views.const import STORY_ARC_COLLECTION
@@ -48,13 +50,14 @@ class CollectionDownloadView(BrowserFilterView):
         pks = self.kwargs.get("pks") or ()
         if self.kwargs.get("collection") != STORY_ARC_COLLECTION or len(pks) != 1:
             return None
-        ordered = list(
-            ReadingListEntry.objects.filter(
-                reading_list_id=pks[0], ignored=False, comic__path__in=paths
-            )
-            .order_by("position", "pk")
-            .values_list("comic__path", flat=True)
+        rows = sorted(
+            row
+            for batch in batched(paths, PK_BATCH)
+            for row in ReadingListEntry.objects.filter(
+                reading_list_id=pks[0], ignored=False, comic__path__in=batch
+            ).values_list("position", "pk", "comic__path")
         )
+        ordered = [path for _, _, path in rows]
         return _numbered(ordered) if ordered else None
 
     @override
