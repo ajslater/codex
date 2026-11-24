@@ -118,6 +118,17 @@ describe("AdminTaggingStatusTable", () => {
     expect(wrapper.text()).toBe("");
   });
 
+  test("the comics table has no fixed height, so a short batch shrinks", () => {
+    // A long batch is capped by a max-height in CSS instead, which the
+    // virtual scroller measures; a height prop would pin even three rows
+    // to the full box.
+    const { wrapper } = mountTable({ snapshot: makeSnapshot() });
+    const table = wrapper.find(".comicsTable");
+    expect(table.classes()).not.toContain("v-table--fixed-height");
+    const style = table.find(".v-table__wrapper").attributes("style") ?? "";
+    expect(style).not.toContain("height");
+  });
+
   test("shows batch progress, tallies, and a live ETA when active", () => {
     const { wrapper } = mountTable({ snapshot: makeSnapshot() });
     const text = wrapper.text();

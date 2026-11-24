@@ -291,6 +291,28 @@ describe("useOnlineTagStore — startSession", () => {
     expect(store.activeSessionId).toBe("s1");
   });
 
+  it("sends a VerseDB pinned id beside the other sources", async () => {
+    const store = useOnlineTagStore();
+    HTTP.post.mockResolvedValue(started);
+
+    await store.startSession({
+      collection: "comics",
+      pks: [7],
+      sources: ["metron", "comicvine", "versedb"],
+      mode: "auto",
+      promptsMode: "ask",
+      ids: { versedb: "versedb:1215061" },
+    });
+
+    expect(HTTP.post).toHaveBeenCalledWith(
+      "/admin/tag-sessions/start",
+      expect.objectContaining({
+        sources: ["metron", "comicvine", "versedb"],
+        ids: { versedb: "versedb:1215061" },
+      }),
+    );
+  });
+
   it("defaults ids to an empty mapping for a plain search", async () => {
     const store = useOnlineTagStore();
     HTTP.post.mockResolvedValue(started);

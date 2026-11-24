@@ -39,6 +39,11 @@ _TOKEN_B: Final = "0123456789abcdef0123456789abcdef01234567"  # noqa: S105
 _STATS_SECRET: Final = "QmFzZTY0VXVpZEtleQ"  # noqa: S105
 
 
+def _latest() -> list[tuple[str, str]]:
+    """Return the codex migration the rest of the suite expects."""
+    return MigrationExecutor(connection).loader.graph.leaf_nodes("codex")
+
+
 def _migrate(target):
     """Migrate to ``target`` and return the app registry at that state."""
     executor = MigrationExecutor(connection)
@@ -63,7 +68,8 @@ class ApiKeyMigrationTests(TransactionTestCase):
 
     @override
     def setUp(self) -> None:
-        self.addCleanup(_migrate, _AFTER)
+        # Back to the latest migration, not _AFTER: later ones exist.
+        self.addCleanup(_migrate, _latest())
         self.addCleanup(self._drop_token_table)
         self.admin = User.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="admin", is_staff=True, is_superuser=True

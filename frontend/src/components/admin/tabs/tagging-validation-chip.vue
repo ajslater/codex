@@ -31,15 +31,24 @@ export default {
   },
   computed: {
     rateLimitText() {
-      // Metron-only: mokkari reads the account's live limits off the
-      // validation response's X-RateLimit-* headers. The daily sustained
-      // limit varies by donor tier, so it's the number worth showing.
+      // The account's live limits, read off the validation response's
+      // X-RateLimit-* headers. Metron's daily sustained limit varies by
+      // donor tier, so it's the number worth showing; VerseDB reports an
+      // hourly window.
       const limits = this.result.rateLimits;
       if (!this.result.ok || !limits) return "";
       const parts = [];
       if (limits.burst?.limit != null) {
         // Burst remaining is noise for a one-shot check; show the cap.
         parts.push(`${NUMBER_FORMAT.format(limits.burst.limit)}/min`);
+      }
+      const hourly = limits.hourly || {};
+      if (hourly.remaining != null && hourly.limit != null) {
+        parts.push(
+          `${NUMBER_FORMAT.format(hourly.remaining)} of ${NUMBER_FORMAT.format(hourly.limit)} left this hour`,
+        );
+      } else if (hourly.limit != null) {
+        parts.push(`${NUMBER_FORMAT.format(hourly.limit)}/hour`);
       }
       const sustained = limits.sustained || {};
       if (sustained.remaining != null && sustained.limit != null) {

@@ -137,6 +137,7 @@ class DumpUserDataTests(TestCase):
             metron_key="token",
             comicvine_key="key",
             comicvine_url="https://cv.example.com/api",
+            versedb_key="versedb-token",
         )
 
         counts = dump_user_data()
@@ -147,6 +148,7 @@ class DumpUserDataTests(TestCase):
         assert rows[0]["metron_key"] == "token"
         assert rows[0]["comicvine_key"] == "key"
         assert rows[0]["comicvine_url"] == "https://cv.example.com/api"
+        assert rows[0]["versedb_key"] == "versedb-token"
 
     def test_dump_round_trip_settings_defaults(self) -> None:
         """Every serialized SettingsDefaults column exists in the sidecar schema."""

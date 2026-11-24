@@ -201,6 +201,7 @@ class StatsTaggingSerializer(Serializer):
     default_format_count = IntegerField(required=False, read_only=True)
     has_metron_credentials = BooleanField(required=False, read_only=True)
     has_comicvine_credentials = BooleanField(required=False, read_only=True)
+    has_versedb_credentials = BooleanField(required=False, read_only=True)
     comicvine_url_set = BooleanField(required=False, read_only=True)
 
 

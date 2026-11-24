@@ -64,6 +64,7 @@ from codex.librarian.onlinetag.prompt_apply import PromptApplier
 from codex.librarian.onlinetag.session_cache import (
     add_pending_prompts,
     get_pending_prompts,
+    note_tagged_ids,
     prompt_comics,
     remove_pending_prompt,
     set_active_scan_id,
@@ -84,6 +85,11 @@ from codex.librarian.onlinetag.session_state import (
     CodexPromptHandler,
     SessionState,
     serialize_prompt,
+)
+from codex.librarian.onlinetag.sources import (
+    SOURCES,
+    build_credentials,
+    configured_sources,
 )
 from codex.librarian.onlinetag.statuses import USER_MATCHED, USER_SKIPPED
 from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
@@ -125,10 +131,7 @@ def _online_config(effort: str) -> ComicboxSettings:
 #: The online source modules that hold process-wide clients to release
 #: at the end of a task. Named, not imported: see
 #: :func:`_release_online_connections`.
-_ONLINE_SOURCE_MODULES: Final = (
-    "comicbox.formats.metron_api.online_source",
-    "comicbox.formats.comicvine_api.online_source",
-)
+_ONLINE_SOURCE_MODULES: Final = tuple(source.module for source in SOURCES.values())
 
 
 def _release_online_connections() -> None:
@@ -212,24 +215,7 @@ class OnlineTagSessionManager:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         except ComicboxTaggingDefaults.DoesNotExist:
             return None
-        if not defaults.metron_key and not defaults.comicvine_key:
-            return None
-        # ``or None``: the encrypted fields store an unset value as "", and
-        # comicbox's credentials spell unset as None.
-        return OnlineCredentials(
-            metron_key=defaults.metron_key or None,
-            comicvine_key=defaults.comicvine_key or None,
-            comicvine_url=defaults.comicvine_url or None,
-        )
-
-    @staticmethod
-    def _source_has_credentials(credentials: OnlineCredentials, source: str) -> bool:
-        """Whether ``credentials`` actually carries auth for ``source``."""
-        if source == "metron":
-            return bool(credentials.metron_key)
-        if source == "comicvine":
-            return bool(credentials.comicvine_key)
-        return False
+        return build_credentials(defaults)
 
     # --- events --------------------------------------------------------
 
@@ -577,19 +563,30 @@ class OnlineTagSessionManager:
         self.log.info(f"Online tag: skipped {len(prompts)} prompt(s) mid-scan.")
 
     def _apply_deferred_resolutions(self, state: SessionState) -> None:
-        """Apply mid-scan "choose"/"manual" answers once the scan is done."""
+        """
+        Apply mid-scan "choose"/"manual" answers once the scan is done.
+
+        These answers left the cache when they were given, so the ids an
+        earlier one's writes carry are noted on the later ones here: the
+        applier notes them only on the prompts still cached.
+        """
         if not state.deferred_applies:
             return
         applies = list(state.deferred_applies)
         state.deferred_applies.clear()
-        for prompt, action, payload, chosen_volume_id in applies:
+        for index, (prompt, action, payload, chosen_volume_id) in enumerate(applies):
             try:
-                self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+                written = self._prompt_applier.apply(
+                    prompt, action, payload, chosen_volume_id
+                )
             except Exception:
                 path = prompt.get("path")
                 self.log.exception(
                     f"Online tag: applying deferred prompt resolution for {path!r}"
                 )
+                continue
+            for later, *_ in applies[index + 1 :]:
+                note_tagged_ids(later, written)
 
     def _merge_task(self, state: SessionState, task: Any) -> None:
         """Merge a new BulkOnlineTagTask's comics into the running session."""
@@ -613,6 +610,22 @@ class OnlineTagSessionManager:
 
     # --- prompt persistence --------------------------------------------
 
+    @staticmethod
+    def _prompt_comic(state: SessionState, dp: Any, pk: int) -> dict[str, Any]:
+        """Describe one comic of a deferred prompt, with who else wrote it."""
+        stats = state.stats
+        others = stats.matched_ids_by_path.get(dp.path, {})
+        return {
+            "pk": pk,
+            "path": str(dp.path),
+            "tagged_by": [
+                source
+                for source in stats.matched_source_by_path.get(dp.path, ())
+                if source != dp.source
+            ],
+            "tagged_ids": {s: i for s, i in others.items() if s != dp.source},
+        }
+
     def _group_deferred_prompts(self, state: SessionState) -> dict[str, dict[str, Any]]:
         """
         Collect the scan's deferred prompts into one entry per question.
@@ -625,7 +638,9 @@ class OnlineTagSessionManager:
 
         Each comic carries ``tagged_by``: the other sources that wrote it
         this scan. It still needs review, as their data differ, and the
-        review dialog says it was tagged.
+        review dialog says it was tagged. ``tagged_ids`` holds the issue id
+        each of them wrote, so applying the answer can fetch them again and
+        let comicbox merge in the run's order before the database has them.
         """
         grouped: dict[str, dict[str, Any]] = {}
         for dp in state.session.deferred_prompts():
@@ -637,15 +652,7 @@ class OnlineTagSessionManager:
             # already-answered series is a question nobody has answered yet.
             if pk is None or pk in state.answered_pks:
                 continue
-            comic = {
-                "pk": pk,
-                "path": str(dp.path),
-                "tagged_by": [
-                    source
-                    for source in state.stats.matched_source_by_path.get(dp.path, ())
-                    if source != dp.source
-                ],
-            }
+            comic = self._prompt_comic(state, dp, pk)
             prompt = grouped.get(dp.fingerprint)
             if prompt is None:
                 grouped[dp.fingerprint] = serialize_prompt(
@@ -654,6 +661,8 @@ class OnlineTagSessionManager:
                     state.formats,
                     delete_original=state.delete_original,
                     rename=state.rename,
+                    source_order=state.sources,
+                    merge_all_sources=state.merge_all_sources,
                 )
             elif all(known["pk"] != pk for known in prompt["comics"]):
                 prompt["comics"].append(comic)
@@ -755,10 +764,9 @@ class OnlineTagSessionManager:
         from ``comic_paths`` so the search session only handles the rest.
         Skipped for sources without credentials.
         """
+        configured = configured_sources(credentials)
         usable_sources = tuple(
-            source
-            for source in task.sources
-            if self._source_has_credentials(credentials, source)
+            source for source in task.sources if source in configured
         )
         id_map = build_stored_id_map(comic_paths.keys(), usable_sources)
         if not id_map:
@@ -833,7 +841,8 @@ class OnlineTagSessionManager:
             match=MatchMode(task.mode),
             prompts=prompts,
             defer_prompts=defer_prompts,
-            # first_wins=False queries every source per comic and merges.
+            # first_wins=False queries every source per comic and merges,
+            # and the first of task.sources wins where they disagree.
             first_wins=not task.merge_all_sources,
             on_event=self._on_event,
             prompt_handler=CodexPromptHandler(),

@@ -90,6 +90,48 @@ class TaggingValidateMergeTestCase(TestCase):
         creds = mocked.call_args.args[0]
         assert creds.metron_key == "stored_token"
 
+    def test_versedb_form_key_wins_over_the_stored_one(self) -> None:
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(versedb_key="stored")
+        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
+            mocked.return_value = {"versedb": ValidationResult(ok=True)}
+            response = self.client.post(
+                _URL,
+                data={"source": "versedb", "versedb_key": "form_token"},
+                content_type="application/json",
+            )
+        assert response.status_code == _HTTP_OK
+        creds = mocked.call_args.args[0]
+        assert creds.versedb_key == "form_token"
+        assert mocked.call_args.args[1] == {"versedb"}
+
+    def test_versedb_falls_back_to_the_stored_key(self) -> None:
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(versedb_key="stored")
+        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
+            mocked.return_value = {"versedb": ValidationResult(ok=True)}
+            self.client.post(
+                _URL, data={"source": "versedb"}, content_type="application/json"
+            )
+        assert mocked.call_args.args[0].versedb_key == "stored"
+
+    def test_versedb_hourly_window_is_serialized(self) -> None:
+        with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
+            mocked.return_value = {
+                "versedb": ValidationResult(
+                    ok=True,
+                    rate_limits=RateLimitInfo(
+                        hourly=RateLimitWindowInfo(limit=300, remaining=287)
+                    ),
+                )
+            }
+            response = self.client.post(
+                _URL, data={"source": "versedb"}, content_type="application/json"
+            )
+        assert _v4(response)["results"]["versedb"]["rateLimits"] == {
+            "burst": {"limit": None, "remaining": None},
+            "hourly": {"limit": 300, "remaining": 287},
+            "sustained": {"limit": None, "remaining": None},
+        }
+
     def test_omitted_source_validates_all_known_sources(self) -> None:
         with patch("codex.views.admin.tagging_validate.validate_credentials") as mocked:
             mocked.return_value = {
@@ -98,7 +140,7 @@ class TaggingValidateMergeTestCase(TestCase):
             }
             response = self.client.post(_URL, data={}, content_type="application/json")
         assert response.status_code == _HTTP_OK
-        assert mocked.call_args.args[1] == frozenset({"metron", "comicvine"})
+        assert mocked.call_args.args[1] == frozenset({"metron", "comicvine", "versedb"})
 
     def test_response_shape(self) -> None:
         """Locks in nested rate-limit serialization and envelope camelCasing."""
@@ -123,6 +165,7 @@ class TaggingValidateMergeTestCase(TestCase):
                     "error": None,
                     "rateLimits": {
                         "burst": {"limit": 20, "remaining": 19},
+                        "hourly": {"limit": None, "remaining": None},
                         "sustained": {"limit": 25_000, "remaining": 24_987},
                     },
                 },

@@ -5,6 +5,7 @@ Unit tests for the credentials the session manager hands comicbox.
 configured only when it carries something that can actually authenticate.
 """
 
+from codex.librarian.onlinetag.sources import configured_sources
 from codex.models import ComicboxTaggingDefaults
 from tests.onlinetag_session_fakes import OnlineTagSessionTestCase
 
@@ -20,7 +21,7 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
         keyed = manager._build_credentials()  # noqa: SLF001
         assert keyed is not None
         assert keyed.metron_key == "t"
-        assert manager._source_has_credentials(keyed, "metron") is True  # noqa: SLF001
+        assert configured_sources(keyed) == ("metron",)
 
     def test_no_metron_credentials_at_all_is_unconfigured(self) -> None:
         ComicboxTaggingDefaults.objects.update_or_create(
@@ -55,3 +56,26 @@ class OnlineTagCredentialsTests(OnlineTagSessionTestCase):
             },
         )
         assert self.manager._build_credentials() is None  # noqa: SLF001
+
+
+class VerseDBCredentialsTests(OnlineTagSessionTestCase):
+    """VerseDB's key reaches comicbox like the other two."""
+
+    def test_the_credentials_carry_the_versedb_key(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "t", "versedb_key": "v"}
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        assert credentials.versedb_key == "v"
+        # Codex stores no VerseDB url, so comicbox's default stands.
+        assert credentials.versedb_url is None
+        assert configured_sources(credentials) == ("metron", "versedb")
+
+    def test_a_versedb_key_alone_configures_the_install(self) -> None:
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "", "comicvine_key": "", "versedb_key": "v"}
+        )
+        credentials = self.manager._build_credentials()  # noqa: SLF001
+        assert credentials is not None
+        assert configured_sources(credentials) == ("versedb",)

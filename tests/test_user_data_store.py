@@ -182,6 +182,20 @@ class SidecarStoreTests(TestCase):
             store.close()
         assert rows[0]["reprints"] == '["Kapitän Wissenschaft"]'
 
+    def test_a_sidecar_from_before_versedb_gains_its_key_column(self) -> None:
+        """An upgraded install's sidecar takes the new tagging column too."""
+        conn = self.store.connection()
+        conn.execute("ALTER TABLE tagging_defaults DROP COLUMN versedb_key")
+        self.store.close()
+
+        store = SidecarStore(self.sidecar_path)
+        try:
+            store.upsert("tagging_defaults", ("pk",), {"pk": 1, "versedb_key": "token"})
+            rows = store.fetchall("tagging_defaults")
+        finally:
+            store.close()
+        assert rows[0]["versedb_key"] == "token"
+
     def test_upsert_empty_data_raises(self) -> None:
         """``upsert`` with no columns is a programming error."""
         with pytest.raises(ValueError, match="no columns"):

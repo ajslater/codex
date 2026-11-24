@@ -10,20 +10,21 @@
   collected edition. So two subdued lines under the title carry what the
   source knows about the series (publisher, format, start year, issue
   count) and about the issue (its title and one-line deck). Comic Vine
-  supplies most of it from rows comicbox already fetched. Metron always
-  has the start year, but its format, publisher and issue count cost
-  comicbox a request, so they arrive only when titles would otherwise
-  collide. Any of it may be absent, and a prompt cached before comicbox
-  carried it shows neither line.
+  supplies most of it from rows comicbox already fetched, and VerseDB
+  supplies publisher, format, start year, issue count and issue title.
+  Metron always has the start year, but its format, publisher and issue
+  count cost comicbox a request, so they arrive only when titles would
+  otherwise collide. Any of it may be absent, and a prompt cached before
+  comicbox carried it shows neither line.
 
   The thumbnail loads straight from the source CDN. An <img> is exempt
-  from CORS, and codex's own img-src allows the two upload paths (see
+  from CORS, and codex's own img-src allows each upload path (see
   _ONLINE_TAG_COVER_SECURE_CSP), so there is nothing to proxy. A blocked
   or dead image falls back to the placeholder box, which keeps the rows
   aligned.
 
   Hovering enlarges the cover only when the source offers a larger tier.
-  Comic Vine does; Metron sets coverUrlFull equal to coverUrl because its
+  Comic Vine and VerseDB do; Metron sets coverUrlFull equal to coverUrl because its
   one image is already full size. The gate is "coverUrlFull is truthy",
   never "it differs from coverUrl" — comicbox owns that judgement. A
   prompt cached before the field existed simply has no affordance.

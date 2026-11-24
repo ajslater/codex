@@ -116,261 +116,163 @@
         <p class="adminHint sourcesHint">
           {{ sourcesOrderHint }}
         </p>
-        <div class="sourcesGroup">
-          <div class="sourceRow" :style="sourceRowStyle('metron')">
+        <div class="sourcesMode">
+          <v-btn-toggle
+            v-model="draft.mergeAllSources"
+            aria-label="How the enabled sources combine"
+            color="primary"
+            density="compact"
+            variant="outlined"
+            divided
+            mandatory
+          >
+            <v-btn :value="false">First match</v-btn>
+            <v-btn :value="true" :disabled="!canMerge">Merge all sources</v-btn>
+          </v-btn-toggle>
+          <p class="adminHint sourcesModeHint">
+            {{ canMerge ? mergeAllSourcesHint : mergeDisabledHint }}
+          </p>
+        </div>
+        <p class="d-sr-only sourceMoveAnnouncement" aria-live="polite">
+          {{ moveAnnouncement }}
+        </p>
+        <div ref="sourcesGroup" class="sourcesGroup">
+          <div
+            v-for="source in sources"
+            :key="source.id"
+            class="sourceRow"
+            :class="{ sourceRowDragging: dragSource === source.id }"
+            :data-source="source.id"
+            :style="sourceRowStyle(source.id)"
+          >
             <div
               class="sourceEnable"
-              :title="
-                defaults.hasMetronCredentials ? '' : sourceDisabledTooltip
-              "
+              :title="isConfigured(source.id) ? '' : sourceDisabledTooltip"
             >
               <v-checkbox
-                v-model="metronEnabled"
-                :disabled="!defaults.hasMetronCredentials"
-                aria-label="Enable Metron Cloud"
+                :model-value="isSourceEnabled(source.id)"
+                :disabled="!isConfigured(source.id)"
+                :aria-label="source.enableLabel"
                 hide-details
                 density="compact"
+                @update:model-value="setSourceEnabled(source.id, $event)"
               />
-              <div v-if="metronEnabled" class="sourceOrderButtons">
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  aria-label="Raise Metron Cloud priority"
-                  :disabled="sourcePriority('metron') <= 0"
-                  @click="moveSource('metron', -1)"
-                >
-                  <v-icon>{{ mdiChevronUp }}</v-icon>
-                </v-btn>
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  aria-label="Lower Metron Cloud priority"
-                  :disabled="
-                    sourcePriority('metron') >=
-                    (draft.defaultSources || []).length - 1
-                  "
-                  @click="moveSource('metron', 1)"
-                >
-                  <v-icon>{{ mdiChevronDown }}</v-icon>
-                </v-btn>
-              </div>
             </div>
+            <button
+              v-if="isSourceEnabled(source.id)"
+              type="button"
+              class="sourceHandle"
+              :aria-label="source.moveLabel"
+              :title="moveTooltip"
+              @pointerdown="startDrag($event, source.id)"
+              @pointermove="dragTo"
+              @pointerup="endDrag"
+              @pointercancel="cancelDrag"
+              @lostpointercapture="cancelDrag"
+              @keydown="onHandleKey($event, source.id)"
+            >
+              <v-icon>{{ mdiDragVertical }}</v-icon>
+            </button>
+            <span v-else class="sourceHandle" aria-hidden="true" />
             <div class="sourcePanel">
               <v-expansion-panels
-                :model-value="defaults.metronKeySet ? [] : [0]"
+                :model-value="isConfigured(source.id) ? [] : [0]"
                 variant="accordion"
               >
                 <v-expansion-panel>
-                  <v-expansion-panel-title>
-                    <span class="adminCardTitle">Metron Cloud</span>
+                  <v-expansion-panel-title class="sourceTitle">
+                    <span v-if="sourceRank(source.id)" class="sourceRank">
+                      {{ sourceRank(source.id) }}
+                    </span>
+                    <span class="adminCardTitle">{{ source.label }}</span>
                     <span
                       class="adminCardDesc credentialStatus"
                       :class="{
-                        credentialSet: defaults.metronKeySet,
+                        credentialSet: isConfigured(source.id),
                       }"
                     >
                       {{
-                        defaults.hasMetronCredentials
+                        isConfigured(source.id)
                           ? "API key set"
                           : "Not configured"
                       }}
+                    </span>
+                    <span v-if="sourceRole(source.id)" class="sourceRoleSlot">
+                      <span
+                        class="sourceRole"
+                        :class="{ sourceRoleLead: sourceRank(source.id) === 1 }"
+                      >
+                        {{ sourceRole(source.id) }}
+                      </span>
                     </span>
                   </v-expansion-panel-title>
                   <v-expansion-panel-text>
                     <v-form class="adminFieldColumn" @submit.prevent>
                       <v-text-field
-                        v-model="metronKey"
+                        v-model="keys[source.id]"
                         label="API Key"
                         type="password"
                         autocomplete="new-password"
                         hide-details="auto"
                         density="compact"
                         :placeholder="
-                          defaults.metronKeySet
+                          isConfigured(source.id)
                             ? 'New API Key'
                             : 'Enter API key'
                         "
                       />
                       <p class="adminHint">
-                        Generate an API key at
-                        <a
-                          href="https://metron.cloud/accounts/tokens/"
-                          target="_blank"
-                          >Metron Cloud API Tokens<v-icon size="small">{{
-                            mdiOpenInNew
-                          }}</v-icon></a
+                        {{ source.tokenHint }}
+                        <a :href="source.tokenUrl" target="_blank"
+                          >{{ source.tokenLinkText
+                          }}<v-icon size="small">{{ mdiOpenInNew }}</v-icon></a
                         >
                       </p>
-                      <div class="adminInlineActions">
-                        <v-btn
-                          variant="tonal"
-                          size="small"
-                          :disabled="!metronKey"
-                          @click="saveMetronCredentials"
-                        >
-                          Save Metron Cloud API Key
-                        </v-btn>
-                        <v-btn
-                          variant="text"
-                          size="small"
-                          :loading="validating.metron"
-                          :disabled="!canTestMetron"
-                          @click="testMetronCredentials"
-                        >
-                          Test
-                        </v-btn>
-                        <ConfirmDialog
-                          v-if="defaults.hasMetronCredentials"
-                          button-text="Clear API Key"
-                          title-text="Clear Metron Cloud API Key"
-                          text="Remove the saved Metron Cloud API key?"
-                          confirm-text="Clear"
-                          variant="text"
-                          size="small"
-                          :block="false"
-                          @confirm="clearMetronCredentials"
-                        />
-                      </div>
-                      <ValidationChip
-                        v-if="validationResult.metron"
-                        :result="validationResult.metron"
-                      />
-                    </v-form>
-                  </v-expansion-panel-text>
-                </v-expansion-panel>
-              </v-expansion-panels>
-            </div>
-          </div>
-
-          <div class="sourceRow" :style="sourceRowStyle('comicvine')">
-            <div
-              class="sourceEnable"
-              :title="
-                defaults.hasComicvineCredentials ? '' : sourceDisabledTooltip
-              "
-            >
-              <v-checkbox
-                v-model="comicvineEnabled"
-                :disabled="!defaults.hasComicvineCredentials"
-                aria-label="Enable Comic Vine"
-                hide-details
-                density="compact"
-              />
-              <div v-if="comicvineEnabled" class="sourceOrderButtons">
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  aria-label="Raise Comic Vine priority"
-                  :disabled="sourcePriority('comicvine') <= 0"
-                  @click="moveSource('comicvine', -1)"
-                >
-                  <v-icon>{{ mdiChevronUp }}</v-icon>
-                </v-btn>
-                <v-btn
-                  icon
-                  variant="text"
-                  density="compact"
-                  aria-label="Lower Comic Vine priority"
-                  :disabled="
-                    sourcePriority('comicvine') >=
-                    (draft.defaultSources || []).length - 1
-                  "
-                  @click="moveSource('comicvine', 1)"
-                >
-                  <v-icon>{{ mdiChevronDown }}</v-icon>
-                </v-btn>
-              </div>
-            </div>
-            <div class="sourcePanel">
-              <v-expansion-panels
-                :model-value="defaults.hasComicvineCredentials ? [] : [0]"
-                variant="accordion"
-              >
-                <v-expansion-panel>
-                  <v-expansion-panel-title>
-                    <span class="adminCardTitle">Comic Vine</span>
-                    <span
-                      class="adminCardDesc credentialStatus"
-                      :class="{
-                        credentialSet: defaults.hasComicvineCredentials,
-                      }"
-                    >
-                      {{
-                        defaults.hasComicvineCredentials
-                          ? "API key set"
-                          : "Not configured"
-                      }}
-                    </span>
-                  </v-expansion-panel-title>
-                  <v-expansion-panel-text>
-                    <v-form class="adminFieldColumn" @submit.prevent>
-                      <v-text-field
-                        v-model="comicvineKey"
-                        label="API Key"
-                        type="password"
-                        autocomplete="new-password"
-                        hide-details="auto"
-                        density="compact"
-                        :placeholder="
-                          defaults.comicvineKeySet
-                            ? 'New API Key'
-                            : 'Enter API key'
-                        "
-                      />
-                      <p class="adminHint">
-                        Get an API key from the
-                        <a
-                          href="https://comicvine.gamespot.com/api/"
-                          target="_blank"
-                          >Comic Vine API<v-icon size="small">{{
-                            mdiOpenInNew
-                          }}</v-icon></a
-                        >
+                      <p v-if="source.notes" class="adminHint sourceNotes">
+                        {{ source.notes }}
                       </p>
                       <v-text-field
-                        v-model="comicvineUrlLocal"
+                        v-if="source.customUrl"
+                        v-model="urls[source.id]"
                         label="Custom URL (optional)"
                         autocomplete="off"
                         hide-details="auto"
                         density="compact"
-                        :placeholder="defaults.comicvineUrl || 'Default'"
+                        :placeholder="defaults[source.fields.url] || 'Default'"
                       />
                       <div class="adminInlineActions">
                         <v-btn
                           variant="tonal"
                           size="small"
-                          :disabled="!comicvineKey && !comicvineUrlLocal"
-                          @click="saveComicvineCredentials"
+                          :disabled="!hasCredentialInput(source.id)"
+                          @click="saveCredentials(source.id)"
                         >
-                          Save Comic Vine Credentials
+                          {{ source.saveText }}
                         </v-btn>
                         <v-btn
                           variant="text"
                           size="small"
-                          :loading="validating.comicvine"
-                          :disabled="!canTestComicvine"
-                          @click="testComicvineCredentials"
+                          :loading="validating[source.id]"
+                          :disabled="!canTest(source.id)"
+                          @click="testCredentials(source.id)"
                         >
                           Test
                         </v-btn>
                         <ConfirmDialog
-                          v-if="defaults.hasComicvineCredentials"
+                          v-if="isConfigured(source.id)"
                           button-text="Clear API Key"
-                          title-text="Clear Comic Vine API Key"
-                          text="Remove the saved Comic Vine API key and custom URL?"
+                          :title-text="source.clearTitle"
+                          :text="source.clearText"
                           confirm-text="Clear"
                           variant="text"
                           size="small"
                           :block="false"
-                          @confirm="clearComicvineCredentials"
+                          @confirm="clearCredentials(source.id)"
                         />
                       </div>
                       <ValidationChip
-                        v-if="validationResult.comicvine"
-                        :result="validationResult.comicvine"
+                        v-if="validationResult[source.id]"
+                        :result="validationResult[source.id]"
                       />
                     </v-form>
                   </v-expansion-panel-text>
@@ -378,17 +280,6 @@
               </v-expansion-panels>
             </div>
           </div>
-        </div>
-        <div class="adminCard mergeAllSourcesCard">
-          <v-checkbox
-            v-model="draft.mergeAllSources"
-            label="Merge all sources"
-            :hint="mergeAllSourcesHint"
-            :disabled="!canMerge"
-            persistent-hint
-            hide-details="auto"
-            density="compact"
-          />
         </div>
       </AdminSection>
       <TagWriteErrorsPanel />
@@ -397,11 +288,12 @@
 </template>
 
 <script>
-import { mdiChevronDown, mdiChevronUp, mdiOpenInNew } from "@mdi/js";
+import { mdiDragVertical, mdiOpenInNew } from "@mdi/js";
 import { dequal } from "dequal";
 import { mapActions, mapState } from "pinia";
 
 import TAGGING_CHOICES from "@/choices/tagging-choices.json";
+import TAGGING_ESTIMATE from "@/choices/tagging-estimate.json";
 import AdminSection from "@/components/admin/tabs/admin-section.vue";
 import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue";
 import TagWriteErrorsPanel from "@/components/admin/tabs/tag-write-errors-panel.vue";
@@ -413,6 +305,12 @@ import {
   namedFormats,
   WRITE_FORMAT_CHOICES,
 } from "@/components/metadata/edit-mode/write-formats";
+import {
+  credentialFields,
+  SOURCE_DESCRIPTORS,
+  SUPPORTED_SOURCES,
+} from "@/components/online-tag/source-labels";
+import { NUMBER_FORMAT } from "@/datetime";
 import { useAdminStore } from "@/stores/admin";
 
 const EDITABLE_FIELDS = Object.freeze([
@@ -425,6 +323,58 @@ const EDITABLE_FIELDS = Object.freeze([
   "defaultSources",
   "mergeAllSources",
 ]);
+
+/*
+ * A source whose daily cap binds every account gets its budget spelled out:
+ * the free tier's hourly and daily caps and what one comic costs, all as
+ * comicbox prices them (tagging-estimate.json).
+ */
+function budgetNote(id) {
+  const rate = TAGGING_ESTIMATE.sourceRates[id];
+  const perComic = TAGGING_ESTIMATE.requestsPerComic[id]?.balanced;
+  if (!rate?.perDay || !perComic) return "";
+  const perHour = NUMBER_FORMAT.format(rate.perHour);
+  const perDay = NUMBER_FORMAT.format(rate.perDay);
+  return `Free tier: ${perHour} requests an hour and ${perDay} a day, about ${perComic} per comic.`;
+}
+
+// The keys that move a focused drag handle, and which way.
+const MOVE_KEYS = Object.freeze({ ArrowUp: -1, ArrowDown: 1 });
+
+// What each enabled source does in a scan, by mode and rank.
+const SOURCE_ROLES = Object.freeze({
+  only: "Only source",
+  firstMatch: Object.freeze({ lead: "Tried first", rest: "If no match" }),
+  merge: Object.freeze({ lead: "Wins conflicts", rest: "Fills gaps" }),
+});
+
+// One row per source, with the copy its credential panel shows.
+const SOURCE_ROWS = Object.freeze(
+  SUPPORTED_SOURCES.map((id) => {
+    const descriptor = SOURCE_DESCRIPTORS[id];
+    const { label, customUrl } = descriptor;
+    return Object.freeze({
+      id,
+      ...descriptor,
+      fields: credentialFields(id),
+      notes: [budgetNote(id), descriptor.terms].filter(Boolean).join(" "),
+      enableLabel: `Enable ${label}`,
+      moveLabel: `Reorder ${label}: drag, or press the up and down arrow keys`,
+      saveText: customUrl
+        ? `Save ${label} Credentials`
+        : `Save ${label} API Key`,
+      clearTitle: `Clear ${label} API Key`,
+      clearText: customUrl
+        ? `Remove the saved ${label} API key and custom URL?`
+        : `Remove the saved ${label} API key?`,
+    });
+  }),
+);
+
+/** A fresh per-source state map, every source set to ``value``. */
+function bySource(value) {
+  return Object.fromEntries(SUPPORTED_SOURCES.map((id) => [id, value]));
+}
 
 function pickFields(source) {
   const out = {};
@@ -446,8 +396,7 @@ export default {
   },
   data() {
     return {
-      mdiChevronDown,
-      mdiChevronUp,
+      mdiDragVertical,
       mdiOpenInNew,
       formatChoices: WRITE_FORMAT_CHOICES,
       matchModeChoices: TAGGING_CHOICES.matchMode,
@@ -464,62 +413,42 @@ export default {
       matchModeHint:
         "How aggressively to accept online matches. Ask writes nothing and prompts for every match, listing a clear Metron cover match first. Careful writes only near-certain matches and clear Metron cover matches, Auto also writes confident ones, and Eager also writes weaker best guesses.",
       effortHint:
-        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron ignores this.",
+        "How many Comic Vine requests a comic may spend searching. Thorough finds the most and costs the most against the hourly limit; Metron and VerseDB ignore this.",
       promptsModeHint:
         "What to do with matches that are too ambiguous to auto-write. Ask saves them as prompts to resolve later; Never skips them, writing only auto-matched comics.",
       sourceDisabledTooltip:
         "A source can only be enabled once its API key is saved.",
       sourcesOrderHint:
-        "Enabled sources run in priority order — use the arrows to reorder. With Merge all sources off, the highest-priority source that finds a match tags the comic and the rest are skipped. With it on, every enabled source is queried for each comic and their results are merged into one record for the most complete metadata.",
+        "The enabled sources below are listed in priority order, highest first; drag one by its handle to reorder them. With First match, the first source in the list that finds a match tags the comic and the rest are skipped. With Merge all sources, every enabled source is queried and their results are merged into one record; where they disagree, the source higher in the list wins.",
       mergeAllSourcesHint:
         "Merging queries every enabled source for each comic instead of stopping at the first match, so it roughly multiplies online API calls by the number of enabled sources — scans take longer and hit rate limits sooner. Can be overridden per scan in the Tag Online dialog.",
+      mergeDisabledHint:
+        "Merging needs two or more enabled sources: enable another one below.",
+      sources: SOURCE_ROWS,
+      moveTooltip: "Drag to reorder",
+      // The source being dragged, and the order the drag would save; null
+      // when nothing is being dragged.
+      dragSource: "",
+      dragOrder: null,
+      // Read out by screen readers after each move.
+      moveAnnouncement: "",
       draft: pickFields(undefined),
       saving: false,
       pendingSave: false,
-      metronKey: "",
-      comicvineKey: "",
-      comicvineUrlLocal: "",
-      validating: { metron: false, comicvine: false },
-      validationResult: { metron: undefined, comicvine: undefined },
+      // Typed, unsaved credentials, keyed by source.
+      keys: bySource(""),
+      urls: bySource(""),
+      validating: bySource(false),
+      validationResult: bySource(undefined),
     };
   },
   computed: {
     ...mapState(useAdminStore, {
       defaults: (state) => state.taggingDefaults,
     }),
-    // The Online Sources enable checkboxes drive ``draft.defaultSources``, which
-    // auto-saves with the rest of the defaults. A source can only be checked once
-    // its credentials exist, so gate the getter on the stored credential flag
-    // too — a credential-less source always reads as off-and-disabled.
-    metronEnabled: {
-      get() {
-        return (
-          Boolean(this.defaults?.hasMetronCredentials) &&
-          (this.draft.defaultSources || []).includes("metron")
-        );
-      },
-      set(value) {
-        this.setSourceEnabled("metron", value);
-      },
-    },
-    comicvineEnabled: {
-      get() {
-        return (
-          Boolean(this.defaults?.hasComicvineCredentials) &&
-          (this.draft.defaultSources || []).includes("comicvine")
-        );
-      },
-      set(value) {
-        this.setSourceEnabled("comicvine", value);
-      },
-    },
-    canTestMetron() {
-      return Boolean(this.metronKey) || Boolean(this.defaults?.metronKeySet);
-    },
-    canTestComicvine() {
-      return (
-        Boolean(this.comicvineKey) || Boolean(this.defaults?.comicvineKeySet)
-      );
+    configuredSources() {
+      // The sources with a stored API key, as the server reports them.
+      return new Set(this.defaults?.configuredSources || []);
     },
     formatsMessages() {
       // The last checked format's box is disabled; say why under the hints.
@@ -536,12 +465,22 @@ export default {
         ? []
         : ["Choose at least one format"];
     },
+    activeSources() {
+      // The enabled sources in priority order: what a scan runs.
+      // isSourceEnabled already gates on credentials, so a source that
+      // lingers in defaultSources without them is left out.
+      return (this.draft.defaultSources || []).filter((source) =>
+        this.isSourceEnabled(source),
+      );
+    },
+    shownSources() {
+      // The order on screen: a drag in progress previews its own, unsaved.
+      return this.dragOrder || this.activeSources;
+    },
     canMerge() {
       // Merging needs at least two enabled sources; with one there's nothing
-      // to merge. metronEnabled / comicvineEnabled already gate on credentials.
-      return (
-        [this.metronEnabled, this.comicvineEnabled].filter(Boolean).length >= 2
-      );
+      // to merge.
+      return this.activeSources.length >= 2;
     },
   },
   watch: {
@@ -579,9 +518,37 @@ export default {
     isFormatDisabled(value) {
       return isWriteFormatDisabled(this.draft.defaultFormats, value);
     },
+    isConfigured(source) {
+      return this.configuredSources.has(source);
+    },
+    isSourceEnabled(source) {
+      // The enable checkboxes drive ``draft.defaultSources``, which auto-saves
+      // with the rest of the defaults. A source can only be checked once its
+      // credentials exist, so gate on the stored credentials too — a
+      // credential-less source always reads as off-and-disabled.
+      return (
+        this.isConfigured(source) &&
+        (this.draft.defaultSources || []).includes(source)
+      );
+    },
+    canTest(source) {
+      return Boolean(this.keys[source]) || this.isConfigured(source);
+    },
+    credentialInput(source) {
+      // The typed fields, under the names the API takes them by.
+      const { key, url } = credentialFields(source);
+      const data = {};
+      if (this.keys[source]) data[key] = this.keys[source];
+      if (url && this.urls[source]) data[url] = this.urls[source];
+      return data;
+    },
+    hasCredentialInput(source) {
+      return Object.keys(this.credentialInput(source)).length > 0;
+    },
     setSourceEnabled(source, enabled) {
-      // defaultSources order is run priority; a newly enabled source
-      // joins at the end (lowest priority).
+      // defaultSources order is priority: run order, and with Merge all
+      // sources on, who wins where sources disagree. A newly enabled
+      // source joins at the end (lowest priority).
       const sources = (this.draft.defaultSources || []).filter(
         (s) => s !== source,
       );
@@ -590,24 +557,125 @@ export default {
       }
       this.draft.defaultSources = sources;
     },
-    sourcePriority(source) {
-      return (this.draft.defaultSources || []).indexOf(source);
-    },
     sourceRowStyle(source) {
-      // Render rows in priority order via flex order; sources not in the
-      // priority list (disabled) sink below the enabled ones.
-      const index = this.sourcePriority(source);
+      // Render rows in priority order via flex order; sources that aren't
+      // enabled sink below the enabled ones, so those stay contiguous.
+      const index = this.shownSources.indexOf(source);
       return { order: index === -1 ? 99 : index };
     },
-    moveSource(source, delta) {
-      const sources = [...(this.draft.defaultSources || [])];
-      const from = sources.indexOf(source);
-      const to = from + delta;
-      if (from === -1 || to < 0 || to >= sources.length) {
+    sourceRank(source) {
+      // 1 for the highest-priority enabled source; 0 for one not enabled.
+      return this.shownSources.indexOf(source) + 1;
+    },
+    sourceRole(source) {
+      // What this source does in a scan, as its row's tag says.
+      const rank = this.sourceRank(source);
+      if (!rank) {
+        return "";
+      }
+      if (this.shownSources.length === 1) {
+        return SOURCE_ROLES.only;
+      }
+      const roles = this.draft.mergeAllSources
+        ? SOURCE_ROLES.merge
+        : SOURCE_ROLES.firstMatch;
+      return rank === 1 ? roles.lead : roles.rest;
+    },
+    saveOrder(order, moved) {
+      // Store a new order of the enabled sources. defaultSources may still
+      // list a source that lost its credentials; it keeps its place after
+      // them, where it neither runs nor shows a rank.
+      if (dequal(order, this.activeSources)) {
         return;
       }
-      [sources[from], sources[to]] = [sources[to], sources[from]];
-      this.draft.defaultSources = sources;
+      const rest = (this.draft.defaultSources || []).filter(
+        (source) => !order.includes(source),
+      );
+      this.draft.defaultSources = [...order, ...rest];
+      const { label } = SOURCE_ROWS.find((row) => row.id === moved);
+      const rank = order.indexOf(moved) + 1;
+      this.moveAnnouncement = `${label} moved to ${rank} of ${order.length}.`;
+    },
+    moveSource(source, delta) {
+      // Swap a source with its enabled neighbour, as the arrow keys do.
+      const order = [...this.activeSources];
+      const from = order.indexOf(source);
+      const to = from + delta;
+      if (from === -1 || to < 0 || to >= order.length) {
+        return;
+      }
+      [order[from], order[to]] = [order[to], order[from]];
+      this.saveOrder(order, source);
+    },
+    onHandleKey(event, source) {
+      if (event.key === "Escape") {
+        this.cancelDrag();
+        return;
+      }
+      const delta = MOVE_KEYS[event.key];
+      if (!delta || this.dragSource) {
+        return;
+      }
+      // Keep the page from scrolling.
+      event.preventDefault();
+      this.moveSource(source, delta);
+    },
+    startDrag(event, source) {
+      if (event.button !== 0) {
+        return;
+      }
+      // No text selection while dragging.
+      event.preventDefault();
+      this.dragSource = source;
+      this.dragOrder = [...this.activeSources];
+      const handle = event.currentTarget;
+      // Focused so Escape can drop the drag, without a keyboard focus ring.
+      handle.focus({ focusVisible: false });
+      try {
+        // Every later pointer event comes to this handle, wherever the
+        // pointer goes.
+        handle.setPointerCapture(event.pointerId);
+      } catch {
+        // Not a pointer that is down (a synthetic event): the drag still
+        // follows it while it stays over the handle.
+      }
+    },
+    rowMiddle(source) {
+      const row = this.$refs.sourcesGroup?.querySelector(
+        `[data-source="${source}"]`,
+      );
+      const box = row?.getBoundingClientRect();
+      return box ? box.top + box.height / 2 : 0;
+    },
+    dragTo(event) {
+      // Put the dragged source after every other row whose middle is above
+      // the pointer. The rows move as the order changes, so this settles
+      // instead of flickering between two places.
+      if (!this.dragSource) {
+        return;
+      }
+      const others = this.dragOrder.filter(
+        (source) => source !== this.dragSource,
+      );
+      const above = others.filter(
+        (source) => this.rowMiddle(source) < event.clientY,
+      ).length;
+      const order = [...others];
+      order.splice(above, 0, this.dragSource);
+      if (!dequal(order, this.dragOrder)) {
+        this.dragOrder = order;
+      }
+    },
+    endDrag() {
+      const { dragSource, dragOrder } = this;
+      this.cancelDrag();
+      if (dragOrder) {
+        this.saveOrder(dragOrder, dragSource);
+      }
+    },
+    cancelDrag() {
+      this.dragSource = "";
+      this.dragOrder = null;
     },
     async autoSave() {
       // Serialize saves so overlapping requests can't land out of order; if the
@@ -630,50 +698,30 @@ export default {
         this.autoSave();
       }
     },
-    async saveMetronCredentials() {
-      const data = {};
-      if (this.metronKey) data.metronKey = this.metronKey;
-      this.validationResult.metron = undefined;
-      const hadCredentials = Boolean(this.defaults?.hasMetronCredentials);
+    async saveCredentials(source) {
+      const data = this.credentialInput(source);
+      this.validationResult[source] = undefined;
+      const hadCredentials = this.isConfigured(source);
       await this.updateTaggingDefaults(data);
-      this.metronKey = "";
+      this.keys[source] = "";
+      this.urls[source] = "";
       // Configuring a brand-new source enables it automatically; re-saving
       // credentials respects the existing checkbox state.
-      if (!hadCredentials && this.defaults?.hasMetronCredentials) {
-        this.setSourceEnabled("metron", true);
+      if (!hadCredentials && this.isConfigured(source)) {
+        this.setSourceEnabled(source, true);
       }
     },
-    async saveComicvineCredentials() {
-      const data = {};
-      if (this.comicvineKey) data.comicvineKey = this.comicvineKey;
-      if (this.comicvineUrlLocal) data.comicvineUrl = this.comicvineUrlLocal;
-      this.validationResult.comicvine = undefined;
-      const hadCredentials = Boolean(this.defaults?.hasComicvineCredentials);
-      await this.updateTaggingDefaults(data);
-      this.comicvineKey = "";
-      this.comicvineUrlLocal = "";
-      if (!hadCredentials && this.defaults?.hasComicvineCredentials) {
-        this.setSourceEnabled("comicvine", true);
-      }
+    clearCredentials(source) {
+      // Clearing the key clears a custom url with it.
+      const { key, url } = credentialFields(source);
+      const data = { [key]: "" };
+      if (url) data[url] = "";
+      this.validationResult[source] = undefined;
+      this.updateTaggingDefaults(data);
     },
-    clearMetronCredentials() {
-      this.validationResult.metron = undefined;
-      this.updateTaggingDefaults({ metronKey: "" });
-    },
-    clearComicvineCredentials() {
-      this.validationResult.comicvine = undefined;
-      this.updateTaggingDefaults({ comicvineKey: "", comicvineUrl: "" });
-    },
-    async testMetronCredentials() {
-      const payload = { source: "metron" };
-      if (this.metronKey) payload.metronKey = this.metronKey;
-      await this._runValidation("metron", payload);
-    },
-    async testComicvineCredentials() {
-      const payload = { source: "comicvine" };
-      if (this.comicvineKey) payload.comicvineKey = this.comicvineKey;
-      if (this.comicvineUrlLocal) payload.comicvineUrl = this.comicvineUrlLocal;
-      await this._runValidation("comicvine", payload);
+    async testCredentials(source) {
+      const payload = { source, ...this.credentialInput(source) };
+      await this._runValidation(source, payload);
     },
     async _runValidation(source, payload) {
       this.validating[source] = true;
@@ -692,11 +740,74 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "sass:map";
+@use "vuetify/styles/settings/variables" as vuetify;
 @use "@/components/admin/tabs/admin-section.scss";
 @use "@/components/admin/tabs/design.scss" as d;
 
+$rank-size: 20px;
+
+// The name and key status never break mid-phrase; on a phone the role tag
+// moves to a line of its own instead.
+.sourceTitle .adminCardTitle {
+  white-space: nowrap;
+}
+
+// Grows to take the title's free space, which puts the role tag after it
+// right against the chevron.
 .credentialStatus {
+  flex: 1 1 auto;
   margin-left: d.$space-2;
+  white-space: nowrap;
+}
+
+// The source's priority, before its name. Only enabled sources have one.
+.sourceRank {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: $rank-size;
+  height: $rank-size;
+  margin-right: d.$space-2;
+  border-radius: 50%;
+  font-size: d.$text-meta;
+  background-color: rgba(var(--v-theme-on-surface), 0.12);
+}
+
+// What the source does in a scan, just before the panel's chevron.
+.sourceRoleSlot {
+  flex: none;
+  margin: 0 d.$space-2;
+}
+
+.sourceRole {
+  display: inline-block;
+  padding: 2px d.$space-2;
+  border-radius: d.$radius-sm;
+  font-size: d.$text-small;
+  color: rgb(var(--v-theme-text-secondary));
+  white-space: nowrap;
+}
+
+.sourceRoleLead {
+  color: rgb(var(--v-theme-primary));
+  background-color: rgba(var(--v-theme-primary), 0.16);
+}
+
+// A phone has no room for the tag beside the name: it takes the next line,
+// under the name, and the chevron stays on the first.
+@media #{map.get(vuetify.$display-breakpoints, 'xs')} {
+  .sourceTitle {
+    flex-wrap: wrap;
+    row-gap: d.$space-1;
+  }
+
+  .sourceRoleSlot {
+    order: 1;
+    flex-basis: 100%;
+    margin: 0 0 0 calc(#{$rank-size} + #{d.$space-2});
+  }
 }
 
 .credentialSet {
@@ -705,6 +816,15 @@ export default {
 
 .sourcesHint {
   margin-top: d.$space-2;
+}
+
+// How the enabled sources combine, right above the list it changes.
+.sourcesMode {
+  margin-top: d.$space-3;
+}
+
+.sourcesModeHint {
+  margin-top: d.$space-1;
 }
 
 // The body of the Online Tagging Sources section: one row per source.
@@ -731,11 +851,45 @@ export default {
   margin-top: d.$space-1;
 }
 
-// Priority arrows under the enable checkbox.
-.sourceOrderButtons {
-  display: flex;
-  flex-direction: column;
+// The grip that reorders a source, between its checkbox and its panel. A
+// source that isn't enabled keeps an empty one, so every panel lines up.
+.sourceHandle {
+  flex: none;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 32px;
+  margin-top: d.$space-2;
+  padding: 0;
+  border: none;
+  border-radius: d.$radius-sm;
+  background: none;
+  color: rgb(var(--v-theme-text-secondary));
+  cursor: grab;
+  // A touch on the grip drags the source instead of scrolling the page.
+  touch-action: none;
+}
+
+button.sourceHandle:hover,
+button.sourceHandle:focus-visible {
+  color: rgb(var(--v-theme-on-surface));
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+}
+
+button.sourceHandle:focus-visible {
+  outline: 2px solid rgb(var(--v-theme-primary));
+}
+
+// The source being dragged stands out, and the grip says it's held.
+.sourceRowDragging .sourcePanel {
+  border-radius: d.$radius;
+  box-shadow: 0 0 0 2px rgb(var(--v-theme-primary));
+}
+
+.sourceRowDragging .sourceHandle {
+  cursor: grabbing;
+  color: rgb(var(--v-theme-primary));
 }
 
 .sourcePanel {
@@ -743,7 +897,7 @@ export default {
   min-width: 0;
 }
 
-.mergeAllSourcesCard {
-  margin-top: d.$space-4;
+.sourceNotes {
+  margin-top: 0;
 }
 </style>

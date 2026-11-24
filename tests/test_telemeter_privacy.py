@@ -193,6 +193,7 @@ class TelemeterPrivacyTestCase(TestCase):
             ComicboxTaggingDefaults,
             metron_key=f"{SENTINEL}-metron-key",
             comicvine_key=f"{SENTINEL}-comicvine-key",
+            versedb_key=f"{SENTINEL}-versedb-key",
             comicvine_url=f"https://{SENTINEL}-comicvine.example.com",
             default_sources=["metron", f"{SENTINEL}-source"],
         )

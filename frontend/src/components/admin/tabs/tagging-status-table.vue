@@ -143,7 +143,6 @@
       item-value="pk"
       :mobile="$vuetify.display.xs"
       fixed-header
-      height="420"
       density="compact"
     >
       <template #[`item.path`]="{ item }">
@@ -658,7 +657,8 @@ export default {
        * Metron's daily limit varies by donor tier and comes off its
        * X-RateLimit-* headers; Comic Vine meters hourly per endpoint
        * pool and the backend sends the tightest one, since that is what
-       * will stop the run. Empty until the source has reported.
+       * will stop the run. VerseDB reports one hourly window. Empty until
+       * the source has reported.
        */
       const window = src.budgetWindow;
       if (!window) return "";
@@ -781,6 +781,13 @@ export default {
 
   .comicsTable {
     background-color: inherit;
+  }
+
+  /* No fixed height, so a short batch's table is only as tall as its rows;
+   * a long one stops here and scrolls. The virtual scroller measures this
+   * box rather than reading a height prop, so it still virtualizes. */
+  .comicsTable :deep(.v-table__wrapper) {
+    max-height: 420px;
   }
 
   .statusCell {

@@ -26,13 +26,13 @@ from comicbox.config.online import (
     MatchMode,
     OnlineAuthSettings,
     OnlineLookupSettings,
-    OnlineSourceCredentials,
     Prompts,
 )
 from comicbox.formats.comicbox.schema import IDENTIFIERS_KEY
 from comicbox.identifiers import ID_KEY_KEY
 
 from codex.librarian.onlinetag.issue_id import parse_issue_id
+from codex.librarian.onlinetag.sources import source_credentials
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
@@ -43,23 +43,12 @@ if TYPE_CHECKING:
     from comicbox.online_session import OnlineCredentials
 
 
-def _build_auth_source(
-    source: str, credentials: OnlineCredentials
-) -> OnlineSourceCredentials:
-    """Map codex credentials onto comicbox's per-source auth for one source."""
-    if source == "metron":
-        return OnlineSourceCredentials(key=credentials.metron_key)
-    return OnlineSourceCredentials(
-        key=credentials.comicvine_key,
-        url=credentials.comicvine_url,
-    )
-
-
 def build_explicit_id_config(
     source: str,
     issue_id: int,
     credentials: OnlineCredentials,
     extra_ids: tuple[tuple[str, int], ...] = (),
+    order: tuple[str, ...] = (),
 ) -> ComicboxSettings:
     """
     Build comicbox settings that fetch one or more issues by explicit id.
@@ -73,17 +62,24 @@ def build_explicit_id_config(
 
     When ``extra_ids`` is given (the "merge all sources" path), each
     ``(source, issue_id)`` is also pinned. comicbox always runs every source
-    that carries an explicit id, so all are fetched and merged into one record;
-    the primary ``source`` is listed first and wins per-field conflicts.
+    that carries an explicit id, so all are fetched and merged into one
+    record, and the first source listed wins every single-valued tag they
+    disagree on. They are listed in ``order``, the caller's source priority;
+    without one, or for a source it leaves out, the primary ``source`` comes
+    first and the extras follow as given.
     """
     base = COMICBOX_ONLINE_CONFIG
-    # Primary source first (highest merge priority), then the extra pinned
-    # sources; dedup keeps the primary's id if a source repeats.
+    # Primary source first, then the extra pinned sources; dedup keeps the
+    # primary's id if a source repeats. A stable sort by ``order`` then puts
+    # them in merge precedence, leaving the sources it doesn't name behind.
     ids = {source: issue_id}
     for extra_source, extra_id in extra_ids:
         ids.setdefault(extra_source, extra_id)
+    if order:
+        rank = {name: index for index, name in enumerate(order)}
+        ids = dict(sorted(ids.items(), key=lambda item: rank.get(item[0], len(rank))))
     sources = tuple(ids)
-    auth_sources = {s: _build_auth_source(s, credentials) for s in sources}
+    auth_sources = {s: source_credentials(s, credentials) for s in sources}
     lookup = OnlineLookupSettings(
         enabled=True,
         sources=sources,
@@ -96,6 +92,12 @@ def build_explicit_id_config(
     return replace(base, online=replace(base.online, lookup=lookup, auth=auth))
 
 
+def fetched_issue_id(tags: Mapping[str, Any], source: str) -> int | None:
+    """Return the issue id ``source``'s identifier carries in ``tags``, or None."""
+    id_obj = (tags.get(IDENTIFIERS_KEY) or {}).get(source) or {}
+    return parse_issue_id(id_obj.get(ID_KEY_KEY))
+
+
 def _result_has_requested_id(tags: dict[str, Any], source: str, issue_id: int) -> bool:
     """
     Whether the fetched metadata carries ``source``'s id matching ``issue_id``.
@@ -106,8 +108,7 @@ def _result_has_requested_id(tags: dict[str, Any], source: str, issue_id: int) -
     requested id distinguishes a real fetch from "nothing changed" — and rejects
     a wrong id even on an already-tagged comic, whose stale id won't match.
     """
-    id_obj = (tags.get(IDENTIFIERS_KEY) or {}).get(source) or {}
-    parsed = parse_issue_id(id_obj.get(ID_KEY_KEY))
+    parsed = fetched_issue_id(tags, source)
     return parsed is not None and parsed == issue_id
 
 
@@ -136,18 +137,20 @@ def fetch_tags_by_explicit_id(
     issue_id: int,
     credentials: OnlineCredentials,
     extra_ids: tuple[tuple[str, int], ...] = (),
+    order: tuple[str, ...] = (),
 ) -> dict[str, Any] | None:
     """
     Fetch one issue's metadata by explicit id, or ``None`` if it didn't resolve.
 
     Returns the comicbox-shaped tag dict ready to hand to ``BulkTagWriteTask``.
     With ``extra_ids`` the other sources are also fetched by explicit id and
-    merged in. Resolution is keyed on the primary ``source``: an ``extra_ids``
-    entry that doesn't resolve simply contributes nothing to the merge.
+    merged in, in ``order`` (see ``build_explicit_id_config``). Resolution is
+    keyed on the primary ``source``: an ``extra_ids`` entry that doesn't
+    resolve simply contributes nothing to the merge.
     """
     # Drop any extra entry for the primary source; it always runs id-pinned.
     extra_ids = tuple((s, i) for s, i in extra_ids if s != source)
-    settings = build_explicit_id_config(source, issue_id, credentials, extra_ids)
+    settings = build_explicit_id_config(source, issue_id, credentials, extra_ids, order)
     with Comicbox(path, config=settings) as cb:
         cb.run_online_lookup()
         payload = cb.to_dict()

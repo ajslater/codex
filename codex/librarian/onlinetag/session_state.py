@@ -78,12 +78,14 @@ class SessionState:
     pending_paths: list[Path] = field(default_factory=list)
     mode: str = "additive"
     # The comicbox match mode (auto/careful/eager) and enabled sources in
-    # priority order — the inputs the time-remaining estimate needs. Distinct
-    # from ``mode`` above, which is the tag-write mode.
+    # priority order — the inputs the time-remaining estimate needs, and the
+    # merge order each deferred prompt records. Distinct from ``mode``
+    # above, which is the tag-write mode.
     match_mode: str = "auto"
     sources: tuple[str, ...] = ()
     # How much API budget a comic may spend against a fan-out source.
-    # Only Comic Vine fans out; it is what the time estimate turns on.
+    # Only Comic Vine fans out (Metron and VerseDB ignore effort); it is
+    # what the time estimate turns on.
     effort: str = "balanced"
 
     # Whether this scan queries every source per comic and merges
@@ -144,6 +146,8 @@ def serialize_prompt(
     *,
     delete_original: bool,
     rename: bool,
+    source_order: tuple[str, ...] = (),
+    merge_all_sources: bool = False,
 ) -> dict[str, Any]:
     """
     Serialize a deferred prompt with everything needed to apply it later.
@@ -155,6 +159,12 @@ def serialize_prompt(
     codex still reads on a rollback to one that predates the list. The
     review dialog derives the file's own cover from ``pk`` when the
     prompt list is served, so no cover data is stored here.
+
+    ``source_order`` and ``merge_all_sources`` are the run's: its sources
+    in priority order, and whether it merged them all. Applying the answer
+    needs both to keep a higher-priority source's tags winning the merge.
+    A prompt cached before they existed reads without them and applies the
+    pick on its own, so they add no ``PROMPT_VERSION``.
     """
     representative = comics[0]
     return {
@@ -169,6 +179,8 @@ def serialize_prompt(
         "formats": list(formats),
         "delete_original": delete_original,
         "rename": rename,
+        "source_order": list(source_order),
+        "merge_all_sources": merge_all_sources,
     }
 
 
@@ -204,7 +216,7 @@ def serialize_candidate(c) -> dict[str, Any]:
             "publisher": getattr(summary, "publisher", ""),
             "cover_url": getattr(summary, "cover_url", ""),
             # The largest tier the source offers, when it offers one.
-            # Comic Vine has several; Metron sets it equal to cover_url
+            # Comic Vine and VerseDB have several; Metron sets it equal to cover_url
             # because its one image is already full size. comicbox owns
             # the "genuinely larger" guarantee, so the frontend gates
             # the hover on this being truthy and never on it differing.
@@ -212,22 +224,24 @@ def serialize_candidate(c) -> dict[str, Any]:
             # Alternative series names comicbox scored this candidate on.
             # Empty for sources whose search results don't carry them.
             "alt_series": list(getattr(summary, "alt_series", ())),
-            # The series' ordinal volume. Metron's issue rows carry one;
-            # Comic Vine's search results have no equivalent.
+            # The series' ordinal volume. Metron's and VerseDB's rows carry
+            # one; Comic Vine's search results have no equivalent.
             "volume": getattr(summary, "volume", None),
             # What tells apart candidates whose covers and titles read
             # identically: a reprint volume, a foreign or a collected
             # edition. Comic Vine fills most of these from rows it already
-            # fetched. Metron always has the start year, but gets the
-            # format, publisher and issue count only when titles collide.
+            # fetched, and VerseDB all four. Metron always has the start
+            # year, but gets the format, publisher and issue count only
+            # when titles collide.
             # Absent before comicbox 5.4, and None wherever a source has
             # nothing.
             "series_start_year": getattr(summary, "series_start_year", None),
             "series_publisher": getattr(summary, "series_publisher", None),
             "series_issue_count": getattr(summary, "series_issue_count", None),
-            # Publication format, e.g. "Trade Paperback". Metron only.
+            # Publication format, e.g. "Trade Paperback". Metron and VerseDB.
             "series_type": getattr(summary, "series_type", None),
-            # The issue's own title and one-line deck. Comic Vine only.
+            # The issue's own title and one-line deck. Comic Vine fills
+            # both, VerseDB the title.
             "issue_title": getattr(summary, "issue_title", None),
             "issue_summary": getattr(summary, "issue_summary", None),
         },
