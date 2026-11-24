@@ -284,11 +284,18 @@ class ListMatcher:
     def _pick(
         found, series_of: Mapping[int, int | None], pending: Collection[int]
     ) -> EntryMatch:
-        """Choose among the comics comicbox found for one entry, live first."""
+        """
+        Choose among the comics comicbox found for one entry.
+
+        The strongest rule wins, then a live copy among its finds: a comic
+        a weaker rule found never beats the list's own comic while that one
+        is pending delete.
+        """
         sure = [comic for comic in found.comics if not comic.ambiguous]
-        pool = _live_first(sure or list(found.comics), pending)
+        pool = sure or list(found.comics)
         strongest = min(pool, key=lambda comic: list(FoundBy).index(comic.by))
-        best = [comic.path for comic in pool if comic.by == strongest.by]
+        tied = [comic for comic in pool if comic.by == strongest.by]
+        best = [comic.path for comic in _live_first(tied, pending)]
         comic_pk = min(best)
         series = {series_of.get(pk) for pk in best}
         needs_review = not sure or len(series) > 1
