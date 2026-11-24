@@ -224,9 +224,15 @@ class PromptApplier:
         one issue. The other issues of the series were waiting on the same
         question, so they go back in the queue under it — answering again
         peels off one comic at a time rather than writing one issue's match
-        onto all of them.
+        onto all of them. Without the old candidates: they are the
+        representative's issues, and choosing one would pin its issue id on
+        a different comic.
         """
-        remaining = {**comic_prompt(prompt, followers[0]), "comics": list(followers)}
+        remaining = {
+            **comic_prompt(prompt, followers[0]),
+            "comics": list(followers),
+            "candidates": [],
+        }
         add_pending_prompts({prompt["fingerprint"]: remaining})
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         count = len(followers)
