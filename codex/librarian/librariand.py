@@ -28,6 +28,7 @@ from codex.librarian.onlinetag.readinglists import ReadingListFetchAbortTask
 from codex.librarian.onlinetag.tasks import OnlineTagAbortTask, OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
+from codex.librarian.scribe.janitor.tasks import JanitorSyncReadingListsTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
@@ -58,6 +59,22 @@ _THREAD_QUEUE_TASK_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         OnlineTagTask: "online_tag_thread",
     }
 )
+
+
+def queue_unstamped_tags_sync(queue) -> None:
+    """
+    Queue the tags sync when tags sources are still unstamped (B2).
+
+    Migration 0061 writes each tags source with a blank revision, so the
+    first tags sync rebuilds every arc list, and until it runs a hide or a
+    reorder made to one is lost. Run then, not at the nightly sync.
+    """
+    from codex.models.readinglist import ReadingListSource, ReadingListSourceKind
+
+    if ReadingListSource.objects.filter(
+        kind=ReadingListSourceKind.TAGS, revision=""
+    ).exists():
+        queue.put(JanitorSyncReadingListsTask())
 
 
 class LibrarianDaemon(Process):
@@ -168,6 +185,10 @@ class LibrarianDaemon(Process):
         # Janitor created in init.
         self._create_threads()  # can't do this in init.
         self._start_threads()
+        # A startup task that reads the database: here, in this process,
+        # which starts only after the web process has run the migrations,
+        # not in ``__init__``, which runs in the web process.
+        queue_unstamped_tags_sync(self.queue)
         self.log.success(f"{self.name} ready for tasks.")
 
     def _stop_threads(self) -> None:
