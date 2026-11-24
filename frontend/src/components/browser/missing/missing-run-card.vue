@@ -20,6 +20,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
 @use "@/components/book-cover" as bookcover;
 
 @layer codex-components {
@@ -46,6 +48,14 @@ export default {
 
   .missingRunCount {
     font-size: 16px;
+  }
+
+  /* The grid's columns are small covers here, as the cards' are. */
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    .missingRunCard {
+      height: bookcover.$small-cover-height;
+      width: bookcover.$small-cover-width;
+    }
   }
 }
 </style>
