@@ -6,7 +6,9 @@ blobs included, and selected them DISTINCT. It groups by the key now, and
 once the card aggregates group the page query, each list is one row, so
 the DISTINCT goes there. These tests run the grid both ways, the old shape
 forced and the new, on lists built to tell them apart, and get the same
-cards in the same order with the same counts.
+cards in the same order with the same counts: by name, in reading order and
+by child count, under a search, in table view, with a missing comic, and
+for a viewer who is not signed in.
 """
 
 import json
@@ -18,8 +20,11 @@ from django.contrib.auth.models import User
 from django.db import connection
 from django.test import Client
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 
-from codex.models import ReadingList, ReadingListEntry
+from codex.choices.admin import AdminFlagChoices
+from codex.models import AdminFlag, ReadingList, ReadingListEntry
+from codex.models.comic import ComicFTS
 from codex.models.readinglist import ReadingListMatchTier
 from codex.views.browser.annotate import card
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
@@ -63,25 +68,43 @@ class ListRowsTests(ReadingListFixture):
         self.client = Client()
         self.client.force_login(user)
 
-    def _grid(self, order_by: str) -> tuple[list, int]:
-        response = self.client.patch(
+    def _grid(
+        self, order_by: str, search: str, view_mode: str, client: Client
+    ) -> tuple[list, int]:
+        settings = {
+            "orderBy": order_by,
+            "filters": {},
+            "search": search,
+            "viewMode": view_mode,
+        }
+        response = client.patch(
             "/api/v4/browse/arcs/settings",
-            data=json.dumps({"orderBy": order_by, "filters": {}}),
+            data=json.dumps(settings),
             content_type="application/json",
         )
         assert response.status_code == _OK, response.content
-        response = self.client.get("/api/v4/browse/arcs/0")
+        response = client.get("/api/v4/browse/arcs/0")
         assert response.status_code == _OK, response.content
         data = response.json()["data"]
+        if view_mode == "table":
+            return data["rows"], data["count"]
         cards = [
             tuple(row.get(field) for field in _FIELDS) for row in data["collections"]
         ]
         return cards, data["count"]
 
-    def _both_ways(self, order_by: str) -> list:
+    def _both_ways(
+        self,
+        order_by: str,
+        *,
+        search: str = "",
+        view_mode: str = "cover",
+        client: Client | None = None,
+    ) -> list:
+        client = client or self.client
         # Cachalot would answer a repeated query without running it.
         with cachalot_disabled(), CaptureQueriesContext(connection) as new:
-            now = self._grid(order_by)
+            now = self._grid(order_by, search, view_mode, client)
         # Read now: the next request clears the log they are read from.
         new_sql = [query["sql"] for query in new.captured_queries]
         with (
@@ -93,9 +116,13 @@ class ListRowsTests(ReadingListFixture):
                 staticmethod(lambda qs: qs),
             ),
         ):
-            before = self._grid(order_by)
+            before = self._grid(order_by, search, view_mode, client)
         assert now == before, (order_by, now, before)
-        grouped = [sql for sql in new_sql if "child_count" in sql]
+        grouped = [
+            sql
+            for sql in new_sql
+            if "child_count" in sql and 'FROM "codex_readinglist"' in sql
+        ]
         assert grouped
         assert any('GROUP BY "codex_readinglist"."id"' in sql for sql in grouped)
         assert not any(sql.startswith("SELECT DISTINCT") for sql in grouped)
@@ -111,3 +138,28 @@ class ListRowsTests(ReadingListFixture):
 
     def test_by_child_count(self) -> None:
         assert len(self._both_ways("child_count")) == 3  # noqa: PLR2004
+
+    def test_under_a_search(self) -> None:
+        """Only the lists holding the comic found: the second Civil War, Mine."""
+        for comic, name in zip(
+            self.comics, ("Alpha", "Beta", "Gamma", "Delta"), strict=True
+        ):
+            ComicFTS.objects.create(comic=comic, name=name)
+        cards = self._both_ways("sort_name", search="delta")
+        assert [row[1] for row in cards] == ["Civil War", "Mine"]
+
+    def test_in_table_view(self) -> None:
+        assert len(self._both_ways("sort_name", view_mode="table")) == 3  # noqa: PLR2004
+
+    def test_with_a_missing_comic(self) -> None:
+        """A comic gone from disk is not counted, either way."""
+        missing = self.comics[3]
+        missing.missing_since = timezone.now()
+        missing.save()
+        assert len(self._both_ways("child_count")) == 3  # noqa: PLR2004
+
+    def test_not_signed_in(self) -> None:
+        """Only the global lists, the same either way."""
+        AdminFlag.objects.filter(key=AdminFlagChoices.NON_USERS.value).update(on=True)
+        cards = self._both_ways("sort_name", client=Client())
+        assert [row[1] for row in cards] == ["Civil War", "Civil War"]
