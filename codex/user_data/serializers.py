@@ -381,6 +381,9 @@ def serialize_tagging_defaults(
             "default_sources": json.dumps(
                 defaults.default_sources, separators=(",", ":")
             ),
+            "default_effort": defaults.default_effort or "",
+            "merge_all_sources": int(bool(defaults.merge_all_sources)),
+            "rename_files": int(bool(defaults.rename_files)),
             "metron_key": defaults.metron_key or "",
             "comicvine_key": defaults.comicvine_key or "",
             "comicvine_url": defaults.comicvine_url or "",

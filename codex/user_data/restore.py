@@ -407,6 +407,10 @@ def _restore_timestamps(
         report.note_written("timestamps")
 
 
+# Booleans a backup older than v2.8.0 does not carry; the model default stands.
+_TAGGING_FLAGS: Final = ("merge_all_sources", "rename_files")
+
+
 def _build_tagging_defaults(row) -> dict[str, Any]:
     """Map a sidecar tagging_defaults row to ``update_or_create`` defaults."""
     # Plain string/scalar fields coalesced to a non-null fallback. Kept as a
@@ -415,6 +419,7 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     coalesced: dict[str, Any] = {
         "default_match_mode": "auto",
         "default_prompts_mode": "ask",
+        "default_effort": "",
         "metron_key": "",
         "comicvine_key": "",
         "comicvine_url": "",
@@ -430,6 +435,9 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
     defaults["default_formats"] = json.loads(row["default_formats"] or "[]")
     defaults["default_sources"] = json.loads(row["default_sources"] or "[]")
     defaults["delete_original"] = bool(row["delete_original"])
+    for flag in _TAGGING_FLAGS:
+        if flag in cols:
+            defaults[flag] = bool(row[flag])
     # ``active_session_id`` / ``active_prompts`` used to be on this row before
     # they moved to the Django cache as transient state, ``metron_url``
     # before that no-op override was removed for good, and ``metron_user`` /

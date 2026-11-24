@@ -442,6 +442,36 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert AdminFlag.objects.filter(key="AU").count() == 1
 
 
+class TaggingDefaultsRoundTripTests(_SidecarRestoreCase):
+    """Every tagging default comes back from a backup."""
+
+    def test_the_run_options_round_trip(self) -> None:
+        """Merge all sources, the effort and file renaming are kept."""
+        from codex.models.admin import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={
+                "merge_all_sources": True,
+                "default_effort": "thorough",
+                "rename_files": True,
+            },
+        )
+        snapshot = self._snapshot_sidecar()
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            merge_all_sources=False, default_effort="", rename_files=False
+        )
+
+        restore(sidecar_path=snapshot)
+
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert (
+            defaults.merge_all_sources,
+            defaults.default_effort,
+            defaults.rename_files,
+        ) == (True, "thorough", True)
+
+
 class ApiKeyRestoreTests(_SidecarRestoreCase):
     """Keys come back as hashes and still log in."""
 
