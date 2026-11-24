@@ -46,10 +46,44 @@
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="entry in entries"
-              :key="entry.pk"
-              :class="{
+            <template v-for="{ key, item, entry } in rows" :key="key">
+              <!--
+                A held collection is one row: the issues it brings are its,
+                so no control here acts on one of them.
+              -->
+              <tr v-if="item" class="itemRow">
+                <td class="positionCol">
+                  <v-text-field
+                    v-if="!isSourced && item.position != null"
+                    :model-value="item.position + 1"
+                    inputmode="numeric"
+                    density="compact"
+                    hide-details
+                    variant="plain"
+                    class="positionInput"
+                    @change="moveItem(item, $event.target.value - 1)"
+                  />
+                </td>
+                <td colspan="5">
+                  <span class="itemLabel">{{ item.label }}</span>
+                  <span class="itemCount">{{ itemCaption(item) }}</span>
+                </td>
+                <td class="adminActionCell entryActions">
+                  <v-btn
+                    v-if="!item.dangling"
+                    class="removeItem"
+                    :icon="mdiTrashCanOutline"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Remove this collection and its issues"
+                    @click="removeItem(item)"
+                  />
+                </td>
+              </tr>
+              <tr
+                v-else
+                :class="{
                 dragOver: dragOverPk === entry.pk,
                 hidden: entry.ignored,
               }"
@@ -155,7 +189,8 @@
                 />
               </td>
             </tr>
-            <tr v-if="!entries.length">
+            </template>
+            <tr v-if="!rows.length">
               <td colspan="7" class="adminNoData">
                 {{ loading ? "Loading…" : "Nothing here." }}
               </td>
@@ -237,6 +272,8 @@ export default {
       mdiTrashCanOutline,
       filter: this.initialFilter,
       allEntries: [],
+      // The list's held collections: their issues fold into one row each.
+      items: [],
       loading: false,
       loadSeq: 0,
       dragPk: null,
@@ -258,6 +295,22 @@ export default {
       // One fetch of every entry; the filters narrow it here.
       const test = ENTRY_FILTERS[this.filter] || ENTRY_FILTERS.all;
       return this.allEntries.filter((entry) => test(entry));
+    },
+    rows() {
+      /*
+       * The table's rows. A held collection is one row at its first issue,
+       * and only under All: its issues are never missing, hidden or in
+       * need of review.
+       */
+      const rows = this.entries
+        .filter((entry) => entry.liveSource == null)
+        .map((entry) => ({ key: `e${entry.pk}`, entry, at: entry.position }));
+      if (this.filter === "all") {
+        for (const item of this.items) {
+          rows.push({ key: `i${item.pk}`, item, at: item.position ?? Infinity });
+        }
+      }
+      return rows.sort((a, b) => a.at - b.at);
     },
     reviewCount() {
       return this.allEntries.filter((entry) => ENTRY_FILTERS.review(entry))
@@ -283,6 +336,7 @@ export default {
       if (value?.pk === previous?.pk) return;
       // Another list: never show the last one's rows while this one loads.
       this.allEntries = [];
+      this.items = [];
       if (this.modelValue) this.load();
     },
   },
@@ -306,7 +360,10 @@ export default {
           API.getEntries(this.readingList.pk, "all"),
         );
         // A later load, for another list or after an edit, wins.
-        if (seq === this.loadSeq) this.allEntries = data?.entries || [];
+        if (seq === this.loadSeq) {
+          this.allEntries = data?.entries || [];
+          this.items = data?.items || [];
+        }
       } finally {
         if (seq === this.loadSeq) this.loading = false;
       }
@@ -339,6 +396,22 @@ export default {
       await this.call(
         API.updateEntry(this.readingList.pk, entry.pk, { ignored }),
       );
+      await this.changed();
+    },
+    itemCaption(item) {
+      if (item.dangling) return " — gone from the library";
+      const issues = item.count === 1 ? "1 issue" : `${item.count} issues`;
+      return ` — ${issues}, kept current`;
+    },
+    async moveItem(item, position) {
+      const target = Math.max(0, Number(position) || 0);
+      if (target === item.position) return;
+      await this.call(API.reorderItem(this.readingList.pk, item.pk, target));
+      await this.changed();
+    },
+    async removeItem(item) {
+      const remove = { [item.collection]: [item.targetId] };
+      await this.call(API.updateItems(this.readingList.pk, { remove }));
       await this.changed();
     },
     async remove(entry) {
@@ -433,7 +506,8 @@ export default {
     white-space: nowrap;
   }
 
-  .missing {
+  .missing,
+  .itemCount {
     color: rgb(var(--v-theme-text-disabled));
   }
 

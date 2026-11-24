@@ -73,6 +73,9 @@ export const deleteEntry = (pk, entryPk) =>
   HTTP.delete(`${LISTS}/${pk}/entries/${entryPk}`);
 export const reorderEntry = (pk, entry, position) =>
   HTTP.post(`${LISTS}/${pk}/entries/reorder`, { entry, position });
+// A held collection moves as one block.
+export const reorderItem = (pk, item, position) =>
+  HTTP.post(`${LISTS}/${pk}/entries/reorder`, { item, position });
 export const acceptEntries = (pk) => HTTP.post(`${LISTS}/${pk}/entries/accept`);
 export const getCandidates = (pk, entryPk, q = "") =>
   HTTP.get(`${LISTS}/${pk}/entries/${entryPk}/candidates`, fresh({ q }));

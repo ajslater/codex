@@ -20,6 +20,7 @@ vi.mock("@/api/v4/reading-lists", () => ({
   searchLists: vi.fn(),
   getEntries: vi.fn(),
   reorderEntry: vi.fn(),
+  reorderItem: vi.fn(),
   updateEntry: vi.fn(),
   acceptEntries: vi.fn(),
   exportURL: (pk, fmt) => `/export/${pk}/${fmt}`,
@@ -729,10 +730,40 @@ describe("review dialog — moving an entry", () => {
     { pk: 10, position: 3, seriesName: "Civil War", issue: "2" },
   ]);
 
-  test("a collection's own issues have no arrows: they move with it", async () => {
-    const { row } = await mountReview(WITH_BLOCK);
-    expect(row(8).find(".moveUp").exists()).toBe(false);
-    expect(row(8).find(".moveDown").exists()).toBe(false);
+  test("a held collection is one row, whose Remove removes it", async () => {
+    // Its issues used to be a row each, and every control on them was
+    // refused: an issue a collection brings is the collection's.
+    const items = [
+      {
+        pk: 5,
+        collection: "series",
+        targetId: 42,
+        label: "X-Men",
+        dangling: false,
+        count: 2,
+        position: 1,
+      },
+    ];
+    API.getEntries.mockResolvedValue({ data: { entries: WITH_BLOCK, items } });
+    API.updateItems.mockClear();
+    API.updateItems.mockResolvedValue({ data: {} });
+    const wrapper = mount(ReviewDialog, {
+      props: { modelValue: true, readingList: { pk: 3, name: "CW", sources: [] } },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    await flushPromises();
+    const rows = wrapper.findAll("tbody tr");
+    expect(rows).toHaveLength(3);
+    const held = rows[1];
+    expect(held.text()).toContain("X-Men");
+    expect(held.text()).toContain("2 issues");
+    expect(held.find(".moveUp").exists()).toBe(false);
+    expect(held.findAll(".entryActions button")).toHaveLength(1);
+    await held.find(".removeItem").trigger("click");
+    await flushPromises();
+    expect(API.updateItems).toHaveBeenCalledWith(3, {
+      remove: { series: [42] },
+    });
   });
 
   test("one step down past a collection's block clears the whole block", async () => {
