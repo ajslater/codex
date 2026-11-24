@@ -55,7 +55,7 @@
             </tr>
           </thead>
           <tbody>
-            <template v-for="{ key, item, entry } in rows" :key="key">
+            <template v-for="{ key, item, entry } in shownRows" :key="key">
               <!--
                 A held collection is one row: the issues it brings are its,
                 so no control here acts on one of them.
@@ -142,8 +142,8 @@
                         variant="text"
                         title="Move down"
                         aria-label="Move down"
-                        :disabled="downTarget(entry) === undefined"
-                        @click="move(entry, downTarget(entry))"
+                        :disabled="downTargets.get(entry.pk) === undefined"
+                        @click="move(entry, downTargets.get(entry.pk))"
                       />
                     </span>
                   </div>
@@ -203,6 +203,14 @@
                 </td>
               </tr>
             </template>
+            <!--
+              Rows render a page at a time: a list of thousands built every
+              row's controls at once and took seconds to open. Scrolling
+              this row into view shows the next page.
+            -->
+            <tr v-if="rows.length > shown" ref="more" class="moreRow">
+              <td colspan="7" class="adminNoData">{{ moreCaption }}</td>
+            </tr>
             <tr v-if="!rows.length">
               <td colspan="7" class="adminNoData">
                 {{ loading ? "Loading…" : "Nothing here." }}
@@ -243,6 +251,8 @@ import * as API from "@/api/v4/reading-lists";
 import CandidatePicker from "@/components/reading-list-candidate-picker.vue";
 import { useCommonStore } from "@/stores/common";
 
+// Rows rendered at a time, and again each time the end comes into view.
+const PAGE = 200;
 const TIERS = Object.freeze({
   marked_missing: "Marked missing by hand",
   manual: "Picked by hand",
@@ -303,6 +313,7 @@ export default {
       dragPk: null,
       dragOverPk: null,
       pickEntry: null,
+      shown: PAGE,
       pickMapsSeries: false,
       showPicker: false,
     };
@@ -343,6 +354,41 @@ export default {
       }
       return rows.sort((a, b) => a.at - b.at);
     },
+    downTargets() {
+      /*
+       * Each entry's position one step down, none when nothing can follow,
+       * in one pass: a lookup per row made a long list's render quadratic.
+       * The server keeps a collection's block whole, so a step into one
+       * goes past it; a list with sources keeps its collections last.
+       * One step up needs no help: the server places it before a block.
+       */
+      const order = this.ordered;
+      // The position of the last row of the block each row starts.
+      const blockEnd = new Array(order.length);
+      for (let index = order.length - 1; index >= 0; index--) {
+        const next = order[index + 1];
+        blockEnd[index] =
+          next && next.liveSource === order[index].liveSource
+            ? blockEnd[index + 1]
+            : order[index].position;
+      }
+      const targets = new Map();
+      for (let index = 0; index < order.length - 1; index++) {
+        const next = order[index + 1];
+        let target;
+        if (next.liveSource == null) target = next.position;
+        else if (!this.isSourced) target = blockEnd[index + 1];
+        targets.set(order[index].pk, target);
+      }
+      return targets;
+    },
+    shownRows() {
+      return this.rows.slice(0, this.shown);
+    },
+    moreCaption() {
+      const total = this.rows.length;
+      return `Showing ${this.shown} of ${total}. Scroll for more.`;
+    },
     reviewCount() {
       return this.allEntries.filter((entry) => ENTRY_FILTERS.review(entry))
         .length;
@@ -357,6 +403,15 @@ export default {
     },
   },
   watch: {
+    filters() {
+      this.shown = PAGE;
+    },
+    shown() {
+      this.observeMore();
+    },
+    allEntries() {
+      this.observeMore();
+    },
     modelValue(value) {
       if (value) {
         this.filters = initialFilters(this.initialFilter);
@@ -368,8 +423,12 @@ export default {
       // Another list: never show the last one's rows while this one loads.
       this.allEntries = [];
       this.items = [];
+      this.shown = PAGE;
       if (this.modelValue) this.load();
     },
+  },
+  beforeUnmount() {
+    this.moreObserver?.disconnect();
   },
   mounted() {
     if (this.modelValue) this.load();
@@ -399,6 +458,20 @@ export default {
         if (seq === this.loadSeq) this.loading = false;
       }
     },
+    showMore() {
+      this.shown += PAGE;
+    },
+    async observeMore() {
+      // A fresh observer reports at once whether the end is in view.
+      await this.$nextTick();
+      this.moreObserver?.disconnect();
+      const more = this.$refs.more;
+      if (!more || typeof IntersectionObserver === "undefined") return;
+      this.moreObserver = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) this.showMore();
+      });
+      this.moreObserver.observe(more);
+    },
     async changed() {
       await this.load();
       this.$emit("changed");
@@ -424,10 +497,21 @@ export default {
         : tier;
     },
     async setHidden(entry, ignored) {
-      await this.call(
+      /*
+       * The answer is the entry as it is now: hiding changes no other row
+       * here, so the one row is replaced rather than the list refetched.
+       */
+      const updated = await this.call(
         API.updateEntry(this.readingList.pk, entry.pk, { ignored }),
       );
-      await this.changed();
+      if (!updated) return;
+      const index = this.allEntries.findIndex((row) => row.pk === updated.pk);
+      if (index === -1) {
+        await this.load();
+      } else {
+        this.allEntries.splice(index, 1, updated);
+      }
+      this.$emit("changed");
     },
     itemCaption(item) {
       if (item.dangling) return " — gone from the library";
@@ -448,25 +532,6 @@ export default {
     async remove(entry) {
       await this.call(API.deleteEntry(this.readingList.pk, entry.pk));
       await this.changed();
-    },
-    downTarget(entry) {
-      /*
-       * The position one step down, or undefined when nothing can follow.
-       * The server keeps a collection's block whole, so a step into one
-       * goes past it; a list with sources keeps its collections last.
-       * One step up needs no help: the server places it before a block.
-       */
-      const order = this.ordered;
-      const next = order[order.indexOf(entry) + 1];
-      if (!next) return;
-      if (next.liveSource == null) return next.position;
-      if (this.isSourced) return;
-      let last = next;
-      for (const row of order.slice(order.indexOf(next) + 1)) {
-        if (row.liveSource !== next.liveSource) break;
-        last = row;
-      }
-      return last.position;
     },
     async move(entry, position) {
       const target = Math.max(0, Number(position) || 0);

@@ -202,10 +202,38 @@ def _items_repr(reading_list: ReadingList, acl_q: Q) -> list[dict[str, Any]]:
     return items
 
 
+# What ``entry_repr`` reads: not an entry's reference or a comic's text.
+_ENTRY_REPR_FIELDS: Final = (
+    "pk",
+    "position",
+    "live_source_id",
+    "series_name",
+    "issue",
+    "year",
+    "entry_type",
+    "source_ids",
+    "match_tier",
+    "needs_review",
+    "ignored",
+    "manual",
+    "comic__id",
+    "comic__series_id",
+    "comic__volume_id",
+    "comic__issue_number",
+    "comic__issue_suffix",
+    "comic__year",
+    "comic__name",
+    "comic__series__name",
+    "comic__volume__name",
+    "comic__volume__number_to",
+)
+
+
 def _entries(reading_list: ReadingList):
     return (
         ReadingListEntry.objects.filter(reading_list=reading_list)
         .select_related("comic", "comic__series", "comic__volume")
+        .only(*_ENTRY_REPR_FIELDS)
         .order_by("position", "pk")
     )
 
