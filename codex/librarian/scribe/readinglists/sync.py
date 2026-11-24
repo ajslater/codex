@@ -90,6 +90,18 @@ def _is_primary(source: ReadingListSource) -> bool:
     return first == source.pk
 
 
+def _name_is_free(reading_list: ReadingList, name: str) -> bool:
+    """Whether a list may take a name: an owner's lists each have their own."""
+    user_pk = reading_list.user_id  # pyright: ignore[reportAttributeAccessIssue]
+    if user_pk is None:
+        return True
+    return (
+        not ReadingList.objects.filter(user_id=user_pk, name=name)
+        .exclude(pk=reading_list.pk)
+        .exists()
+    )
+
+
 def _isolated(sort_name: str, step, *args) -> None:
     """
     Sync one arc's list in a savepoint of its own.
@@ -229,8 +241,14 @@ class TagListSync:
         source.fetched_at = now()
         source.save(update_fields=("revision", "ordered", "fetched_at", "updated_at"))
         # Only a list its tags lead takes the arc's name: a curated list
-        # combined with tags keeps the name of its own primary source.
-        if "name" not in reading_list.edited_fields and _is_primary(source):
+        # combined with tags keeps the name of its own primary source. A
+        # name the owner's other list has is skipped, so the list still
+        # follows its arc.
+        if (
+            "name" not in reading_list.edited_fields
+            and _is_primary(source)
+            and _name_is_free(reading_list, name)
+        ):
             reading_list.name = name
         if is_tags_only(reading_list):
             rebuild_from_tags(reading_list, source, comics)

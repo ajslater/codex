@@ -320,3 +320,23 @@ class TagSyncRenameTests(ReadingListFixture):
         given_away.refresh_from_db()
         assert given_away.name == "Old Name"
         assert ReadingList.objects.filter(name="Brand New").exists()
+
+    def test_a_clash_still_follows_the_arc(self) -> None:
+        """
+        A name the owner's other list has is skipped, not failed on.
+
+        A failed rename rolled back the arc's revision with it, so every
+        later sync failed the same way and the list never followed its arc.
+        """
+        c1 = self.comics[0]
+        owner = User.objects.create_user(username="owner", password="x")  # noqa: S106
+        ReadingList.objects.create(name="Clash", user=owner)
+        given_away = ReadingList.objects.create(name="Old Name", user=owner)
+        source = self._tags_source(given_away, "clash", 0)
+        self.tag(c1, "Clash", 1)
+        sync_tag_lists()
+        source.refresh_from_db()
+        given_away.refresh_from_db()
+        assert source.revision != "stale"
+        assert given_away.name == "Old Name"
+        assert [row[2] for row in _rows(given_away)] == [c1.pk]
