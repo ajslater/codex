@@ -21,7 +21,7 @@ ambiguous. Matching ignores per-user visibility; reading a list applies it.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from functools import lru_cache
@@ -93,33 +93,43 @@ def _issue_key(reference: Mapping[str, Any]) -> IssueKey | None:
     return parsed.number, parsed.suffix.casefold()
 
 
-def _comics_by_issue(series_pks: Iterable[int]) -> dict[tuple[int, IssueKey], int]:
-    """
-    Map each comic of the series to ``(series, issue) -> lowest comic pk``.
+# A comic's preference among copies of one issue: live before pending
+# delete, then lowest pk.
+_Rank = tuple[bool, int]
 
-    One query per batch of series, so matching a whole list by series and
-    issue costs no query per entry.
+
+def _comics_by_issue(
+    series_pks: Iterable[int],
+) -> dict[tuple[int, IssueKey], _Rank]:
     """
-    found: dict[tuple[int, IssueKey], int] = {}
+    Map each comic of the series to ``(series, issue) -> best comic``.
+
+    The best is a live comic before one pending delete, a moved file's old
+    row, then the lowest pk. One query per batch of series, so matching a
+    whole list by series and issue costs no query per entry.
+    """
+    found: dict[tuple[int, IssueKey], _Rank] = {}
     for batch in batched(sorted(set(series_pks)), _BATCH):
         rows = Comic.objects.filter(series_id__in=batch).values_list(
-            "pk", "series_id", "issue_number", "issue_suffix"
+            "pk", "series_id", "issue_number", "issue_suffix", "missing_since"
         )
-        for pk, series_pk, number, suffix in rows:
+        for pk, series_pk, number, suffix, missing_since in rows:
             key = (series_pk, (number, (suffix or "").casefold()))
-            if key not in found or pk < found[key]:
-                found[key] = pk
+            rank = (missing_since is not None, pk)
+            if key not in found or rank < found[key]:
+                found[key] = rank
     return found
 
 
 def _best_of(
-    found: Mapping[tuple[int, IssueKey], int],
+    found: Mapping[tuple[int, IssueKey], _Rank],
     series_pks: Iterable[int],
     issue: IssueKey,
 ) -> int | None:
-    """Return the lowest pk among the series' comics of that issue."""
-    pks = (found.get((series_pk, issue)) for series_pk in series_pks)
-    return min((pk for pk in pks if pk is not None), default=None)
+    """Return the best of the series' comics of that issue."""
+    ranks = (found.get((series_pk, issue)) for series_pk in series_pks)
+    best = min((rank for rank in ranks if rank is not None), default=None)
+    return None if best is None else best[1]
 
 
 class SeriesNameIndex:
@@ -254,10 +264,13 @@ class ListMatcher:
         return pks
 
     @staticmethod
-    def _pick(found, series_of: Mapping[int, int | None]) -> EntryMatch:
-        """Choose among the comics comicbox found for one entry."""
+    def _pick(
+        found, series_of: Mapping[int, int | None], pending: Collection[int]
+    ) -> EntryMatch:
+        """Choose among the comics comicbox found for one entry, live first."""
         sure = [comic for comic in found.comics if not comic.ambiguous]
         pool = sure or list(found.comics)
+        pool = [comic for comic in pool if comic.path not in pending] or pool
         strongest = min(pool, key=lambda comic: list(FoundBy).index(comic.by))
         best = [comic.path for comic in pool if comic.by == strongest.by]
         comic_pk = min(best)
@@ -278,15 +291,19 @@ class ListMatcher:
         if not candidate_pks:
             return
         candidates = comic_candidates(candidate_pks)
-        series_of = dict(
-            Comic.objects.filter(pk__in=candidate_pks).values_list("pk", "series_id")
+        rows = Comic.objects.filter(pk__in=candidate_pks).values_list(
+            "pk", "series_id", "missing_since"
         )
+        series_of = {pk: series_pk for pk, series_pk, _ in rows}
+        pending = {pk for pk, _, missing_since in rows if missing_since is not None}
         entries = [typed_reference(reference) for reference in open_references]
         # comicbox types the keys as paths; any sortable key works, and pks
         # keep the lowest-pk choice deterministic.
         result = match_comics({"entries": entries}, candidates)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         for found in result.found:
-            results[open_positions[found.position]] = self._pick(found, series_of)
+            results[open_positions[found.position]] = self._pick(
+                found, series_of, pending
+            )
 
     # 3. Series id and issue.
 
