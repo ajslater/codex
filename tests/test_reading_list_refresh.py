@@ -141,9 +141,9 @@ class FailedRecombineTests(ReadingListFixture):
             rank_sources(reading_list, [other, url.pk])
         assert (
             dict(
-                ReadingListSource.objects.filter(
-                    reading_list=reading_list
-                ).values_list("pk", "rank")
+                ReadingListSource.objects.filter(reading_list=reading_list).values_list(
+                    "pk", "rank"
+                )
             )
             == ranks
         )

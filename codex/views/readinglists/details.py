@@ -65,7 +65,9 @@ def _readable(
     if not within:
         return comic_pks
     query = ComicFieldFilterView.get_all_comic_field_filters("", within, request.user)
-    return set(Comic.objects.filter(query, pk__in=comic_pks).values_list("pk", flat=True))
+    return set(
+        Comic.objects.filter(query, pk__in=comic_pks).values_list("pk", flat=True)
+    )
 
 
 def _continue_from(

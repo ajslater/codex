@@ -170,7 +170,9 @@ describe("BrowserSettingsReadingLists", () => {
     const items = await openRowMenu(wrapper);
     const open = items.find((item) => itemTitle(item) === "Open");
     expect(open.classList).toContain("v-list-item--disabled");
-    expect(open.textContent).toContain("Add issues from any Reading Lists menu");
+    expect(open.textContent).toContain(
+      "Add issues from any Reading Lists menu",
+    );
     open.click();
     await flushPromises();
     expect(useBrowserStore().routeWithSettings).not.toHaveBeenCalled();

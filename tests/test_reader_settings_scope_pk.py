@@ -73,9 +73,7 @@ class ReaderSettingsScopePkTests(ReadingListFixture):
         """A pk that names no list is a 404."""
         response = self._patch("arcs", _MISSING_PK)
         assert response.status_code == _NOT_FOUND, response.content
-        assert not SettingsReader.objects.filter(
-            reading_list_id=_MISSING_PK
-        ).exists()
+        assert not SettingsReader.objects.filter(reading_list_id=_MISSING_PK).exists()
 
     def test_a_missing_series_takes_no_settings(self) -> None:
         """The same holds for every scope with a pk."""

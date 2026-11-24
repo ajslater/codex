@@ -219,7 +219,9 @@ class ReadingListApiTests(ReadingListFixture):
         whole Content-Disposition became ``=?utf-8?b?...?=``, which no
         browser reads as an attachment.
         """
-        reading_list = ReadingList.objects.create(name="Guerra Civil \u2014 \u65e5\u672c")
+        reading_list = ReadingList.objects.create(
+            name="Guerra Civil \u2014 \u65e5\u672c"
+        )
         response = self.client.get(f"{_LISTS}/{reading_list.pk}/export", {"fmt": "cbl"})
         assert response.status_code == _OK
         disposition = response["Content-Disposition"]

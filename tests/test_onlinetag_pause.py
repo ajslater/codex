@@ -74,7 +74,9 @@ class PrepassPauseTests(OnlineTagSessionTestCase):
         )
         self.manager._sessions[_SESSION_ID] = state  # noqa: SLF001
         task = BulkOnlineTagTask(
-            comic_pks=frozenset(comic_paths), session_id=_SESSION_ID, sources=("metron",)
+            comic_pks=frozenset(comic_paths),
+            session_id=_SESSION_ID,
+            sources=("metron",),
         )
         credentials = self.manager._build_credentials()  # noqa: SLF001
         assert credentials is not None

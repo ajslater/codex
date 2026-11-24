@@ -64,7 +64,9 @@ class LiveComicTests(ReadingListFixture):
         """A series mapping picks the comic still in the library."""
         stamped, live = self._moved()
         ReadingListSeriesMapping.objects.create(
-            series_key=normalize_series("Guerra Civil"), year=2006, series=stamped.series
+            series_key=normalize_series("Guerra Civil"),
+            year=2006,
+            series=stamped.series,
         )
         (match,) = ListMatcher().match([_MAPPED_1])
         assert (match.comic_pk, match.tier) == (live.pk, ReadingListMatchTier.MAPPING)

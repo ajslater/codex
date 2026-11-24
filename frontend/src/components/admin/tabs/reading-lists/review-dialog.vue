@@ -93,111 +93,115 @@
               <tr
                 v-else
                 :class="{
-                dragOver: dragOverPk === entry.pk,
-                hidden: entry.ignored,
-              }"
-              :draggable="!filters.length"
-              @dragstart="dragStart(entry)"
-              @dragover.prevent="dragOverPk = entry.pk"
-              @dragleave="dragOverPk = null"
-              @drop.prevent="drop(entry)"
-            >
-              <td class="positionCol">
-                <div class="positionControls">
-                  <!--
+                  dragOver: dragOverPk === entry.pk,
+                  hidden: entry.ignored,
+                }"
+                :draggable="!filters.length"
+                @dragstart="dragStart(entry)"
+                @dragover.prevent="dragOverPk = entry.pk"
+                @dragleave="dragOverPk = null"
+                @drop.prevent="drop(entry)"
+              >
+                <td class="positionCol">
+                  <div class="positionControls">
+                    <!--
                     No number spinner: its up arrow counts the position up,
                     which moves the entry down the list. These arrows move
                     it as they point, one place at a time, so only on the
                     whole list, as dragging.
                   -->
-                  <v-text-field
-                    :model-value="entry.position + 1"
-                    inputmode="numeric"
-                    density="compact"
-                    hide-details
-                    variant="plain"
-                    class="positionInput"
-                    @change="move(entry, $event.target.value - 1)"
-                  />
-                  <span
-                    v-if="!filters.length && entry.liveSource == null"
-                    class="moveArrows"
-                  >
-                    <v-btn
-                      class="moveUp"
-                      :icon="mdiArrowUp"
-                      size="small"
+                    <v-text-field
+                      :model-value="entry.position + 1"
+                      inputmode="numeric"
                       density="compact"
-                      variant="text"
-                      title="Move up"
-                      aria-label="Move up"
-                      :disabled="entry.position === 0"
-                      @click="move(entry, entry.position - 1)"
+                      hide-details
+                      variant="plain"
+                      class="positionInput"
+                      @change="move(entry, $event.target.value - 1)"
                     />
-                    <v-btn
-                      class="moveDown"
-                      :icon="mdiArrowDown"
+                    <span
+                      v-if="!filters.length && entry.liveSource == null"
+                      class="moveArrows"
+                    >
+                      <v-btn
+                        class="moveUp"
+                        :icon="mdiArrowUp"
+                        size="small"
+                        density="compact"
+                        variant="text"
+                        title="Move up"
+                        aria-label="Move up"
+                        :disabled="entry.position === 0"
+                        @click="move(entry, entry.position - 1)"
+                      />
+                      <v-btn
+                        class="moveDown"
+                        :icon="mdiArrowDown"
+                        size="small"
+                        density="compact"
+                        variant="text"
+                        title="Move down"
+                        aria-label="Move down"
+                        :disabled="downTarget(entry) === undefined"
+                        @click="move(entry, downTarget(entry))"
+                      />
+                    </span>
+                  </div>
+                </td>
+                <td>{{ entry.seriesName }}</td>
+                <td>{{ entry.issue }}</td>
+                <td>{{ entry.year }}</td>
+                <td>{{ entry.entryType }}</td>
+                <td>
+                  <span v-if="entry.comic" :title="tierTitle(entry)">
+                    {{ comicLabel(entry.comic) }}
+                    <v-icon
+                      v-if="entry.needsReview"
                       size="small"
-                      density="compact"
-                      variant="text"
-                      title="Move down"
-                      aria-label="Move down"
-                      :disabled="downTarget(entry) === undefined"
-                      @click="move(entry, downTarget(entry))"
-                    />
+                      color="primary"
+                    >
+                      {{ mdiHelpCircleOutline }}
+                    </v-icon>
                   </span>
-                </div>
-              </td>
-              <td>{{ entry.seriesName }}</td>
-              <td>{{ entry.issue }}</td>
-              <td>{{ entry.year }}</td>
-              <td>{{ entry.entryType }}</td>
-              <td>
-                <span v-if="entry.comic" :title="tierTitle(entry)">
-                  {{ comicLabel(entry.comic) }}
-                  <v-icon v-if="entry.needsReview" size="small" color="primary">
-                    {{ mdiHelpCircleOutline }}
-                  </v-icon>
-                </span>
-                <span v-else class="missing">{{ missingLabel(entry) }}</span>
-              </td>
-              <td class="adminActionCell entryActions">
-                <v-btn
-                  :icon="mdiMagnify"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  title="Find the comic"
-                  @click="find(entry)"
-                />
-                <v-btn
-                  v-if="admin && entry.seriesName"
-                  :icon="mdiSourceMerge"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  title="Map this series to a library series, for every row and list"
-                  @click="find(entry, true)"
-                />
-                <v-btn
-                  :icon="entry.ignored ? mdiEyeOutline : mdiEyeOffOutline"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  :title="entry.ignored ? 'Show in List' : 'Hide from List'"
-                  @click="setHidden(entry, !entry.ignored)"
-                />
-                <v-btn
-                  v-if="entry.manual"
-                  :icon="mdiTrashCanOutline"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  title="Remove this issue added by hand"
-                  @click="remove(entry)"
-                />
-              </td>
-            </tr>
+                  <span v-else class="missing">{{ missingLabel(entry) }}</span>
+                </td>
+                <td class="adminActionCell entryActions">
+                  <v-btn
+                    :icon="mdiMagnify"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Find the comic"
+                    @click="find(entry)"
+                  />
+                  <v-btn
+                    v-if="admin && entry.seriesName"
+                    :icon="mdiSourceMerge"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Map this series to a library series, for every row and list"
+                    @click="find(entry, true)"
+                  />
+                  <v-btn
+                    :icon="entry.ignored ? mdiEyeOutline : mdiEyeOffOutline"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    :title="entry.ignored ? 'Show in List' : 'Hide from List'"
+                    @click="setHidden(entry, !entry.ignored)"
+                  />
+                  <v-btn
+                    v-if="entry.manual"
+                    :icon="mdiTrashCanOutline"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Remove this issue added by hand"
+                    @click="remove(entry)"
+                  />
+                </td>
+              </tr>
             </template>
             <tr v-if="!rows.length">
               <td colspan="7" class="adminNoData">
@@ -330,7 +334,11 @@ export default {
         .map((entry) => ({ key: `e${entry.pk}`, entry, at: entry.position }));
       if (!this.filters.length) {
         for (const item of this.items) {
-          rows.push({ key: `i${item.pk}`, item, at: item.position ?? Infinity });
+          rows.push({
+            key: `i${item.pk}`,
+            item,
+            at: item.position ?? Infinity,
+          });
         }
       }
       return rows.sort((a, b) => a.at - b.at);

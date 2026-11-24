@@ -766,7 +766,10 @@ describe("review dialog — moving an entry", () => {
     API.updateItems.mockClear();
     API.updateItems.mockResolvedValue({ data: {} });
     const wrapper = mount(ReviewDialog, {
-      props: { modelValue: true, readingList: { pk: 3, name: "CW", sources: [] } },
+      props: {
+        modelValue: true,
+        readingList: { pk: 3, name: "CW", sources: [] },
+      },
       global: { plugins: [pinia(), vuetify], stubs: STUBS },
     });
     await flushPromises();
@@ -885,7 +888,9 @@ describe("disabled controls say why, in words on the page", () => {
       global: { plugins: [pinia(), vuetify], stubs: STUBS },
     });
     await flushPromises();
-    expect(wrapper.find(".reviewBar").text()).toContain("No issue needs review.");
+    expect(wrapper.find(".reviewBar").text()).toContain(
+      "No issue needs review.",
+    );
   });
 
   test("Preview and Import in Add Lists", async () => {

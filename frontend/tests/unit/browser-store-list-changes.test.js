@@ -29,7 +29,11 @@ import * as API from "@/api/v4/browser";
 import router from "@/plugins/router";
 import { useBrowserStore } from "@/stores/browser";
 
-function storeWith({ readingLists = [], collection = "series", parentIds = "7" }) {
+function storeWith({
+  readingLists = [],
+  collection = "series",
+  parentIds = "7",
+}) {
   router.currentRoute.value = { params: { collection, parentIds }, query: {} };
   createTestingPinia({
     stubActions: false,
