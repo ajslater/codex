@@ -12,13 +12,13 @@ all", report a ``*_set`` boolean instead of the value.
 from types import MappingProxyType
 from typing import Any, Final
 
-from comicbox.formats.base.online import SOURCE_NAMES
 from django.conf import settings
 
 from codex.choices.admin import AdminFlagChoices
 from codex.choices.api_key import ApiKeyScope
 from codex.choices.browser import BROWSER_BOOKMARK_FILTER_CHOICES
 from codex.collection import Collection
+from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES
 from codex.models.admin import (
     AdminFlag,
     ComicboxTaggingDefaults,
@@ -105,6 +105,11 @@ _OIDC_BOOLS: Final = (
 # differ from the shipped default.
 _OIDC_CUSTOM_STRINGS: Final = ("scope", "username_claim", "groups_claim")
 _THROTTLE_SCOPES: Final = ("anon", "user", "opds", "opensearch", "reset_password")
+# The tagging defaults' closed vocabularies. The columns carry ``choices``,
+# but a restore or a hand edit can store anything, so each is checked here.
+_MATCH_MODES: Final = frozenset(ComicboxTaggingDefaults.MatchModeChoices.values)
+_PROMPTS_MODES: Final = frozenset(ComicboxTaggingDefaults.PromptsModeChoices.values)
+_EFFORTS: Final = frozenset(ComicboxTaggingDefaults.EffortChoices.values)
 
 
 def _safe_int(value: str) -> int | None:
@@ -178,7 +183,22 @@ def _default_sources(defaults: ComicboxTaggingDefaults) -> dict[str, int]:
     sources = defaults.default_sources
     if not isinstance(sources, list):
         return {}
-    return {source: 1 for source in SOURCE_NAMES if source in sources}
+    return {source: 1 for source in SUPPORTED_SOURCES if source in sources}
+
+
+def _first_source(defaults: ComicboxTaggingDefaults) -> str:
+    """
+    Report the top-priority online tagging source.
+
+    ``default_sources`` is in priority order: the first runs first and wins a
+    merge. A name from codex's source registry, "other" for anything else
+    the column holds, or "" when no source is enabled.
+    """
+    sources = defaults.default_sources
+    if not isinstance(sources, list) or not sources:
+        return ""
+    first = sources[0]
+    return first if isinstance(first, str) and first in SUPPORTED_SOURCES else _OTHER
 
 
 def get_tagging_stats() -> dict[str, Any]:
@@ -188,17 +208,16 @@ def get_tagging_stats() -> dict[str, Any]:
         return {}
     formats = defaults.default_formats
     return {
-        "default_match_mode": defaults.default_match_mode,
-        "default_prompts_mode": defaults.default_prompts_mode,
-        # A closed vocabulary: an unrecognized value means the column
+        # Closed vocabularies: an unrecognized value means the column
         # drifted, so it is reported as "other".
-        "default_effort": effort
-        if (effort := defaults.default_effort) in ComicboxTaggingDefaults.EffortChoices
-        else _OTHER,
+        "default_match_mode": _closed(defaults.default_match_mode, _MATCH_MODES),
+        "default_prompts_mode": _closed(defaults.default_prompts_mode, _PROMPTS_MODES),
+        "default_effort": _closed(defaults.default_effort, _EFFORTS),
         "merge_all_sources": defaults.merge_all_sources,
         "delete_original": defaults.delete_original,
         "rename_files": defaults.rename_files,
         "default_sources": _default_sources(defaults),
+        "default_source_first": _first_source(defaults),
         "default_format_count": len(formats) if isinstance(formats, list) else 0,
         "has_metron_credentials": bool(defaults.metron_key),
         "has_comicvine_credentials": bool(defaults.comicvine_key),

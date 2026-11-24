@@ -60,7 +60,7 @@ const STATS = {
     volumeCount: 60,
     issueCount: 154,
     folderCount: 70,
-    storyArcCount: 23,
+    readingListCount: 23,
   },
   fileTypes: { cbz: 100, cbr: 50, cb7: 2, pdf: 3, unknown: 1 },
   metadata: {
@@ -84,13 +84,20 @@ const STATS = {
     browserChosenOrderByUsers: { sortName: 1 },
     readerGlobalFitToUsers: { W: 1, "": 1 },
     readerGlobalTwoPagesUsers: { true: 1, "": 1 },
+    browserShowMissingIssuesUsers: { true: 1, false: 1 },
+    browserFilterUsers: { ageRatingMetron: 1, readingLists: 2 },
+    browserMatchAllUsers: { seriesGroups: 1 },
   },
   usage: {
     bookmarkCount: 1,
     personalListCount: 2,
     personalListUserCount: 1,
+    personalListEntryCount: 9,
+    listSources: { tags: 20, collection: 4, metronList: 1 },
     listItemCount: 4,
-    listItems: { comics: 4 },
+    listItems: { series: 3, folders: 1 },
+    listEntryCount: 310,
+    listEntryMissingCount: 12,
   },
   identifiers: { "metron:comic": 85, "comicvine:comic": 126 },
   adminFlags: {
@@ -110,6 +117,7 @@ const STATS = {
     defaultEffort: "balanced",
     mergeAllSources: false,
     defaultSources: { metron: 1, comicvine: 1 },
+    defaultSourceFirst: "metron",
     hasMetronCredentials: true,
     hasComicvineCredentials: false,
     hasVersedbCredentials: true,
@@ -206,6 +214,24 @@ describe("AdminStatsTab", () => {
     expect(text).toContain("Name");
     expect(text).not.toContain("sortName");
     expect(text).not.toContain("fitTo");
+  });
+
+  test("filter buckets read as the filter's name", () => {
+    // Their keys are filter names, which no choices map labels: without a
+    // label they rendered camelCased, as the wire spells them.
+    const text = mountTab().text();
+    expect(text).toContain("Age Rating Metron");
+    expect(text).toContain("Series Groups");
+    expect(text).not.toContain("ageRatingMetron");
+    expect(text).not.toContain("seriesGroups");
+  });
+
+  test("labels the reading list counts", () => {
+    const text = mountTab().text();
+    expect(text).toContain("Issues on Personal Reading Lists");
+    expect(text).toContain("Reading List Sources by Kind");
+    expect(text).toContain("Reading List Issues Missing");
+    expect(text).toContain("Top Priority Source");
   });
 
   test("boolean buckets read as on and off", () => {
