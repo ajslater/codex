@@ -60,11 +60,16 @@ def _shown_comics(acl, request, reading_list: ReadingList) -> list[int | None]:
 def _readable(
     request, comic_pks: Sequence[int], filters: Mapping[str, Any]
 ) -> Collection[int]:
-    """Return the comics the reader reads in a list under the browser's filters."""
+    """
+    Return the comics the reader reads in a list under the browser's filters.
+
+    Stored filters carry every key, mostly empty: when none narrows, every
+    comic is readable without asking the database.
+    """
     within = filters_within_a_list(filters)
-    if not within:
-        return comic_pks
     query = ComicFieldFilterView.get_all_comic_field_filters("", within, request.user)
+    if not query:
+        return comic_pks
     return set(
         Comic.objects.filter(query, pk__in=comic_pks).values_list("pk", flat=True)
     )

@@ -7,6 +7,7 @@ lists before and after it, and the first issue they have not finished.
 """
 
 import json
+from types import SimpleNamespace
 from typing import Final, override
 
 from comicbox.readinglists import loads
@@ -21,7 +22,7 @@ from codex.models import (
     ReadingListSource,
 )
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
-from codex.views.readinglists.details import continue_blocked
+from codex.views.readinglists.details import _readable, continue_blocked
 from tests.test_reading_lists import ReadingListFixture
 
 _PW: Final = "test-pw-hush-S106"
@@ -259,3 +260,15 @@ class ExportMissingTests(ListDetailsFixture):
             "Front Line",
             "Front Line",
         ]
+
+
+class ReadableNoFilterTests(ListDetailsFixture):
+    """Filters that set nothing cost Continue no query."""
+
+    def test_empty_filters_read_nothing(self) -> None:
+        """Stored filters carry every key, empty: nothing narrows the comics."""
+        pks = [comic.pk for comic in self.comics]
+        request = SimpleNamespace(user=self.user)
+        with self.assertNumQueries(0):
+            readable = _readable(request, pks, {"characters": [], "genres": []})
+        assert set(readable) == set(pks)
