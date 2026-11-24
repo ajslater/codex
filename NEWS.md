@@ -57,6 +57,18 @@ border-radius: 128px;
   the menu.
 - Answering a tagging prompt from a Merge all sources run no longer overwrites
   tags a higher-priority source already wrote.
+- Pause stops online tagging at once, also while refreshing tagged comics or
+  waiting out a rate limit.
+- Tag Online's Effort applies, and a scan that cannot run, such as one using a
+  source with no key, is refused instead of spinning.
+- Tag Online started during a Tag by ID run no longer tags its comics with that
+  issue.
+- A re-asked series prompt no longer offers the first comic's matches.
+- The Tagging tab keeps a typed API key when saving it fails, and its source
+  panels stay open.
+- Backups keep the Merge all sources, Effort and file renaming defaults.
+- The `lang:` search field works.
+- Reader settings no longer fail on a malformed reading list id.
 
 ### 🧑‍💻 Developer
 
