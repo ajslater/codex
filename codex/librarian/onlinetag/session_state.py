@@ -20,7 +20,9 @@ CLIENT_NAME: Final = "codex"
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from comicbox.online_session import OnlinePrompt, OnlineSession
+    from comicbox.online_session import DeferredPrompt, OnlinePrompt, OnlineSession
+
+    from codex.librarian.onlinetag.tasks import OnlineTagPromptResponseTask
 
 
 @dataclass
@@ -132,6 +134,42 @@ class SessionState:
     # killed/paused scan can be rebuilt into a fresh BulkOnlineTagTask over just
     # the comics it never reached — see session_snapshot.set_resume_state.
     resume_params: dict[str, Any] = field(default_factory=dict)
+    # Under Merge all sources a comic with stored ids for some sources but
+    # not all is looked up in a session of its own, which pins those ids and
+    # searches the rest (``OnlineTagSessionManager._pinned_lookups``). A
+    # session pins its ids for every comic it looks up, so ``session`` pins
+    # none and never sees these comics. This is the one in flight, or the
+    # last one; ``comic_prompts`` keeps what the ones before it deferred.
+    comic_session: OnlineSession | None = None
+    comic_prompts: list[DeferredPrompt] = field(default_factory=list)
+    # Mid-scan answers that named a volume, for each later one-comic session
+    # to start with, as ``session`` already has them.
+    answers: list[OnlineTagPromptResponseTask] = field(default_factory=list)
+
+    def sessions(self) -> tuple[OnlineSession, ...]:
+        """Return the scan's own session and its one-comic session, if any."""
+        if self.comic_session is None:
+            return (self.session,)
+        return (self.session, self.comic_session)
+
+    def adopt_comic_session(self, session: OnlineSession) -> None:
+        """Make ``session`` the one-comic session, keeping its predecessor's prompts."""
+        if self.comic_session is not None:
+            self.comic_prompts.extend(self.comic_session.deferred_prompts())
+        self.comic_session = session
+
+    def deferred_prompts(self) -> tuple[DeferredPrompt, ...]:
+        """Return every prompt the scan deferred, from all of its sessions."""
+        current = self.comic_session.deferred_prompts() if self.comic_session else ()
+        return (*self.session.deferred_prompts(), *self.comic_prompts, *current)
+
+    @property
+    def abort_reason(self) -> str | None:
+        """Why comicbox stopped the scan, from whichever session it stopped."""
+        for session in reversed(self.sessions()):
+            if reason := getattr(session, "abort_reason", None):
+                return reason
+        return None
 
 
 class CodexPromptHandler:

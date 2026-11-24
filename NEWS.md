@@ -57,6 +57,7 @@ border-radius: 128px;
   the menu.
 - Answering a tagging prompt from a Merge all sources run no longer overwrites
   tags a higher-priority source already wrote.
+- Merge all sources also searches the sources a tagged comic has no id for.
 - Pause stops online tagging at once, also while refreshing tagged comics or
   waiting out a rate limit, and still writes the comic it was looking up.
 - Tag Online's Effort applies, and a scan that cannot run, such as one using a

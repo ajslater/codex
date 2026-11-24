@@ -239,6 +239,24 @@ class OnlineTagOutcomeStats:
             self._add_matched_source(path, source)
             self._set_source_status(path, source, MATCHED)
 
+    def forget(self, path: Path) -> None:
+        """Drop everything recorded for ``path``, as if no lookup had run."""
+        for paths in (
+            self.written_paths,
+            self.no_change_paths,
+            self.deferred_paths,
+            self.errored_paths,
+            self.quota_reserved_paths,
+        ):
+            paths.discard(path)
+        for by_path in (
+            self.matched_source_by_path,
+            self.matched_ids_by_path,
+            self.source_status_by_path,
+            self.started_sources_by_path,
+        ):
+            by_path.pop(path, None)
+
     @property
     def matched(self) -> int:
         """Comics that a source matched and wrote tags to."""
