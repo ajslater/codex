@@ -13,10 +13,11 @@ from django.contrib.auth.models import User
 from django.test import Client
 
 from codex.choices.tagging import KEEP_WRITE_FORMAT
+from codex.librarian.scribe.readinglists.service import copy_list
 from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.readinglists.write import WRITTEN_ARC_KEY, arc_write
 from codex.librarian.scribe.tasks import BulkTagWriteTask
-from codex.models import ReadingList, ReadingListEntry, ReadingListSource
+from codex.models import Comic, ReadingList, ReadingListEntry, ReadingListSource
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
 from tests.test_reading_lists import ReadingListFixture
 
@@ -139,3 +140,41 @@ class ReadingListWriteTests(ReadingListFixture):
         assert kinds == {ReadingListSourceKind.UPLOAD, ReadingListSourceKind.TAGS}
         # The upload here holds no document, so the arc numbers order it.
         assert self.order(self.reading_list) == [self.comics[2].pk, self.comics[0].pk]
+
+    def _read_back(self, reading_list: ReadingList) -> None:
+        """Write the list, link its arc as the importer would, and sync."""
+        self._write(reading_list)
+        arc = arc_write(reading_list)
+        for pk, patch_ in arc.patches.items():
+            number = patch_["arcs"][arc.name].get("number")
+            self.tag(Comic.objects.get(pk=pk), arc.name, number)
+        sync_tag_lists()
+
+    def test_a_hand_made_list_reads_back_once(self) -> None:
+        """Written and re-imported, a list made by hand is not doubled."""
+        c1, c2, c3, _ = self.comics
+        hand = ReadingList.objects.create(name="Hand Made")
+        for position, comic in enumerate((c1, None, c2, c3)):
+            ReadingListEntry.objects.create(
+                reading_list=hand,
+                position=position,
+                comic=comic,
+                match_tier=ReadingListMatchTier.MANUAL
+                if comic
+                else ReadingListMatchTier.NONE,
+                manual=True,
+            )
+        self._read_back(hand)
+        assert self.order(hand) == [c1.pk, None, c2.pk, c3.pk]
+
+    def test_a_copied_list_reads_back_once(self) -> None:
+        """A Copy to Global list, every entry by hand, reads back as it was."""
+        c1, _, c3, _ = self.comics
+        copy = copy_list(self.reading_list, user=None, name="Civil War Copy")
+        assert self.order(copy) == [c3.pk, None, c1.pk, c3.pk]
+        self._read_back(copy)
+        assert self.order(copy) == [c3.pk, None, c1.pk, c3.pk]
+        # The source rows hold the comics now; only the repeat and the
+        # missing issue are still the list's own.
+        manual = ReadingListEntry.objects.filter(reading_list=copy, manual=True)
+        assert sorted(manual.values_list("position", flat=True)) == [1, 3]

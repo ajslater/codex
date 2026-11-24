@@ -128,6 +128,33 @@ def _online_config(effort: str) -> ComicboxSettings:
     return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
 
 
+def _task_params(task: BulkOnlineTagTask) -> dict[str, Any]:
+    """Return how a task's session runs, all but its comics: its resume params."""
+    return {
+        "sources": list(task.sources),
+        "mode": task.mode,
+        "effort": task.effort,
+        "prompts_mode": task.prompts_mode,
+        "delete_original": task.delete_original,
+        "merge_all_sources": task.merge_all_sources,
+        "rename": task.rename,
+        "ids": dict(task.ids),
+    }
+
+
+def _mergeable(state: SessionState, task: BulkOnlineTagTask) -> bool:
+    """
+    Whether a task arriving mid-scan may join the running session.
+
+    Only when it would run exactly alike and nothing is pinned. A session
+    applies its pinned issue ids to every comic, so a comic merged into a
+    Tag by ID run would be written with another comic's issue.
+    """
+    return not state.resume_params.get("ids") and (
+        _task_params(task) == state.resume_params
+    )
+
+
 #: The online source modules that hold process-wide clients to release
 #: at the end of a task. Named, not imported: see
 #: :func:`_release_online_connections`.
@@ -476,7 +503,9 @@ class OnlineTagSessionManager:
             except Exception:
                 break
             match item:
-                case BulkOnlineTagTask() if state is not None:
+                case BulkOnlineTagTask() if state is not None and _mergeable(
+                    state, item
+                ):
                     self._merge_task(state, item)
                 case OnlineTagAbortTask():
                     self.cancel_session(item.session_id)
@@ -876,16 +905,7 @@ class OnlineTagSessionManager:
             completed_comics=0,
             # Everything needed to rebuild a resume task over the comics this
             # scan never reaches (comic_pks + session_id are regenerated then).
-            resume_params={
-                "sources": list(task.sources),
-                "mode": task.mode,
-                "effort": task.effort,
-                "prompts_mode": task.prompts_mode,
-                "delete_original": task.delete_original,
-                "merge_all_sources": task.merge_all_sources,
-                "rename": task.rename,
-                "ids": dict(task.ids),
-            },
+            resume_params=_task_params(task),
         )
         self._active_session_id = task.session_id
         with self._lock:

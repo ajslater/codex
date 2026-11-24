@@ -38,6 +38,7 @@ _NOT_FOUND: Final = 404
 _ADMIN: Final = "/api/v4/admin/reading-lists"
 _LISTS: Final = "/api/v4/reading-lists"
 _IMPORT_QUEUE: Final = "codex.views.admin.reading_lists.imports.LIBRARIAN_QUEUE"
+_PREVIEW_CACHE: Final = "readinglist_previews"
 
 
 def _data(response):
@@ -86,6 +87,31 @@ class ReadingListApiTests(ReadingListFixture):
         response = self.client.post(f"{_ADMIN}/preview", {"files": [upload]})
         assert response.status_code == _OK, response.content
         assert not ReadingList.objects.exists()
+
+    def test_preview_tokens_stay_out_of_the_tagging_cache(self) -> None:
+        """
+        A preview waits in a cache of its own, and an import spends it.
+
+        The tagging cache holds pending prompts; a cull there at its limit
+        drops a random third of every entry, so previews must not fill it.
+        """
+        upload = SimpleUploadedFile("civil-war.cbl", _CBL.encode())
+        response = self.client.post(f"{_ADMIN}/preview", {"files": [upload]})
+        token = _data(response)["cards"][0]["token"]
+        key = f"readinglists:preview:{token}"
+        assert caches["tagging"].get(key) is None
+        assert caches[_PREVIEW_CACHE].get(key) is not None
+        body = json.dumps({"items": [{"token": token}]})
+        with patch(_IMPORT_QUEUE):
+            response = self.client.post(
+                f"{_ADMIN}/import", data=body, content_type="application/json"
+            )
+            assert response.status_code == _ACCEPTED, response.content
+            assert caches[_PREVIEW_CACHE].get(key) is None
+            again = self.client.post(
+                f"{_ADMIN}/import", data=body, content_type="application/json"
+            )
+        assert again.status_code == _BAD_REQUEST, again.content
 
     def test_bad_file_gets_an_error_card(self) -> None:
         """A file that is not a list explains itself and stops nothing."""

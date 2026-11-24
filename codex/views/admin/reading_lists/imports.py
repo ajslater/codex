@@ -3,7 +3,7 @@ Find, preview and import reading lists.
 
 Search reaches Metron and the DieselTech catalog. A preview runs the real
 pipeline, fetch, parse, compare and match, and writes nothing: each list
-waits in the tagging cache under a token until it is imported. Files, URLs
+waits in the preview cache under a token until it is imported. Files, URLs
 and catalog lists preview in full, because fetching them is quick; a
 Metron list or a Comic Vine arc previews its header only, and is fetched
 on the online-tagging thread after Import.
@@ -24,7 +24,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
-from codex.cache import tagging_cache
+from codex.cache import reading_list_preview_cache
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.readinglists import (
     FetchRequest,
@@ -162,7 +162,7 @@ def _card(
     matched = sum(1 for match in matches if match.comic_pk is not None)
     sources = document.get("sources") or [{}]
     token = uuid4().hex
-    tagging_cache.set(
+    reading_list_preview_cache.set(
         _PREVIEW_KEY.format(token),
         {"document": document, "kind": kind, "ref": ref},
         _PREVIEW_TTL,
@@ -316,7 +316,7 @@ def _item(spec: dict, user) -> tuple[ImportItem | None, FetchRequest | None]:
     owner = user.pk if spec.get("private") else None
     name = str(spec.get("name") or "")
     if token := spec.get("token"):
-        cached = tagging_cache.get(_PREVIEW_KEY.format(token))
+        cached = reading_list_preview_cache.get(_PREVIEW_KEY.format(token))
         if not cached:
             return None, None
         return (
@@ -367,14 +367,21 @@ class AdminReadingListImportView(AdminAPIView):
 
     def post(self, *_args, **_kwargs) -> Response:
         """Queue the writes and the fetches."""
-        items, requests = _split(
-            self.request.data.get("items") or (), self.request.user
-        )
+        specs = self.request.data.get("items") or ()
+        items, requests = _split(specs, self.request.user)
         if not items and not requests:
             reason = "Nothing to import: the preview may have expired."
             raise ValidationError(reason)
         if items:
             LIBRARIAN_QUEUE.put(ReadingListImportTask(items=tuple(items)))
+            # A token is spent once its list is queued.
+            reading_list_preview_cache.delete_many(
+                [
+                    _PREVIEW_KEY.format(spec["token"])
+                    for spec in specs
+                    if isinstance(spec, dict) and spec.get("token")
+                ]
+            )
         if requests:
             LIBRARIAN_QUEUE.put(ReadingListFetchTask(requests=tuple(requests)))
         return Response({"queued": len(items), "fetching": len(requests)}, status=202)

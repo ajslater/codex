@@ -136,8 +136,8 @@ def _build_lists(apps) -> dict:
     groups = _arc_groups(story_arc_model)
     if not groups:
         return {}
-    reading_list_model.objects.bulk_create(
-        (
+    created = reading_list_model.objects.bulk_create(
+        [
             reading_list_model(
                 name=group["name"],
                 sort_name=sort_name,
@@ -146,14 +146,15 @@ def _build_lists(apps) -> dict:
                 uuid=uuid.uuid4(),
             )
             for sort_name, group in groups.items()
-        ),
+        ],
         batch_size=_BATCH,
     )
-    list_pks = dict(
-        reading_list_model.objects.filter(user__isnull=True).values_list(
-            "sort_name", "pk"
-        )
-    )
+    # Keyed by the arc's own sort name: the field cleans what it stores,
+    # so reading lists back by theirs can miss an arc.
+    list_pks = {
+        sort_name: reading_list.pk
+        for sort_name, reading_list in zip(groups, created, strict=True)
+    }
     members = _members(comic_model)
     sources = []
     entries = []

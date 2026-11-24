@@ -18,6 +18,7 @@ from codex.librarian.scribe.lazy_importer import LazyImporter
 from codex.librarian.scribe.priority import get_task_priority
 from codex.librarian.scribe.readinglists.tasks import (
     ReadingListImportTask,
+    ReadingListLiveSyncTask,
     ReadingListRecombineTask,
     ReadingListRematchTask,
 )
@@ -139,6 +140,7 @@ class ScribeThread(QueuedThread):
                 ReadingListImportTask()
                 | ReadingListRecombineTask()
                 | ReadingListRematchTask()
+                | ReadingListLiveSyncTask()
             ):
                 worker = ReadingListWorker(
                     self.log, self.librarian_queue, self.db_write_lock

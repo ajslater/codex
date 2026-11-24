@@ -88,16 +88,26 @@ def item_repr(item: ReadingListSource | None) -> dict[str, Any]:
     }
 
 
-def entry_count(reading_list: ReadingList) -> int:
-    """Count the entries a list shows: the menu's annotation, else a query."""
-    count = getattr(reading_list, "count", None)
-    if count is None:
-        count = (
-            ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
-            .exclude(DANGLING_Q)
-            .count()
-        )
-    return count
+def entry_counts(list_pks: Iterable[int], shown_q: Q) -> dict[int, int]:
+    """
+    Count the entries each list shows a viewer, by list pk.
+
+    ``shown_q`` is the viewer's :func:`shown_entries_q`, so a comic they may
+    not see is not counted. A list with no such entry is absent.
+    """
+    rows = (
+        ReadingListEntry.objects.filter(shown_q, reading_list_id__in=list_pks)
+        .exclude(DANGLING_Q)
+        .values("reading_list_id")
+        .annotate(count=Count("pk"))
+        .values_list("reading_list_id", "count")
+    )
+    return dict(rows)
+
+
+def entry_count(reading_list: ReadingList, shown_q: Q) -> int:
+    """Count the entries a list shows a viewer."""
+    return entry_counts((reading_list.pk,), shown_q).get(reading_list.pk, 0)
 
 
 def _live_refusal(entry: ReadingListEntry) -> str:

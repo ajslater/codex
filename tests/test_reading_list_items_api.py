@@ -300,3 +300,49 @@ class VisibilityTests(ItemsFixture):
         response = self.patch_items(self.mine, {"add": {"comics": [1]}})
         assert response.status_code in (401, 403, 404), response.content
         assert not ReadingListEntry.objects.filter(reading_list=self.mine).exists()
+
+
+class CopyItemsVisibilityTests(ItemsFixture):
+    """Copy to My Lists copies only the collections the copier may see."""
+
+    @override
+    def setUp(self) -> None:
+        super().setUp()
+        library = Library.objects.create(path=str(TMP_DIR / "hidden"))
+        group = Group.objects.create(name="nobody here")
+        GroupAuth.objects.create(group=group)
+        library.groups.add(group)
+        self.hidden_series, hidden_comics = self.make_series("Hidden Series")  # pyright: ignore[reportUninitializedInstanceVariable]
+        # And one hidden issue inside the series the reader does see.
+        stray = self.make_comic(self.series, self.volume, 9)
+        Comic.objects.filter(pk__in=[*self.pks(hidden_comics), stray.pk]).update(
+            library=library
+        )
+        self.event = ReadingList.objects.create(name="Event")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.hold(self.event, "series", self.hidden_series)
+        self.hold(self.event, "series", self.series)
+
+    def _duplicate(self) -> dict:
+        response = self.client.post(
+            f"{_LISTS}/{self.event.pk}/duplicate",
+            data="{}",
+            content_type="application/json",
+        )
+        assert response.status_code == 201, response.content  # noqa: PLR2004
+        return _data(response)
+
+    def test_a_hidden_collection_is_not_copied(self) -> None:
+        """The hidden series is neither copied nor named on the copy."""
+        copy = ReadingList.objects.get(pk=self._duplicate()["pk"])
+        assert self.items(copy) == [("series", self.series.pk)]
+        response = self.client.get(f"{_LISTS}/{copy.pk}/entries")
+        assert response.status_code == _OK, response.content
+        assert "Hidden Series" not in response.content.decode()
+
+    def test_the_copys_count_is_what_the_reader_sees(self) -> None:
+        """The count leaves out every comic the reader may not see."""
+        visible = len(self.comics)
+        body = self._duplicate()
+        assert body["count"] == visible
+        menu = _data(self.client.get(f"{_LISTS}/"))["lists"]
+        assert {row["pk"]: row["count"] for row in menu}[body["pk"]] == visible

@@ -7,15 +7,74 @@ Every janitor task the scribe dispatches reaches ``ScribeThread.put`` →
 from that tuple raises ``ValueError`` and kills the librarian loop.
 """
 
+from dataclasses import MISSING, fields, is_dataclass
 from queue import PriorityQueue
-from unittest.mock import patch
+from threading import Event
+from unittest.mock import MagicMock, patch
 
+from codex.librarian.scribe import scribed
 from codex.librarian.scribe.importer.tasks import ImportTask
 from codex.librarian.scribe.janitor.janitor import _JANITOR_METHOD_MAP, _NIGHTLY_TASKS
 from codex.librarian.scribe.janitor.tasks import JanitorFolderRelationsCheckTask
 from codex.librarian.scribe.priority import _SCRIBE_TASK_PRIORITY, get_task_priority
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.tasks import ScribeTask
+
+# The workers ``ScribeThread.process_item`` hands tasks to.
+_SCRIBE_WORKERS = (
+    "ComicImporter",
+    "LazyImporter",
+    "ForceUpdater",
+    "TimestampUpdater",
+    "OrphanFolderAdopter",
+    "SearchIndexer",
+    "Janitor",
+    "ReadingListWorker",
+    "TagWriter",
+)
+
+
+def _blank_task(cls: type[ScribeTask]) -> ScribeTask:
+    """Build a task of ``cls``, ``None`` for every required field."""
+    if not is_dataclass(cls):
+        return cls()
+    required = {
+        field.name: None
+        for field in fields(cls)
+        if field.init and field.default is MISSING and field.default_factory is MISSING
+    }
+    return cls(**required)
+
+
+def test_every_ranked_task_is_dispatched() -> None:
+    """
+    Every queued task class reaches a worker, none falls to "Bad task".
+
+    A class with a priority but no ``process_item`` case is queued and then
+    dropped with a warning. Abort tasks never reach the queue: ``put``
+    intercepts them, so a class ``put`` does not enqueue is skipped.
+    """
+    log = MagicMock()
+    with patch.object(scribed, "Manager") as manager:
+        manager.return_value.Event.side_effect = Event
+        thread = ScribeThread(log, MagicMock(), MagicMock())
+    thread.queue = MagicMock()
+    workers = {name: MagicMock() for name in _SCRIBE_WORKERS}
+    undispatched = []
+    with patch.multiple(scribed, **workers):
+        for cls in _SCRIBE_TASK_PRIORITY:
+            task = _blank_task(cls)
+            thread.queue.reset_mock()
+            thread.put(task)
+            if not thread.queue.put.called:
+                continue
+            log.warning.reset_mock()
+            thread.process_item(thread.queue.put.call_args.args[0])
+            if log.warning.called:
+                undispatched.append(cls.__name__)
+    assert not undispatched, (
+        f"Ranked scribe tasks with no process_item case: {undispatched}"
+    )
 
 
 def test_scribe_janitor_tasks_are_priority_rankable() -> None:
