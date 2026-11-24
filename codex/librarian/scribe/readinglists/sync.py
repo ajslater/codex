@@ -25,6 +25,7 @@ from typing import Final, override
 from django.db import transaction
 from django.db.models import Max, Q
 from django.utils.timezone import now
+from loguru import logger
 
 from codex.librarian.scribe.readinglists.arcs import (
     ArcMember,
@@ -75,6 +76,33 @@ def is_disposable(reading_list: ReadingList, removed_kind: str) -> bool:
     return not ReadingListEntry.objects.filter(
         reading_list=reading_list, manual=True
     ).exists()
+
+
+def _is_primary(source: ReadingListSource) -> bool:
+    """Whether a source leads its list: first by rank among its document sources."""
+    first = (
+        ReadingListSource.objects.filter(reading_list_id=source.reading_list_id)  # pyright: ignore[reportAttributeAccessIssue]
+        .exclude(kind=ReadingListSourceKind.COLLECTION)
+        .order_by("rank", "pk")
+        .values_list("pk", flat=True)
+        .first()
+    )
+    return first == source.pk
+
+
+def _isolated(sort_name: str, step, *args) -> None:
+    """
+    Sync one arc's list in a savepoint of its own.
+
+    One list that cannot be written, such as a rename onto a name its
+    owner already uses, is logged and left for the next sync; it no longer
+    rolls back every other arc's list with it.
+    """
+    try:
+        with transaction.atomic():
+            step(*args)
+    except Exception:
+        logger.exception(f"Reading list tags sync failed for arc {sort_name!r}")
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,7 +228,9 @@ class TagListSync:
         source.ordered = is_ordered(comics)
         source.fetched_at = now()
         source.save(update_fields=("revision", "ordered", "fetched_at", "updated_at"))
-        if "name" not in reading_list.edited_fields:
+        # Only a list its tags lead takes the arc's name: a curated list
+        # combined with tags keeps the name of its own primary source.
+        if "name" not in reading_list.edited_fields and _is_primary(source):
             reading_list.name = name
         if is_tags_only(reading_list):
             rebuild_from_tags(reading_list, source, comics)
@@ -239,13 +269,13 @@ class TagListSync:
                 if source is None and (
                     reading_list := written.pop(sort_name.casefold(), None)
                 ):
-                    self._attach(reading_list, sort_name, comics)
+                    _isolated(sort_name, self._attach, reading_list, sort_name, comics)
                 elif source is None:
-                    self._create(sort_name, name, comics)
+                    _isolated(sort_name, self._create, sort_name, name, comics)
                 elif source.revision != digest(comics):
-                    self._update(source, name, comics)
+                    _isolated(sort_name, self._update, source, name, comics)
             for source in sources.values():
-                self._remove(source)
+                _isolated(source.ref, self._remove, source)
         return SyncCounts(self._created, self._updated, self._deleted)
 
 

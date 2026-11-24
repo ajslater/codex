@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Final
 
 from comicbox.readinglists import loads
+from django.contrib.auth.models import User
 
 from codex.librarian.scribe.readinglists.combine import recombine, rematch
 from codex.librarian.scribe.readinglists.documents import to_json
@@ -271,3 +272,51 @@ class TagChangeOnCombinedListTests(ReadingListFixture):
         assert [row[2] for row in rows] == [c1.pk, None, c2.pk, c3.pk]
         assert rows[3][3] == ReadingListMatchTier.TAGGED
         assert ReadingListSource.objects.filter(reading_list=tags_list).count() == 2  # noqa: PLR2004
+
+
+class TagSyncRenameTests(ReadingListFixture):
+    """The tags sync names only the lists its tags lead, one list at a time."""
+
+    def _tags_source(self, reading_list: ReadingList, ref: str, rank: int):
+        """Give a list a tags source the next sync sees as changed."""
+        return ReadingListSource.objects.create(
+            reading_list=reading_list,
+            kind=ReadingListSourceKind.TAGS,
+            ref=ref,
+            rank=rank,
+            revision="stale",
+        )
+
+    def test_a_curated_list_keeps_its_name(self) -> None:
+        """A list whose primary source is a document is not renamed."""
+        c1, _, _, _ = self.comics
+        self.tag(c1, "Civil War", 1)
+        curated = import_document(_document(), _upload())
+        self._tags_source(curated, "civil war", 1)
+        sync_tag_lists()
+        curated.refresh_from_db()
+        assert curated.name == "[Marvel] Civil War (CBRO)"
+
+    def test_a_tags_list_follows_its_arc(self) -> None:
+        """A list its tags lead takes the arc's name."""
+        c1, _, _, _ = self.comics
+        self.tag(c1, "Civil War", 1)
+        led = ReadingList.objects.create(name="Old Name")
+        self._tags_source(led, "civil war", 0)
+        sync_tag_lists()
+        led.refresh_from_db()
+        assert led.name == "Civil War"
+
+    def test_a_clash_fails_only_its_own_list(self) -> None:
+        """A rename onto the owner's other list leaves the rest of the sync."""
+        c1, c2, _, _ = self.comics
+        owner = User.objects.create_user(username="owner", password="x")  # noqa: S106
+        ReadingList.objects.create(name="Clash", user=owner)
+        given_away = ReadingList.objects.create(name="Old Name", user=owner)
+        self._tags_source(given_away, "clash", 0)
+        self.tag(c1, "Clash", 1)
+        self.tag(c2, "Brand New", 1)
+        sync_tag_lists()
+        given_away.refresh_from_db()
+        assert given_away.name == "Old Name"
+        assert ReadingList.objects.filter(name="Brand New").exists()
