@@ -73,6 +73,10 @@ class ResolveEffortTestCase(SimpleTestCase):
         """A scan may ask for something other than the admin default."""
         assert self._resolve("thorough", "minimal") == "thorough"
 
+    def test_an_explicit_auto_wins(self) -> None:
+        """The launcher's Auto is a choice, not an omission."""
+        assert self._resolve("", "minimal") == ""
+
     def test_the_admin_default_fills_in(self) -> None:
         """A scan that asks for nothing runs at the configured default."""
         assert self._resolve(None, "minimal") == "minimal"

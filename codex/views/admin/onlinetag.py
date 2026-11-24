@@ -191,8 +191,13 @@ class AdminOnlineTagStartView(FilteredComicPksView):
 
     @staticmethod
     def _resolve_effort(data: dict, defaults: ComicboxTaggingDefaults | None) -> str:
-        """Take the run's effort from the request, falling back to the default."""
-        if requested := data.get("effort"):
+        """
+        Take the run's effort from the request, falling back to the default.
+
+        An empty effort is the launcher's Auto, a choice; only an omitted one
+        falls back.
+        """
+        if (requested := data.get("effort")) is not None:
             return str(requested)
         if defaults and defaults.default_effort:
             return str(defaults.default_effort)
