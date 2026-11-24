@@ -96,6 +96,8 @@
       <!-- Why a scan nobody paused is paused. Without it, Resume is an
          unexplained button on a run that stopped on its own. -->
       <div v-if="pauseReason" class="pauseReason">{{ pauseReason }}</div>
+      <!-- Why an Error row is still queued for Resume. -->
+      <div v-if="heldReason" class="pauseReason">{{ heldReason }}</div>
       <v-progress-linear
         :model-value="progressPct"
         :indeterminate="indeterminate"
@@ -446,6 +448,18 @@ export default {
       // Only meaningful while the scan is stopped and picking-up-able.
       if (this.snapshot?.active || !this.resumable) return "";
       return this.snapshot?.pauseReason || "";
+    },
+    heldReason() {
+      // Comics not written because a stored id did not fetch: their rows
+      // read Error, and this says why and that Resume retries them, naming
+      // the sources as the columns do.
+      const held = this.snapshot?.held;
+      if (!held?.count) return "";
+      const sources = held.sources.map(sourceLabel).join(", ");
+      if (held.count === 1) {
+        return `1 comic not written: its stored issue id could not be fetched from ${sources}. Resume tries it again; if the id is gone, tag it by ID.`;
+      }
+      return `${nf(held.count)} comics not written: their stored issue ids could not be fetched from ${sources}. Resume tries them again; if an id is gone, tag that comic by ID.`;
     },
     total() {
       return this.batch.total || 0;

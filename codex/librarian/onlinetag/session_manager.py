@@ -991,16 +991,17 @@ class OnlineTagSessionManager:
         searches that source instead. Writing what the other sources found
         would let a lower-priority source overwrite what the failed one gave
         the comic last time, and would mark the comic done, so Resume would
-        never retry it. So nothing is written and the comic's outcome is
-        forgotten: it stays queued for Resume, both halves. A fetch lands
-        only with an ``AutoWritten`` from its source.
+        never retry it. So nothing is written, and the comic is recorded as
+        held rather than done: its row shows the failed source, and it stays
+        for Resume, both halves. A fetch lands only with an ``AutoWritten``
+        from its source.
         """
         if result.cancelled or result.error:
             return False
         landed = state.stats.matched_source_by_path.get(path, ())
         if not (failed := [source for source in ids if source not in landed]):
             return False
-        state.stats.forget(path)
+        state.stats.hold(path, failed)
         sources = ", ".join(failed)
         msg = f"Online tag: {sources} could not fetch the stored id of {path}"
         self.log.warning(f"{msg}; not written, left for Resume.")

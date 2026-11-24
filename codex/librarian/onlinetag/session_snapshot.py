@@ -365,7 +365,9 @@ def _elect_in_flight_path(
 
 def _comic_status(path, pk, stats, review_pks: set, *, in_flight: bool) -> str:
     """Classify one comic from the scan's accumulated outcome stats."""
-    if path in stats.errored_paths:
+    # A held comic reads as an error, but unlike one it stays pending, so
+    # Resume tries it again (see ``_is_pending``).
+    if path in stats.errored_paths or path in stats.held_sources_by_path:
         return ERROR
     if pk in review_pks:
         return NEEDS_REVIEW
@@ -391,9 +393,10 @@ def _row_source_statuses(
         # first source reported before the scan stopped would otherwise show
         # that verdict beside a Queued row Resume is about to re-run in full.
         return {}
-    if status == ERROR:
+    if status == ERROR and path not in stats.held_sources_by_path:
         # A worker exception is usually archive-level rather than any one
         # source's doing, so every column reports it instead of mis-blaming.
+        # A held comic is one source's doing, and its cells say which.
         return dict.fromkeys(sources, ERROR)
     cells = dict(stats.source_status_by_path.get(path, {}))
     if status == IN_FLIGHT:
@@ -528,6 +531,12 @@ def _build_sources(
     return sources
 
 
+def _held(held: Mapping[Path, tuple[str, ...]]) -> dict[str, Any]:
+    """Count the comics held back and name the sources that failed them."""
+    sources = sorted({name for names in held.values() for name in names})
+    return {"count": len(held), "sources": sources}
+
+
 def build_snapshot(
     state: SessionState,
     *,
@@ -573,12 +582,18 @@ def build_snapshot(
         "session_id": session_id,
         "active": active,
         # Has unprocessed comics left → a paused/interrupted session the UI can
-        # resume (queued already includes the in-flight one). While ``active``
-        # the frontend shows "Tagging" regardless; this matters once inactive.
-        "resumable": bool(batch["queued"]),
+        # resume (queued already includes the in-flight one; a held comic
+        # counts as an error row but is still to be processed). While
+        # ``active`` the frontend shows "Tagging" regardless; this matters once
+        # inactive.
+        "resumable": bool(batch["queued"] or state.stats.held),
         # Empty unless the run stopped itself. A Resume button with no
         # explanation is the kind of thing that gets reported as a bug.
         "pause_reason": state.pause_reason,
+        # The comics held back, and which sources could not fetch their
+        # stored ids. Their rows read Error; the table words why from this,
+        # naming the sources as its columns do.
+        "held": _held(state.stats.held_sources_by_path),
         "batch": batch,
         "sources": _build_sources(state, source_retry_at, waiting_sources),
         "comics": shown,
