@@ -226,17 +226,21 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
         A subquery per comic, not a join to the entries: a comic that two
         ticked lists share would join twice and count twice in every sum
-        over a card's comics, its pages and progress included.
+        over a card's comics, its pages and progress included. The first
+        position is an aggregate, the last under a reversed order: ordered
+        by position instead, SQLite served it from the list's position
+        index and walked the whole list once per comic.
         """
-        position = "-position" if self.order_agg_func is Max else "position"
         first = Subquery(
             ReadingListEntry.objects.filter(
                 comic_id=OuterRef(self.get_rel_prefix(qs.model) + "pk"),
                 reading_list__in=list_pks,
                 ignored=False,
             )
-            .order_by(position)
-            .values("position")[:1]
+            .order_by()
+            .values("comic_id")
+            .annotate(first=self.order_agg_func("position"))
+            .values("first")
         )
         if qs.model is Comic:
             return qs, first
