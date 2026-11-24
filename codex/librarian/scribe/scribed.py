@@ -182,5 +182,8 @@ class ScribeThread(QueuedThread):
             self.log.debug("Cleanup abort signal given.")
             return
         priority = get_task_priority(task)
+        if isinstance(task, ReadingListRematchTask):
+            # Its place in the queue, which a later full rematch covers.
+            task.seq = priority[-1]
         item = (priority, task)
         self.queue.put(item)

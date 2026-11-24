@@ -118,3 +118,8 @@ def get_task_priority(task: ScribeTask) -> tuple[int, float, int]:
     now = datetime.now(tz=UTC).timestamp()
     priority = _SCRIBE_TASK_PRIORITY.index(type(task))
     return priority, now, next(_TIE_BREAKER)
+
+
+def next_sequence() -> int:
+    """Return a sequence number above every task's queued so far."""
+    return next(_TIE_BREAKER)

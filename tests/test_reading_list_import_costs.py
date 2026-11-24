@@ -12,9 +12,11 @@ What an import's reading-list passes cost, and that they stay cheap (C1).
 """
 
 from threading import Lock
+from types import SimpleNamespace
 from typing import Final, override
 from unittest.mock import patch
 
+import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from loguru import logger
@@ -22,12 +24,14 @@ from loguru import logger
 from codex.librarian.notifier.tasks import READING_LISTS_CHANGED_TASK
 from codex.librarian.scribe.importer.init import Counts
 from codex.librarian.scribe.importer.readinglists import ReadingListsImporter
+from codex.librarian.scribe.priority import get_task_priority
 from codex.librarian.scribe.readinglists.live import add_item, reconcile_list, sync_live
 from codex.librarian.scribe.readinglists.tasks import (
     ReadingListLiveSyncTask,
     ReadingListRematchTask,
 )
 from codex.librarian.scribe.readinglists.worker import ReadingListWorker
+from codex.librarian.scribe.scribed import ScribeThread
 from codex.models import ReadingList, ReadingListEntry, ReadingListSource
 from codex.models.readinglist import ReadingListMatchTier
 from tests.onlinetag_session_fakes import double
@@ -102,7 +106,7 @@ class RematchCostTests(ReadingListFixture):
         super().setUp()
         self.queue = _Queue()  # pyright: ignore[reportUninitializedInstanceVariable]
         self.worker = ReadingListWorker(logger, double(self.queue), Lock())  # pyright: ignore[reportUninitializedInstanceVariable]
-        ReadingListWorker._full_rematch_began = 0.0  # noqa: SLF001
+        ReadingListWorker._full_rematch_covers = -1  # noqa: SLF001
 
     @staticmethod
     def _gaps() -> ReadingList:
@@ -116,16 +120,70 @@ class RematchCostTests(ReadingListFixture):
         )
         return gaps
 
+    @staticmethod
+    def _queued() -> ReadingListRematchTask:
+        """Return a full rematch as the scribe queue stamps it."""
+        task = ReadingListRematchTask()
+        queue = SimpleNamespace(items=[])
+        queue.put = queue.items.append
+        ScribeThread.put(double(SimpleNamespace(queue=queue)), task)
+        assert task.seq is not None
+        return task
+
+    def test_the_queue_stamps_a_rematch(self) -> None:
+        first, second = self._queued(), self._queued()
+        assert first.seq is not None
+        assert second.seq is not None
+        assert first.seq < second.seq
+        assert get_task_priority(ReadingListRematchTask())[-1] > second.seq
+
     def test_a_burst_runs_one_full_rematch(self) -> None:
         """Two queued before the first began: the second is covered."""
-        first, second = ReadingListRematchTask(), ReadingListRematchTask()
+        first, second = self._queued(), self._queued()
         self._gaps()
         with patch(_REMATCH, return_value=0) as rematch:
             self.worker.rematch_lists(first)
             self.worker.rematch_lists(second)
-            later = ReadingListRematchTask()
+            later = self._queued()
             self.worker.rematch_lists(later)
         assert rematch.call_count == 2  # noqa: PLR2004
+
+    def test_one_queued_while_another_runs_still_runs(self) -> None:
+        """Its comics may have come after that one began reading them."""
+        first = self._queued()
+        self._gaps()
+        during: list[ReadingListRematchTask] = []
+
+        def queue_another(*_args) -> int:
+            if not during:
+                during.append(self._queued())
+            return 0
+
+        with patch(_REMATCH, side_effect=queue_another) as rematch:
+            self.worker.rematch_lists(first)
+            self.worker.rematch_lists(during[0])
+        assert rematch.call_count == 2  # noqa: PLR2004
+
+    def test_an_aborted_rematch_covers_nothing(self) -> None:
+        """A rematch that raised part-way leaves the ones queued before it to run."""
+        first, second = self._queued(), self._queued()
+        self._gaps()
+        with (
+            patch(_REMATCH, side_effect=RuntimeError("abort")),
+            pytest.raises(RuntimeError, match="abort"),
+        ):
+            self.worker.rematch_lists(first)
+        with patch(_REMATCH, return_value=0) as rematch:
+            self.worker.rematch_lists(second)
+        assert rematch.call_count == 1
+
+    def test_the_nightly_rematch_always_runs(self) -> None:
+        """The janitor calls the worker directly: no stamp, never covered."""
+        self._gaps()
+        self.worker.rematch_lists(self._queued())
+        with patch(_REMATCH, return_value=0) as rematch:
+            self.worker.rematch_lists(ReadingListRematchTask())
+        assert rematch.call_count == 1
 
     def test_a_narrow_rematch_always_runs(self) -> None:
         task = ReadingListRematchTask(list_pks=(self._gaps().pk,))
