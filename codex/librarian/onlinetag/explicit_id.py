@@ -36,7 +36,7 @@ from codex.librarian.onlinetag.sources import source_credentials
 from codex.settings import COMICBOX_ONLINE_CONFIG
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
     from comicbox.config.settings import ComicboxSettings
@@ -138,6 +138,7 @@ def fetch_tags_by_explicit_id(
     credentials: OnlineCredentials,
     extra_ids: tuple[tuple[str, int], ...] = (),
     order: tuple[str, ...] = (),
+    retry_sleep: Callable[[float], None] | None = None,
 ) -> dict[str, Any] | None:
     """
     Fetch one issue's metadata by explicit id, or ``None`` if it didn't resolve.
@@ -146,12 +147,15 @@ def fetch_tags_by_explicit_id(
     With ``extra_ids`` the other sources are also fetched by explicit id and
     merged in, in ``order`` (see ``build_explicit_id_config``). Resolution is
     keyed on the primary ``source``: an ``extra_ids`` entry that doesn't
-    resolve simply contributes nothing to the merge.
+    resolve simply contributes nothing to the merge. ``retry_sleep``
+    replaces the rate-limit wait, so a caller can cut it short.
     """
     # Drop any extra entry for the primary source; it always runs id-pinned.
     extra_ids = tuple((s, i) for s, i in extra_ids if s != source)
     settings = build_explicit_id_config(source, issue_id, credentials, extra_ids, order)
     with Comicbox(path, config=settings) as cb:
+        if retry_sleep is not None:
+            cb.set_retry_sleep(retry_sleep)
         cb.run_online_lookup()
         payload = cb.to_dict()
     tags = payload.get("comicbox") or {}

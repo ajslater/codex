@@ -40,6 +40,17 @@ class OnlineTagThread(QueuedThread):
             )
         return self._reading_list_fetcher
 
+    def cancel_session(self, session_id: str) -> None:
+        """
+        Pause the scan under way; called from another thread.
+
+        This thread reads its queue only between search results, so a Pause
+        waiting there sat out the stored-id prepass and every rate-limit
+        wait. The manager only exists once a scan has started.
+        """
+        if self._session_manager is not None:
+            self._session_manager.cancel_session(session_id)
+
     def cancel_reading_list_fetch(self) -> None:
         """Cancel the reading list fetch under way; called from another thread."""
         if self._reading_list_fetcher is not None:

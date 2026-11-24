@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from threading import Event
 from typing import TYPE_CHECKING, Any, Final
 
 from comicbox.online_session import PromptResponse
@@ -96,6 +97,9 @@ class SessionState:
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False
     cancelled: bool = False
+    # Set by a Pause, from whichever thread delivers it, so a retry wait the
+    # prepass sits in wakes at once instead of waiting out the rate limit.
+    pause_event: Event = field(default_factory=Event)
     # Why the scan stopped, when it was not the operator who stopped it —
     # today, a spent daily API quota. The status row is finished the moment a
     # pass ends, so a subtitle there would only flash; this rides the frozen
