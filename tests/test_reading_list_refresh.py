@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 from comicbox.readinglists import loads
 from django.contrib.auth.models import User
+from django.db import connection
 from django.test import Client
 from loguru import logger
 
@@ -15,6 +16,7 @@ from codex.librarian.onlinetag.readinglists import (
     ReadingListFetcher,
     ReadingListFetchTask,
 )
+from codex.librarian.scribe.readinglists.combine import recombine
 from codex.librarian.scribe.readinglists.errors import (
     clear_reading_list_errors,
     get_reading_list_errors,
@@ -147,6 +149,38 @@ class FailedRecombineTests(ReadingListFixture):
             )
             == ranks
         )
+
+
+class RecombineLockTests(ReadingListFixture):
+    """
+    A refresh or a reorder holds no transaction through its recombine.
+
+    One transaction around the save and the recombine took SQLite's write
+    lock at the save and held it through the combine and the matcher,
+    1.9 to 2.5 seconds on a 3,000-issue list, while every bookmark write
+    waited.
+    """
+
+    def test_the_recombine_runs_outside_a_transaction(self) -> None:
+        reading_list, source = _url_list()
+        upload = SourceSpec(kind=ReadingListSourceKind.UPLOAD, ref="cw.cbl")
+        import_document(_document(), upload, into=reading_list)
+        depth = len(connection.atomic_blocks)
+        depths: list[int] = []
+
+        def _spy(*args, **kwargs):
+            depths.append(len(connection.atomic_blocks))
+            return recombine(*args, **kwargs)
+
+        other = (
+            ReadingListSource.objects.filter(reading_list=reading_list)
+            .exclude(pk=source.pk)
+            .get()
+        )
+        with patch(_RECOMBINE, side_effect=_spy):
+            assert refresh_source(source, _with_curator("https://cbro.invalid/cw"))
+            rank_sources(reading_list, [other.pk, source.pk])
+        assert depths == [depth, depth]
 
 
 class EmptyFetchTests(ReadingListFixture):
