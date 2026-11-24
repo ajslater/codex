@@ -7,23 +7,15 @@ from typing import Final
 from django.db.models.query import QuerySet
 from django.db.models.query_utils import Q
 
-from codex.choices.browser import BROWSER_MATCH_ALL_FILTERS
 from codex.models import Comic, ReadingList
 from codex.views.browser.filters.bookmark import BrowserFilterBookmarkView
 from codex.views.browser.filters.reading_lists import (
     READING_LIST_KIND_FILTER,
-    READING_LISTS_FILTER,
     RETIRED_SHELVES_FILTER,
 )
 from codex.views.const import FOLDER_COLLECTION, STORY_ARC_COLLECTION
 from codex.views.readinglists.access import list_kind_q
 
-# Active filter keys whose ORM rel crosses an m2m or m2m-through relation
-# on Comic: the tag-like filters, but for the Reading Lists filter, whose
-# ``IN`` subquery never joins.
-_M2M_FILTER_KEYS: Final[frozenset[str]] = frozenset(BROWSER_MATCH_ALL_FILTERS) - {
-    READING_LISTS_FILTER
-}
 # TARGETs whose folder-group filter resolves to ``folders`` (m2m) or
 # ``comic__folders`` (download) rather than ``parent_folder`` (FK).
 # Mirrors the branches in :meth:`CollectionFilterView._get_rel_for_pks`.
@@ -63,7 +55,9 @@ class BrowserFilterView(BrowserFilterBookmarkView):
         Drives whether ``.distinct()`` and the ``search_score`` ``group_by("id")``
         clause need to fire. Non-Comic queries always need them because the
         ACL filter alone traverses ``comic__`` (one-to-many); for Comic
-        queries we can skip both unless a real m2m relation joins in.
+        queries we can skip both unless a real m2m relation joins in. A tag
+        filter never does: it tests membership with an ``IN`` subquery (see
+        ``ComicFieldFilterView._filter_by_comic_field``).
         """
         collection = self.kwargs.get("collection")
         pks = self.kwargs.get("pks")
@@ -78,8 +72,7 @@ class BrowserFilterView(BrowserFilterBookmarkView):
             ):
                 # ``folders`` / ``comic__folders`` m2m on these targets.
                 return True
-        filters = self.params.get("filters") or {}
-        return any(filters.get(k) for k in _M2M_FILTER_KEYS)
+        return False
 
     def get_retired_filter(self) -> Q:
         """
