@@ -1092,9 +1092,12 @@ export const useBrowserStore = defineStore("browser", {
        * After a list's membership changed: refresh a page that shows lists,
        * a list's own or one under a ticked Reading Lists filter, in place.
        * Cover view had nothing watching; the table refreshes for its own
-       * Reading Lists column.
+       * Reading Lists column. Only the browser has a page to refresh: the
+       * reader's route has no collection to browse.
        */
-      const ownList = routeReadingListPk(router.currentRoute.value.params);
+      const route = router.currentRoute.value;
+      if (route.name !== "browser") return;
+      const ownList = routeReadingListPk(route.params);
       const ticked = this.settings.filters?.readingLists?.length;
       if (ownList || ticked) await this.refreshBrowserPage();
     },

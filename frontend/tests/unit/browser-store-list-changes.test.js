@@ -14,7 +14,11 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 vi.mock("@/plugins/router", () => ({
   default: {
     currentRoute: {
-      value: { params: { collection: "series", parentIds: "7" }, query: {} },
+      value: {
+        name: "browser",
+        params: { collection: "series", parentIds: "7" },
+        query: {},
+      },
     },
     push: vi.fn(() => Promise.resolve()),
   },
@@ -33,8 +37,13 @@ function storeWith({
   readingLists = [],
   collection = "series",
   parentIds = "7",
+  name = "browser",
 }) {
-  router.currentRoute.value = { params: { collection, parentIds }, query: {} };
+  router.currentRoute.value = {
+    name,
+    params: { collection, parentIds },
+    query: {},
+  };
   createTestingPinia({
     stubActions: false,
     initialState: {
@@ -76,6 +85,14 @@ describe("refreshIfShowingLists", () => {
 
   test("leaves a page that shows no list alone", async () => {
     const store = storeWith({});
+    await store.refreshIfShowingLists();
+    expect(store.refreshBrowserPage).not.toHaveBeenCalled();
+  });
+
+  test("leaves the reader alone, ticked filter or not", async () => {
+    // The reader's route has no collection: a browser refresh there asked
+    // for /browse/undefined and failed.
+    const store = storeWith({ readingLists: [5], name: "reader" });
     await store.refreshIfShowingLists();
     expect(store.refreshBrowserPage).not.toHaveBeenCalled();
   });
