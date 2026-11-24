@@ -160,6 +160,7 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
         ...store.taggingDefaults,
         configuredSources: ["metron"],
       };
+      return true;
     });
 
     vm.keys.metron = "token";
@@ -199,6 +200,35 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     await vm.$nextTick();
     expect(vm.draft.defaultSources).not.toContain("metron");
     expect(vm.isSourceEnabled("metron")).toBe(false);
+  });
+
+  test("a failed credential save keeps the typed key", async () => {
+    const wrapper = mountTab();
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+    // The store reports the failure; the error itself is shown elsewhere.
+    store.updateTaggingDefaults.mockResolvedValue(false);
+
+    vm.keys.metron = "typed-but-rejected";
+    await vm.saveCredentials("metron");
+    expect(vm.keys.metron).toBe("typed-but-rejected");
+  });
+
+  test("an opened source panel stays open when the tab re-renders", async () => {
+    const wrapper = mountTab({ configuredSources: ["metron"] });
+    const vm = wrapper.vm;
+    const store = useAdminStore();
+    const panel = () => wrapper.findAll(".v-expansion-panel")[0];
+    expect(panel().classes()).not.toContain("v-expansion-panel--active");
+
+    await panel().find(".v-expansion-panel-title").trigger("click");
+    expect(panel().classes()).toContain("v-expansion-panel--active");
+
+    // Anything that re-renders the tab, here a fresh copy of the defaults.
+    store.taggingDefaults = { ...store.taggingDefaults };
+    vm.$forceUpdate();
+    await vm.$nextTick();
+    expect(panel().classes()).toContain("v-expansion-panel--active");
   });
 
   test("only Comic Vine offers a custom URL field", async () => {
@@ -287,6 +317,7 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     const wrapper = mountTab();
     const vm = wrapper.vm;
     const store = useAdminStore();
+    store.updateTaggingDefaults.mockResolvedValue(true);
 
     vm.keys.metron = "token";
     await vm.saveCredentials("metron");
@@ -312,6 +343,7 @@ describe("AdminTaggingTab — Online Sources enable checkboxes", () => {
     const wrapper = mountTab();
     const vm = wrapper.vm;
     const store = useAdminStore();
+    store.updateTaggingDefaults.mockResolvedValue(true);
 
     vm.urls.comicvine = "https://cv.example.com/api";
     await vm.saveCredentials("comicvine");

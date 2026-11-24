@@ -176,8 +176,9 @@
             <span v-else class="sourceHandle" aria-hidden="true" />
             <div class="sourcePanel">
               <v-expansion-panels
-                :model-value="isConfigured(source.id) ? [] : [0]"
+                :model-value="panelModel(source.id)"
                 variant="accordion"
+                @update:model-value="openPanels[source.id] = $event"
               >
                 <v-expansion-panel>
                   <v-expansion-panel-title class="sourceTitle">
@@ -435,6 +436,9 @@ export default {
       draft: pickFields(undefined),
       saving: false,
       pendingSave: false,
+      // Each source panel's open state once a person has toggled it. Until
+      // then a source without a key opens and one with a key is closed.
+      openPanels: {},
       // Typed, unsaved credentials, keyed by source.
       keys: bySource(""),
       urls: bySource(""),
@@ -520,6 +524,11 @@ export default {
     },
     isConfigured(source) {
       return this.configuredSources.has(source);
+    },
+    panelModel(source) {
+      // Held in data, so a re-render cannot hand the panel a fresh array
+      // and snap it shut under the person typing in it.
+      return this.openPanels[source] ?? (this.isConfigured(source) ? [] : [0]);
     },
     isSourceEnabled(source) {
       // The enable checkboxes drive ``draft.defaultSources``, which auto-saves
@@ -702,13 +711,17 @@ export default {
       const data = this.credentialInput(source);
       this.validationResult[source] = undefined;
       const hadCredentials = this.isConfigured(source);
-      await this.updateTaggingDefaults(data);
+      // A failed save keeps what was typed, to correct and save again.
+      if (!(await this.updateTaggingDefaults(data))) {
+        return;
+      }
       this.keys[source] = "";
       this.urls[source] = "";
-      // Configuring a brand-new source enables it automatically; re-saving
-      // credentials respects the existing checkbox state.
+      // Configuring a brand-new source enables it automatically and folds
+      // its panel; re-saving credentials respects the existing checkbox.
       if (!hadCredentials && this.isConfigured(source)) {
         this.setSourceEnabled(source, true);
+        this.openPanels[source] = [];
       }
     },
     clearCredentials(source) {
