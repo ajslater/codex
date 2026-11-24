@@ -6,26 +6,35 @@ waited out the whole stored-id prepass, which on a re-tag is the whole run,
 and any rate-limit wait in it. The daemon now hands the Pause to the scan as
 it arrives; the prepass stops before its next comic, and its retry wait
 wakes on the Pause, as the search pass's already does.
+
+A Pause only asks comicbox to stop. A lookup already under way runs to its
+end, outside a retry wait, and reports what it found, so the search pass
+keeps that result before it stops.
 """
 
 import time
 from pathlib import Path
 from types import SimpleNamespace
+from typing import override
 from unittest.mock import MagicMock, patch
 
 import pytest
+from comicbox.events import AutoWritten, FileFinished, SourceStarted
 from comicbox.exceptions import OnlineLookupAbortedError
 
 from codex.librarian.librariand import LibrarianDaemon
+from codex.librarian.onlinetag.session_snapshot import get_resume_state
 from codex.librarian.onlinetag.session_state import SessionState
 from codex.librarian.onlinetag.tasks import BulkOnlineTagTask, OnlineTagAbortTask
 from codex.models import Comic, Identifier, IdentifierSource
 from tests.onlinetag_session_fakes import (
     FETCH_TARGET,
+    PATCH_TARGET,
     FakeSession,
     OnlineTagSessionTestCase,
     double,
     make_comic,
+    make_series_comics,
 )
 
 _SESSION_ID = "scan"
@@ -117,6 +126,63 @@ class PrepassPauseTests(OnlineTagSessionTestCase):
         self._prefetch(comics, fetch)
         assert waits
         assert waits[0] < _LONG_WAIT / 10
+
+
+class SearchPassPauseTests(OnlineTagSessionTestCase):
+    """A Pause during a search keeps the lookup that was under way."""
+
+    def test_a_lookup_that_finishes_after_a_pause_is_written(self) -> None:
+        """
+        Written, counted, and out of the resume set; the rest stay in it.
+
+        comicbox's ``cancel()`` sets an event. The lookup in flight runs on,
+        writes its comic and reports it written; only the paths after it
+        come back cancelled.
+        """
+        comics = make_series_comics(3)
+        manager = self.manager
+        finished: list[Path] = []
+
+        class _FinishesAfterPause(FakeSession):
+            def rate_limit_status(self) -> dict[str, dict]:
+                return {}
+
+            @override
+            def tag_many(self, paths):
+                first, *rest = paths
+                on_event = self.kwargs["on_event"]
+                on_event(SourceStarted(path=first, source="metron"))
+                manager.cancel_session(_SESSION_ID)
+                on_event(
+                    AutoWritten(path=first, source="metron", candidate_summary="101")
+                )
+                on_event(FileFinished(path=first, outcome="written"))
+                finished.append(first)
+                yield SimpleNamespace(
+                    path=first,
+                    tags={"series": "S"},
+                    matched=True,
+                    error=None,
+                    cancelled=False,
+                )
+                for path in rest:
+                    yield SimpleNamespace(path=path, cancelled=True)
+
+        task = BulkOnlineTagTask(
+            comic_pks=frozenset(comic.pk for comic in comics),
+            session_id=_SESSION_ID,
+            sources=("metron",),
+        )
+        with patch(PATCH_TARGET, _FinishesAfterPause):
+            manager.run_session(task)
+
+        (path,) = finished
+        pk_by_path = {Path(comic.path): comic.pk for comic in comics}
+        written = {pk for t in self.write_tasks() for pk in t.per_comic_patches}
+        assert written == {pk_by_path[path]}
+        resume = get_resume_state()
+        assert resume is not None
+        assert set(resume["remaining_pks"]) == set(pk_by_path.values()) - written
 
 
 def test_the_daemon_delivers_a_pause_at_once() -> None:

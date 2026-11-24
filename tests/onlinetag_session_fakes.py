@@ -13,6 +13,7 @@ import shutil
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, ClassVar, Final, override
 
+from comicbox.events import AutoWritten, FileFinished, SourceStarted
 from django.core.cache import caches
 from django.test import TestCase
 from loguru import logger
@@ -134,14 +135,47 @@ class FakeSession:
     tag_results: ClassVar[list] = []
     preloaded: ClassVar[list] = []
     last_kwargs: ClassVar[dict] = {}
+    # Every session built, in order: a Merge all sources run builds one per
+    # comic that has stored ids for some of its sources but not all.
+    instances: ClassVar[list] = []
 
     def __init__(self, **kwargs) -> None:
         """Record the kwargs the manager built the session with."""
         self.kwargs = kwargs
+        self.tagged: list = []
+        self.series_cache: dict[tuple[str, str], int] = {}
+        self.cancelled = False
         FakeSession.last_kwargs = kwargs
+        FakeSession.instances.append(self)
 
-    def tag_many(self, paths):  # noqa: ARG002
+    def tag_many(self, paths):
+        self.tagged.extend(paths)
         return iter(FakeSession.tag_results)
+
+    def tag(self, path):
+        """Look one comic up; ``tag_one`` stands in for comicbox."""
+        self.tagged.append(path)
+        return self.tag_one(path)
+
+    def tag_one(self, path):
+        """
+        Match every comic, as a merged lookup that found something does.
+
+        Each pinned id lands, and says so as comicbox does: an
+        ``AutoWritten`` from its source, then the comic written.
+        """
+        if on_event := self.kwargs.get("on_event"):
+            for source, issue_id in (self.kwargs.get("ids") or {}).items():
+                on_event(SourceStarted(path=path, source=source))
+                on_event(
+                    AutoWritten(
+                        path=path, source=source, candidate_summary=str(issue_id)
+                    )
+                )
+            on_event(FileFinished(path=path, outcome="written"))
+        return SimpleNamespace(
+            path=path, tags={"series": "X"}, matched=True, error=None, cancelled=False
+        )
 
     def deferred_prompts(self):
         return list(FakeSession.deferred)
@@ -151,8 +185,16 @@ class FakeSession:
     ) -> None:
         FakeSession.preloaded.append((fingerprint, action, payload, chosen_volume_id))
 
+    def series_cache_snapshot(self) -> dict[tuple[str, str], int]:
+        return dict(self.series_cache)
+
+    def preload_series_resolution(
+        self, *, source: str, series_fingerprint: str, volume_id: int
+    ) -> None:
+        self.series_cache.setdefault((source, series_fingerprint), volume_id)
+
     def cancel(self) -> None:
-        pass
+        self.cancelled = True
 
 
 def _make_series() -> dict[str, Any]:
@@ -216,6 +258,7 @@ class OnlineTagSessionTestCase(TestCase):
         FakeSession.tag_results = []
         FakeSession.preloaded = []
         FakeSession.last_kwargs = {}
+        FakeSession.instances = []
         ComicboxTaggingDefaults.objects.update_or_create(
             pk=1,
             defaults={"metron_key": "t"},
