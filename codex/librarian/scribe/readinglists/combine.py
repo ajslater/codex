@@ -409,18 +409,27 @@ def _recombine_hand_made(
     """
     Recompute a list no source feeds: a copy, or a list made by hand.
 
-    There is nothing to combine, so the entries, their order and the
-    header stay as they are. Only a hand-added entry whose comic went is
-    matched again, in place.
+    There is nothing to combine, so only what was added by hand stays. The
+    rows a last source supplied go with it, and a hand-added entry folded
+    into one of them is supplied by none now. The order and the header
+    stay as they are, and a hand-added entry whose comic went is matched
+    again, in place.
     """
+    own = ReadingListEntry.objects.filter(
+        reading_list=reading_list, live_source__isnull=True
+    )
+    kept = [entry for entry in entries if entry.manual]
     with transaction.atomic():
-        if healed := _heal_manual(entries, matcher):
-            ReadingListEntry.objects.bulk_update(
-                healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
-            )
+        dropped, _ = own.filter(manual=False).delete()
+        own.filter(manual=True).exclude(source_ids=[]).update(source_ids=[])
+        healed = _heal_manual(kept, matcher)
+        ReadingListEntry.objects.bulk_update(
+            healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
+        )
+        if dropped or healed:
             reading_list.save(update_fields=("updated_at",))
         reconcile_list(reading_list)
-    return len(entries)
+    return len(kept)
 
 
 def recombine(
