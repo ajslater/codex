@@ -168,16 +168,17 @@ class ReadingListItemsView(ReadingListAccessView):
         serializer.is_valid(raise_exception=True)
         add = serializer.validated_data.get("add", {})
         remove = serializer.validated_data.get("remove", {})
-        # One change: a failed add must not leave the removes applied.
+        # One change: a failed add must not leave the removes applied. The
+        # list and its holders sync once, after every change.
         with transaction.atomic():
             lock_list(reading_list)
-            result = remove_comics(reading_list, remove.get(COMICS, ()))
+            result = remove_comics(reading_list, remove.get(COMICS, ()), settle=False)
             result["removed"] += self._remove_items(reading_list, remove)
             added, refused = self._add_items(reading_list, add)
             comics = add_comics(
-                reading_list, self._visible(COMICS, add.get(COMICS, ()))
+                reading_list, self._visible(COMICS, add.get(COMICS, ())), settle=False
             )
-        queued = self._sync(reading_list, added)
+            queued = self._sync(reading_list, added)
         result["refused"] += refused
         return Response(
             {
