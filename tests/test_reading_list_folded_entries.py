@@ -197,7 +197,7 @@ class FoldedTagsTests(ReadingListFixture):
                 recombine(self.reading_list)
                 entry = _entries_of(self.reading_list, c2).get()
                 assert entry.manual
-                assert entry.comic_id == c2.pk
+                assert entry.comic_id == c2.pk  # pyright: ignore[reportAttributeAccessIssue]
                 assert _shown(self.reading_list) == [c1.pk, c2.pk, c3.pk]
                 assert response.status_code == _BAD_REQUEST, response.content
                 assert "arc" in str(response.json()), response.content
