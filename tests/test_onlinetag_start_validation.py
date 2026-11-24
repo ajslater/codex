@@ -68,6 +68,12 @@ class StartValidationTests(TestCase):
         assert isinstance(task, BulkOnlineTagTask)
         assert task.sources == ("metron",)
 
+    def test_an_empty_source_list_is_refused(self) -> None:
+        """Naming no source at all is a 400, not every keyed source."""
+        response, tasks = self._start(sources=[])
+        assert response.status_code == HTTPStatus.BAD_REQUEST, response.content
+        assert tasks == []
+
     def test_an_unkeyed_source_is_refused(self) -> None:
         """Naming a source with no key is a 400, and nothing is queued."""
         response, tasks = self._start(sources=["metron", "comicvine"])

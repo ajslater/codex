@@ -217,7 +217,11 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         # Refused here, not after the 202: the daemon cannot run a source
         # with no key, and the admin would wait on a scan that never starts.
         configured = frozenset(configured_sources(defaults))
-        sources = data.get("sources") or _default_sources(defaults, configured)
+        sources = (
+            data["sources"]
+            if "sources" in data
+            else _default_sources(defaults, configured)
+        )
         if not sources:
             return Response(
                 {"detail": "No online source credentials configured."}, status=400
