@@ -256,18 +256,19 @@ def add_comics(
     """
     Put comics into a list by hand, in order, at ``position`` or the end.
 
-    A comic the list already holds by hand is skipped. One a collection
-    item delivers becomes a hand entry, and the item stops delivering it.
-    An insert inside a block goes in before the block.
+    A comic the list already shows is skipped; one it holds hidden shows
+    again, where it was. One a collection item delivers becomes a hand
+    entry, and the item stops delivering it. An insert inside a block goes
+    in before the block.
     """
     if not pks:
         return 0
-    held = set(
-        ReadingListEntry.objects.filter(
-            reading_list=reading_list, live_source__isnull=True, comic_id__in=pks
-        ).values_list("comic_id", flat=True)
+    own = ReadingListEntry.objects.filter(
+        reading_list=reading_list, live_source__isnull=True, comic_id__in=pks
     )
-    wanted = [pk for pk in dict.fromkeys(pks) if pk not in held]
+    shown = set(own.filter(ignored=False).values_list("comic_id", flat=True))
+    hidden = set(own.filter(ignored=True).values_list("comic_id", flat=True)) - shown
+    wanted = [pk for pk in dict.fromkeys(pks) if pk not in shown | hidden]
     references = comic_references(wanted)
     comics = {
         comic.pk: comic
@@ -287,16 +288,17 @@ def add_comics(
         for pk in wanted
         if (comic := comics.get(pk)) is not None
     ]
-    if not new_entries:
+    if not new_entries and not hidden:
         return 0
     with transaction.atomic():
+        own.filter(ignored=True, comic_id__in=hidden).update(ignored=False)
         ordered = _order(reading_list)
         at = _boundary(ordered, position)
         ReadingListEntry.objects.bulk_create(new_entries)
         _renumber(reading_list, ordered[:at] + new_entries + ordered[at:])
         reconcile_list(reading_list)
     reconcile_includers(reading_list)
-    return len(new_entries)
+    return len(new_entries) + len(hidden)
 
 
 class ReadingListEntryView(ReadingListAccessView):

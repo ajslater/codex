@@ -123,6 +123,26 @@ class AddTests(ItemsFixture):
         assert response.status_code in (_BAD, _NOT_FOUND), response.content
         assert not ReadingListEntry.objects.filter(reading_list=theirs).exists()
 
+    def test_a_hidden_comic_shows_again_when_added(self) -> None:
+        """Adding a comic the list holds hidden shows it, where the menu says."""
+        c1, c2, _, _ = self.comics
+        self.patch_items(self.mine, {"add": {"comics": [c1.pk, c2.pk]}})
+        ReadingListEntry.objects.filter(reading_list=self.mine, comic=c1).update(
+            ignored=True
+        )
+        menu = _data(self.client.get(f"{_LISTS}/"))["lists"]
+        (mine,) = [row for row in menu if row["pk"] == self.mine.pk]
+        assert mine["items"]["comics"] == [c2.pk]
+        response = self.patch_items(self.mine, {"add": {"comics": [c1.pk]}})
+        assert _data(response)["added"] == 1
+        assert self.order(self.mine) == [c1.pk, c2.pk]
+        assert not ReadingListEntry.objects.filter(
+            reading_list=self.mine, ignored=True
+        ).exists()
+        menu = _data(self.client.get(f"{_LISTS}/"))["lists"]
+        (mine,) = [row for row in menu if row["pk"] == self.mine.pk]
+        assert mine["items"]["comics"] == [c1.pk, c2.pk]
+
     def test_a_large_collection_is_synced_by_the_librarian(self) -> None:
         """Above the limit the item is saved and its sync queued."""
         with (
