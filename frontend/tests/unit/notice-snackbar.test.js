@@ -108,6 +108,21 @@ describe("a notice's own timer", () => {
     expect(store.notice.text).toBe("");
     wrapper.unmount();
   });
+
+  test("closing a notice keeps its snackbar, to animate shut", async () => {
+    const wrapper = mount(NoticeSnackbar, {
+      attachTo: document.body,
+      global: { plugins: [vuetify, pinia] },
+    });
+    const store = useCommonStore();
+    store.setNotice("Saved.");
+    await wrapper.vm.$nextTick();
+    const shown = wrapper.findComponent({ name: "VSnackbar" }).vm.$.uid;
+    store.clearNotice();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent({ name: "VSnackbar" }).vm.$.uid).toBe(shown);
+    wrapper.unmount();
+  });
 });
 
 export default {};

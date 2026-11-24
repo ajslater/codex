@@ -37,7 +37,8 @@ export default {
   data() {
     // A new key per notice remounts the snackbar, which starts its timer
     // only when it opens: a notice replacing one still showing would
-    // otherwise close on the first one's time.
+    // otherwise close on the first one's time. A clear keeps the key, so
+    // the snackbar animates shut.
     return { TIMEOUT: 4000, ERROR_TIMEOUT: 8000, noticeKey: 0 };
   },
   computed: {
@@ -52,8 +53,8 @@ export default {
     },
   },
   watch: {
-    notice() {
-      this.noticeKey += 1;
+    notice(notice) {
+      if (notice.text) this.noticeKey += 1;
     },
   },
   methods: {
