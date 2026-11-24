@@ -14,6 +14,7 @@ from django.contrib.auth.models import User
 from codex.librarian.scribe.readinglists.documents import to_json
 from codex.librarian.scribe.readinglists.service import (
     SourceSpec,
+    combine_lists,
     import_document,
     remove_source,
 )
@@ -103,3 +104,44 @@ class LastSourceTests(ReadingListFixture):
         assert entry.source_ids == []
         result = remove_comics(reading_list, [c3.pk])
         assert (result["removed"], result["hidden"]) == (1, 0)
+
+
+class CombineHandMadeTests(ReadingListFixture):
+    """
+    Combining lists no source feeds, such as two Copy to Global lists.
+
+    Older than this branch: the sourceless path ignored the edits a combine
+    passes, so the absorbed lists went and so did their entries.
+    """
+
+    def _hand_made(self, name: str, *comics) -> ReadingList:
+        reading_list = ReadingList.objects.create(name=name)
+        for position, comic in enumerate(comics):
+            ReadingListEntry.objects.create(
+                reading_list=reading_list,
+                position=position,
+                comic=comic,
+                series_name="" if comic else "Civil War",
+                issue="" if comic else "9",
+                match_tier=ReadingListMatchTier.MANUAL
+                if comic
+                else ReadingListMatchTier.NONE,
+                manual=True,
+            )
+        return reading_list
+
+    def test_the_absorbed_lists_entries_come_along(self) -> None:
+        """Each issue comes once, the primary's order first."""
+        c1, c2, c3, _ = self.comics
+        primary = self._hand_made("Primary", c1, c2)
+        other = self._hand_made("Other", c2, c3, None)
+        combine_lists(primary, [other])
+        assert not ReadingList.objects.filter(pk=other.pk).exists()
+        assert _comics(primary) == [c1.pk, c2.pk, c3.pk, None]
+        assert list(_entries(primary).values_list("position", flat=True)) == [
+            0,
+            1,
+            2,
+            3,
+        ]
+        assert all(entry.manual for entry in _entries(primary))

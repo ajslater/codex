@@ -27,7 +27,7 @@ from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import groupby
-from operator import itemgetter
+from operator import attrgetter, itemgetter
 from typing import Any, Final
 
 from comicbox.readinglists import combine
@@ -432,6 +432,46 @@ def _recombine_hand_made(
     return len(kept)
 
 
+def _carried(overlay: Overlay) -> list[ReadingListEntry]:
+    """
+    Return the combined lists' hand-added entries, list by list, in order.
+
+    A comic an earlier list holds comes once; a list's own repeat stays.
+    """
+    held: set[int] = set()
+    carried: list[ReadingListEntry] = []
+    entries = (entry for _, entry in overlay.manual)
+    for _, run in groupby(entries, key=attrgetter("reading_list_id")):
+        own = list(run)
+        carried.extend(entry for entry in own if entry.comic_id not in held)  # pyright: ignore[reportAttributeAccessIssue]
+        held.update(entry.comic_id for entry in own if entry.comic_id is not None)  # pyright: ignore[reportAttributeAccessIssue]
+    return carried
+
+
+def _combine_hand_made(
+    reading_list: ReadingList, overlay: Overlay, matcher: ListMatcher
+) -> int:
+    """
+    Combine lists no source feeds, such as two copies.
+
+    The primary's hand-added entries come first, then each other list's;
+    the rows of a source none of them has any more go, as for one list.
+    """
+    new_entries = [
+        _copy_manual(reading_list, entry, position)
+        for position, entry in enumerate(_carried(overlay))
+    ]
+    _heal_manual(new_entries, matcher)
+    with transaction.atomic():
+        ReadingListEntry.objects.filter(
+            reading_list=reading_list, live_source__isnull=True
+        ).delete()
+        ReadingListEntry.objects.bulk_create(new_entries, batch_size=_BATCH)
+        reading_list.save()
+        reconcile_list(reading_list)
+    return len(new_entries)
+
+
 def recombine(
     reading_list: ReadingList,
     matcher: ListMatcher | None = None,
@@ -457,7 +497,12 @@ def recombine(
         ).order_by("position", "pk")
     )
     if not sources:
-        size = _recombine_hand_made(reading_list, entries, matcher)
+        # Combining lists passes their edits; one list's are its entries.
+        size = (
+            _recombine_hand_made(reading_list, entries, matcher)
+            if overlay is None
+            else _combine_hand_made(reading_list, overlay, matcher)
+        )
         reconcile_includers(reading_list)
         return size
     if overlay is None:
