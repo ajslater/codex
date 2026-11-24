@@ -76,9 +76,11 @@ def _readable(
     query = ComicFieldFilterView.get_all_comic_field_filters("", within, request.user)
     if not query:
         return comic_pks
-    return set(
-        Comic.objects.filter(query, pk__in=comic_pks).values_list("pk", flat=True)
-    )
+    return {
+        pk
+        for batch in batched(comic_pks, PK_BATCH)
+        for pk in Comic.objects.filter(query, pk__in=batch).values_list("pk", flat=True)
+    }
 
 
 def _continue_from(

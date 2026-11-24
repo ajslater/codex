@@ -23,10 +23,10 @@ from codex.librarian.scribe.readinglists.matcher import _series_and_pending
 from codex.librarian.scribe.readinglists.references import PK_BATCH
 from codex.librarian.scribe.readinglists.write import ArcWrite
 from codex.migrations._0061_shelves_to_lists import _ShelfList
-from codex.models import Bookmark, ReadingList
+from codex.models import Bookmark, Genre, ReadingList
 from codex.views.admin.reading_lists.table import _write
 from codex.views.browser.download import CollectionDownloadView
-from codex.views.readinglists.details import _bookmarks
+from codex.views.readinglists.details import _bookmarks, _readable
 from tests.test_reading_lists import ReadingListFixture
 
 # One batch and the query's own few values fit; twice the limit does not.
@@ -58,6 +58,16 @@ class BoundVariableTests(ReadingListFixture):
         with _variable_limit(_LIMIT):
             rows = _bookmarks(request, [comic.pk, *_MANY])
         assert rows[comic.pk] == (3, False)
+
+    def test_continues_filtered_comics(self) -> None:
+        """Continue's filter read, with a filter set (B11's, from develop)."""
+        genre = Genre.objects.create(name="Event")
+        comic = self.comics[0]
+        comic.genres.add(genre)
+        request = SimpleNamespace(user=User.objects.create_user(username="f"))
+        with _variable_limit(_LIMIT):
+            readable = _readable(request, [comic.pk, *_MANY], {"genres": [genre.pk]})
+        assert set(readable) == {comic.pk}
 
     def test_the_matchers_pending_check(self) -> None:
         comic = self.comics[0]
