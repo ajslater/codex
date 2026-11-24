@@ -557,8 +557,15 @@ def _save_items(
     ReadingListSource.objects.bulk_update(items, _ITEM_FIELDS, batch_size=_BATCH)
 
 
-def _lock(reading_list: ReadingList) -> None:
-    """Take the write lock first, before reading what to write."""
+def lock_list(reading_list: ReadingList) -> None:
+    """
+    Take the write lock first, before reading what to write.
+
+    Call it first in a transaction that reads and then writes. SQLite
+    starts one deferred, and under WAL a transaction that read before
+    another connection committed cannot write: SQLITE_BUSY_SNAPSHOT, at
+    once, whatever the busy timeout.
+    """
     ReadingList.objects.filter(pk=reading_list.pk).update(updated_at=F("updated_at"))
 
 
@@ -590,7 +597,7 @@ def reconcile_list(reading_list: ReadingList) -> bool:
     re-read each time.
     """
     with transaction.atomic():
-        _lock(reading_list)
+        lock_list(reading_list)
         items = list(
             ReadingListSource.objects.filter(
                 reading_list=reading_list, **items_q()

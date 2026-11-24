@@ -18,6 +18,7 @@ from rest_framework.response import Response
 from codex.librarian.scribe.readinglists.live import (
     COLLECTION_KIND,
     LABEL_KEY,
+    lock_list,
     reconcile_includers,
     reconcile_list,
     renumber,
@@ -291,6 +292,7 @@ def add_comics(
     if not new_entries and not hidden:
         return 0
     with transaction.atomic():
+        lock_list(reading_list)
         own.filter(ignored=True, comic_id__in=hidden).update(ignored=False)
         ordered = _order(reading_list)
         at = _boundary(ordered, position)
@@ -393,6 +395,7 @@ def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, An
     ]
     own = entries.filter(live_source__isnull=True)
     with transaction.atomic():
+        lock_list(reading_list)
         removed, _ = own.filter(manual=True).delete()
         hidden = own.filter(manual=False, ignored=False).update(ignored=True)
         if removed:
@@ -460,6 +463,7 @@ class ReadingListReorderView(ReadingListAccessView):
         item_pk = self.data_value("item")
         sourced = _is_sourced(reading_list)
         with transaction.atomic():
+            lock_list(reading_list)
             ordered = _order(reading_list)
             if item_pk is None:
                 entry_pk = to_pk(self.data_value("entry"), "entry")
