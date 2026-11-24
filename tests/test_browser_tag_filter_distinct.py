@@ -13,6 +13,7 @@ import json
 from typing import Final, override
 from unittest.mock import patch
 
+from cachalot.api import cachalot_disabled
 from django.contrib.auth.models import User
 from django.db import connection
 from django.test import Client
@@ -27,12 +28,9 @@ _PW: Final = "test-pw-hush-S106"
 _OK: Final = 200
 
 
-def _distinct_comics(queries: CaptureQueriesContext) -> bool:
+def _distinct_comics(queries: list[str]) -> bool:
     """Whether a page's comics were selected DISTINCT."""
-    return any(
-        'SELECT DISTINCT "codex_comic"."id"' in query["sql"]
-        for query in queries.captured_queries
-    )
+    return any('SELECT DISTINCT "codex_comic"."id"' in sql for sql in queries)
 
 
 class TagFilterDistinctTests(ReadingListFixture):
@@ -83,17 +81,22 @@ class TagFilterDistinctTests(ReadingListFixture):
 
     def _both_ways(self, filters: dict) -> list:
         """Return the page, after checking DISTINCT forced gives the same."""
-        with CaptureQueriesContext(connection) as plain:
+        # Cachalot would answer a repeated query without running it.
+        with cachalot_disabled(), CaptureQueriesContext(connection) as plain:
             now = self._page(filters)
+        # Read now: the next request clears the log they are read from.
+        plain_sql = [query["sql"] for query in plain.captured_queries]
         forced = property(lambda _self: True)
         with (
+            cachalot_disabled(),
             patch.object(BrowserFilterView, "comic_filter_uses_m2m", forced),
             CaptureQueriesContext(connection) as distinct,
         ):
             before = self._page(filters)
         assert now == before, (filters, now, before)
-        assert not _distinct_comics(plain)
-        assert _distinct_comics(distinct)
+        assert plain_sql
+        assert not _distinct_comics(plain_sql)
+        assert _distinct_comics([query["sql"] for query in distinct.captured_queries])
         return now[0]
 
     def test_any_of_two_characters(self) -> None:
