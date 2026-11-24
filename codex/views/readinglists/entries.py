@@ -45,6 +45,10 @@ from codex.views.readinglists.access import (
 )
 
 _CANDIDATE_LIMIT: Final = 50
+_TAGGED_REFUSAL: Final = (
+    "This issue's comic carries the list's story arc tag, so it stays that"
+    " comic. Hide it to leave it out, or take the arc tag off the comic."
+)
 _FILTERS: Final = {
     "review": Q(needs_review=True, ignored=False),
     "missing": MISSING_Q,
@@ -324,6 +328,10 @@ class ReadingListEntryView(ReadingListAccessView):
         return entry
 
     def _pick(self, entry: ReadingListEntry, comic_pk) -> None:
+        if entry.match_tier == ReadingListMatchTier.TAGGED.value:
+            # A recompute would put the tagged comic back, and the entry
+            # would stop being the list's own.
+            raise ValidationError(_TAGGED_REFUSAL)
         if comic_pk is None:
             # A person said the library does not have it: no rematch or
             # recombine may pick a comic for it again.
@@ -348,7 +356,8 @@ class ReadingListEntryView(ReadingListAccessView):
         if "comic" in data:
             self._pick(entry, data["comic"])
             # A pick replaces the comic a folded entry was added for: it is
-            # its source row's again, and the pick holds on that row.
+            # its source row's again, and the pick holds on that row, which
+            # is never a tagged one.
             entry.manual = entry.manual and not entry.source_ids
         if "ignored" in data:
             entry.ignored = bool(data["ignored"])

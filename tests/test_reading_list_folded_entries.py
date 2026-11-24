@@ -31,6 +31,7 @@ from tests.test_reading_lists import ReadingListFixture
 
 _PW: Final = "test-pw-hush-S106"
 _OK: Final = 200
+_BAD_REQUEST: Final = 400
 _LISTS: Final = "/api/v4/reading-lists"
 
 
@@ -170,6 +171,36 @@ class FoldedTagsTests(ReadingListFixture):
             number = patch_["arcs"][arc.name].get("number")
             self.tag(Comic.objects.get(pk=pk), arc.name, number)
         sync_tag_lists()
+        admin = User.objects.create_user(
+            username="admin", password=_PW, is_staff=True, is_superuser=True
+        )
+        self.client = Client()
+        self.client.force_login(admin)
+
+    def test_a_tagged_entry_keeps_its_comic(self) -> None:
+        """
+        A pick or a "not in library" on a tagged entry is refused.
+
+        The arc tag says which comic it is, so a recompute would put the
+        tagged comic back; the entry stays hand-added either way.
+        """
+        c1, c2, c3, c4 = self.comics
+        for comic in (c4.pk, None):
+            with self.subTest(comic=comic):
+                entry = _entries_of(self.reading_list, c2).get()
+                url = f"{_LISTS}/{self.reading_list.pk}/entries/{entry.pk}"
+                response = self.client.patch(
+                    url,
+                    data=json.dumps({"comic": comic}),
+                    content_type="application/json",
+                )
+                recombine(self.reading_list)
+                entry = _entries_of(self.reading_list, c2).get()
+                assert entry.manual
+                assert entry.comic_id == c2.pk
+                assert _shown(self.reading_list) == [c1.pk, c2.pk, c3.pk]
+                assert response.status_code == _BAD_REQUEST, response.content
+                assert "arc" in str(response.json()), response.content
 
     def test_it_reads_back_once(self) -> None:
         """The arc joins the list it was written from, comic for comic."""
