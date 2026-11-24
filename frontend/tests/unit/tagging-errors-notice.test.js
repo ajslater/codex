@@ -3,12 +3,19 @@
  *
  * These caught errors with ``setErrors``, which fills ``form.errors``, and
  * nothing on the Tagging tab, the launcher or the status table renders that:
- * a refused scan or Resume just stopped spinning.
+ * a refused scan or Resume just stopped spinning, and a refused key save
+ * kept the key but not the reason.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
+vi.mock("@/api/v4/admin", async (importOriginal) => ({
+  ...(await importOriginal()),
+  updateTaggingDefaults: vi.fn(),
+}));
+
+import * as API from "@/api/v4/admin";
 import TaggingStatusTable from "@/components/admin/tabs/tagging-status-table.vue";
 import OnlineTagLauncherDialog from "@/components/online-tag/launcher-dialog.vue";
 import vuetify from "@/plugins/vuetify";
@@ -54,5 +61,19 @@ describe("a refused tagging request", () => {
     await wrapper.vm.confirmResume();
     await wrapper.vm.confirmPause();
     expect(useCommonStore().setErrorNotice).toHaveBeenCalledTimes(2);
+  });
+
+  test("a refused defaults save shows its reason and says it failed", async () => {
+    createTestingPinia({
+      stubActions: false,
+      initialState: { auth: { user: { pk: 1, isStaff: true } } },
+    });
+    const common = useCommonStore();
+    common.setErrorNotice = vi.fn();
+    API.updateTaggingDefaults.mockRejectedValue(REFUSED);
+    expect(
+      await useAdminStore().updateTaggingDefaults({ metronKey: "x" }),
+    ).toBe(false);
+    expect(common.setErrorNotice).toHaveBeenCalledWith(REFUSED);
   });
 });

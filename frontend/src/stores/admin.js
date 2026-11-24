@@ -387,7 +387,8 @@ export const useAdminStore = defineStore("admin", {
         commonStore.clearErrors();
         return true;
       } catch (error) {
-        commonStore.setErrors(error);
+        // The Tagging tab renders no form errors: say why in a notice.
+        commonStore.setErrorNotice(error);
         return false;
       }
     },
