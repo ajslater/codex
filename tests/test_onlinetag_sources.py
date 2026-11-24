@@ -243,6 +243,40 @@ class UnregisteredSourceEndpointTests(TestCase):
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
 
+class StoredUnregisteredSourceTests(TestCase):
+    """
+    A stored source name outside the registry does not lock the Tagging tab.
+
+    A restore writes ``default_sources`` without the write validation, so a
+    backup naming a source this build does not register put it in the row.
+    The tab then sent it back with every auto-save, and each one was a 400.
+    """
+
+    @override
+    def setUp(self) -> None:
+        self.client = Client()
+        self.client.force_login(_make_admin())
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"metron_key": "m", "default_sources": ["metron", _UNREGISTERED]},
+        )
+
+    def test_the_tab_can_save_what_it_was_given(self) -> None:
+        """The defaults read without the unknown name, so they save back."""
+        response = self.client.get(_DEFAULTS_URL)
+        assert response.status_code == HTTPStatus.OK, response.content
+        draft = response.json()["data"]
+        assert draft["defaultSources"] == ["metron"]
+        response = self.client.put(
+            _DEFAULTS_URL,
+            data=json.dumps(
+                {"defaultSources": draft["defaultSources"], "deleteOriginal": True}
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == HTTPStatus.OK, response.content
+
+
 class ConfiguredSourcesFieldTests(TestCase):
     """The tagging defaults report which supported sources have a key."""
 

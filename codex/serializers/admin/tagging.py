@@ -1,5 +1,7 @@
 """Comicbox tagging serializers."""
 
+from typing import override
+
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
     BooleanField,
@@ -284,6 +286,24 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     def validate_default_sources(value: list) -> list:
         """Require known source names; preserve the priority order."""
         return _validate_ordered_sources(value)
+
+    @override
+    def to_representation(self, instance) -> dict:
+        """
+        Read the defaults without a source this build does not register.
+
+        A restore writes ``default_sources`` past the write validation, and
+        a later build may register fewer sources. The Tagging tab sends what
+        it read back with every auto-save, so a name refused on write would
+        make each save a 400; the next save stores the list without it.
+        """
+        data = super().to_representation(instance)
+        data["default_sources"] = [
+            source
+            for source in data.get("default_sources") or ()
+            if source in KNOWN_SOURCES
+        ]
+        return data
 
     class Meta(BaseModelSerializer.Meta):
         """Specify model and fields."""
