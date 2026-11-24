@@ -1,5 +1,8 @@
 """Run reading list scribe tasks."""
 
+from time import time
+from typing import ClassVar
+
 from django.contrib.auth.models import User
 from django.db.models import Q
 
@@ -93,8 +96,25 @@ class ReadingListWorker(WorkerStatusBase):
             self.status_controller.finish(status)
             self._notify(changed=True)
 
+    # When the last full rematch began, in this process: one starts after
+    # the imports that queued it committed, so it covers every full
+    # rematch queued before it began.
+    _full_rematch_began: ClassVar[float] = 0.0
+
+    def _covered(self, task: ReadingListRematchTask) -> bool:
+        """Whether a full rematch since began after this one was queued."""
+        if task.list_pks:
+            return False
+        if task.queued_at < ReadingListWorker._full_rematch_began:
+            self.log.debug("A full reading list rematch since covers this one.")
+            return True
+        ReadingListWorker._full_rematch_began = time()
+        return False
+
     def rematch_lists(self, task: ReadingListRematchTask) -> None:
         """Match missing entries again across the given lists, or every list."""
+        if self._covered(task):
+            return
         lists = ReadingList.objects.filter(
             Q(
                 entries__comic__isnull=True,
@@ -116,7 +136,8 @@ class ReadingListWorker(WorkerStatusBase):
                 self.status_controller.update(status)
         finally:
             self.status_controller.finish(status)
-            self._notify(changed=bool(found))
+            if found:
+                self._notify(changed=True)
         if found:
             self.log.info(f"Matched {found} reading list issues.")
 
@@ -129,7 +150,8 @@ class ReadingListWorker(WorkerStatusBase):
             changed = sync_live(force=task.force, list_pks=task.list_pks or None)
         finally:
             self.status_controller.finish(status)
-            self._notify(changed=bool(changed))
+            if changed:
+                self._notify(changed=True)
         if changed:
             self.log.info(f"Synced the collections of {changed} reading lists.")
 

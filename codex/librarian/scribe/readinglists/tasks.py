@@ -1,6 +1,7 @@
 """Reading list scribe tasks: write what the fetcher or the admin delivered."""
 
 from dataclasses import dataclass, field
+from time import time
 from typing import Any
 
 from codex.librarian.scribe.tasks import ScribeTask
@@ -41,9 +42,15 @@ class ReadingListRecombineTask(ScribeTask):
 
 @dataclass
 class ReadingListRematchTask(ScribeTask):
-    """Match missing entries again. No pks means every list with any."""
+    """
+    Match missing entries again. No pks means every list with any.
+
+    ``queued_at`` lets a full rematch already run since stand in for this
+    one: imports outrank rematches, so a burst of them queues several.
+    """
 
     list_pks: tuple[int, ...] = field(default_factory=tuple)
+    queued_at: float = field(default_factory=time)
 
 
 @dataclass
