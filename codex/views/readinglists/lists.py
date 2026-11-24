@@ -34,7 +34,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from codex.choices.limits import MAX_NAME_LEN
-from codex.librarian.scribe.readinglists.combine import document_of
+from codex.librarian.scribe.readinglists.combine import document_header
 from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS, from_json
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.librarian.scribe.readinglists.service import copy_list
@@ -148,7 +148,7 @@ def export_document(reading_list: ReadingList, shown_q: Q) -> dict[str, Any]:
 
     ``shown_q`` picks the entries the exporter sees.
     """
-    document = document_of(reading_list)
+    document = document_header(reading_list)
     document[ENTRIES_KEY] = _export_entries(reading_list, shown_q)
     document[SOURCES_KEY] = _export_sources(reading_list)
     return from_json(document)
