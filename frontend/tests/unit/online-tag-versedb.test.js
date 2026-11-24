@@ -96,6 +96,7 @@ describe("Tagging tab — VerseDB card", () => {
         ...store.taggingDefaults,
         configuredSources: ALL,
       };
+      return true;
     });
 
     vm.keys.versedb = "token";
