@@ -12,7 +12,13 @@
       @delete="onDelete"
     >
       <template #menu="{ item }">
-        <v-list-item title="Open" @click="open(item)" />
+        <!-- An empty list has no page to open: off, and says why. -->
+        <v-list-item
+          title="Open"
+          :disabled="!item.count"
+          :subtitle="item.count ? '' : emptyOpenHint"
+          @click="open(item)"
+        />
         <v-list-item title="Edit Issues" @click="edit(item)" />
         <v-list-item title="Duplicate" @click="onDuplicate(item.pk)" />
         <ReadingListExportMenu :pk="item.pk" />
@@ -84,6 +90,7 @@ export default {
     return {
       maxLength: LIMITS.maxNameLen,
       mdiPlus,
+      emptyOpenHint: "Empty. Add issues from any Reading Lists menu.",
       createError: "",
       creating: false,
       editing: null,
@@ -140,6 +147,8 @@ export default {
       if (await this.duplicateList(pk)) await this.refreshBrowserPage();
     },
     open(item) {
+      // An empty list does not resolve: the browser would bounce it.
+      if (!item.count) return;
       const route = {
         name: "browser",
         params: { collection: ARCS, pks: String(item.pk), page: 1 },

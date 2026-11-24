@@ -161,6 +161,21 @@ describe("BrowserSettingsReadingLists", () => {
     );
   });
 
+  test("an empty list's Open is off, and says why in words", async () => {
+    // Opening an empty list bounced to the list of lists with no message.
+    const lists = [
+      { pk: 2, name: "Nothing Yet", personal: true, count: 0, editable: true },
+    ];
+    const { wrapper } = mountBlock({ lists });
+    const items = await openRowMenu(wrapper);
+    const open = items.find((item) => itemTitle(item) === "Open");
+    expect(open.classList).toContain("v-list-item--disabled");
+    expect(open.textContent).toContain("Add issues from any Reading Lists menu");
+    open.click();
+    await flushPromises();
+    expect(useBrowserStore().routeWithSettings).not.toHaveBeenCalled();
+  });
+
   test("edit opens the entry editor without admin powers", async () => {
     const { wrapper } = mountBlock();
     await clickMenuItem(wrapper, "Edit Issues");
