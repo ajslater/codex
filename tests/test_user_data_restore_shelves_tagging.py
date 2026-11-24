@@ -5,6 +5,8 @@ Split from ``test_user_data_restore`` with the same sidecar fixture.
 """
 
 import sqlite3
+from collections.abc import Iterable
+from pathlib import Path
 
 from codex.models import Comic, ReadingList, ReadingListEntry, Series, Volume
 from codex.user_data.identifiers import encode_identifier
@@ -143,3 +145,85 @@ class TaggingDefaultsRoundTripTests(_SidecarRestoreCase):
             defaults.default_effort,
             defaults.rename_files,
         ) == (True, "thorough", True)
+
+
+def _old_dump(snapshot: Path, table: str, dropped: Iterable[str]) -> Path:
+    """
+    Write a backup as an older release did: a SQL dump lacking some columns.
+
+    A restore replays a dump into a scratch database and adds the columns a
+    later release introduced, so only the dump itself says what it carried.
+    """
+    conn = sqlite3.connect(snapshot)
+    try:
+        for column in dropped:
+            conn.execute(f"ALTER TABLE {table} DROP COLUMN {column}")
+        conn.commit()
+        dump = snapshot.with_name("old-backup.sql")
+        dump.write_text("\n".join(conn.iterdump()), encoding="utf-8")
+    finally:
+        conn.close()
+    return dump
+
+
+class OldBackupDefaultsTests(_SidecarRestoreCase):
+    """A backup older than a setting leaves that setting as it is."""
+
+    def test_old_tagging_defaults_leave_the_newer_ones_alone(self) -> None:
+        """Merge all sources, file renaming, the effort and a VerseDB key stay."""
+        from codex.models.admin import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.update_or_create(pk=1, defaults={})
+        dump = _old_dump(
+            self._snapshot_sidecar(),
+            "tagging_defaults",
+            ("default_effort", "merge_all_sources", "rename_files", "versedb_key"),
+        )
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(
+            merge_all_sources=True,
+            rename_files=True,
+            default_effort="thorough",
+            versedb_key="vdb-token",
+        )
+
+        restore(sidecar_path=dump)
+
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert (
+            defaults.merge_all_sources,
+            defaults.rename_files,
+            defaults.default_effort,
+            defaults.versedb_key,
+        ) == (True, True, "thorough", "vdb-token")
+
+    def test_old_settings_defaults_leave_the_newer_ones_alone(self) -> None:
+        """A site default the backup did not carry keeps its value."""
+        from codex.models.admin import SettingsDefaults
+
+        SettingsDefaults.objects.update_or_create(pk=1, defaults={"cache_book": False})
+        dump = _old_dump(self._snapshot_sidecar(), "settings_defaults", ("cache_book",))
+        SettingsDefaults.objects.filter(pk=1).update(cache_book=True)
+
+        restore(sidecar_path=dump)
+
+        assert SettingsDefaults.objects.get(pk=1).cache_book
+
+    def test_a_binary_backup_is_left_as_written(self) -> None:
+        """Restoring adds no column to the backup, so it says the same next time."""
+        from codex.models.admin import ComicboxTaggingDefaults
+
+        ComicboxTaggingDefaults.objects.update_or_create(pk=1, defaults={})
+        snapshot = self._snapshot_sidecar()
+        conn = sqlite3.connect(snapshot)
+        conn.execute("ALTER TABLE tagging_defaults DROP COLUMN rename_files")
+        conn.commit()
+        conn.close()
+
+        restore(sidecar_path=snapshot)
+
+        conn = sqlite3.connect(snapshot)
+        columns = {
+            row[1] for row in conn.execute("PRAGMA table_info(tagging_defaults)")
+        }
+        conn.close()
+        assert "rename_files" not in columns

@@ -18,6 +18,7 @@ import sqlite3
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
 
 from loguru import logger
@@ -152,21 +153,28 @@ def _resolve_sidecar(
 
 def _materialize(path: Path) -> tuple[Path, Callable[[], None]]:
     """
-    Return a path to a readable SQLite sidecar, decompressing SQL dumps as needed.
+    Return a path to a readable SQLite copy of a backup, cleaned up after.
 
-    A ``.sql.xz`` / ``.sql`` dump is replayed into a temp SQLite DB (cleaned up
-    by the returned callable). A binary sidecar is used in place.
+    A ``.sql.xz`` / ``.sql`` dump is replayed into a temp SQLite DB, and a
+    binary sidecar is copied into one. Opening the store adds the columns a
+    later release introduced, so the backup itself must stay as written: the
+    next restore reads from it what it really carried.
     """
-    if path.name.endswith((".sql.xz", ".sql")):
-        tmpdir = tempfile.TemporaryDirectory(prefix="codex-restore-")
-        db_path = Path(tmpdir.name) / "sidecar.sqlite"
-        conn = sqlite3.connect(db_path)
-        try:
+    tmpdir = tempfile.TemporaryDirectory(prefix="codex-restore-")
+    db_path = Path(tmpdir.name) / "sidecar.sqlite"
+    conn = sqlite3.connect(db_path)
+    try:
+        if path.name.endswith((".sql.xz", ".sql")):
             conn.executescript(read_text_maybe_xz(path))
-        finally:
-            conn.close()
-        return db_path, tmpdir.cleanup
-    return path, lambda: None
+        else:
+            source = sqlite3.connect(path)
+            try:
+                source.backup(conn)
+            finally:
+                source.close()
+    finally:
+        conn.close()
+    return db_path, tmpdir.cleanup
 
 
 # ── Per-table restorers ──────────────────────────────────────────────
@@ -407,16 +415,11 @@ def _restore_timestamps(
         report.note_written("timestamps")
 
 
-# Booleans a backup older than v2.8.0 does not carry; the model default stands.
-_TAGGING_FLAGS: Final = ("merge_all_sources", "rename_files")
-
-
-def _build_tagging_defaults(row) -> dict[str, Any]:
-    """Map a sidecar tagging_defaults row to ``update_or_create`` defaults."""
-    # Plain string/scalar fields coalesced to a non-null fallback. Kept as a
-    # ``{column: fallback}`` map so the null-coalescing ``or`` lives in one
-    # comprehension rather than once per field (keeps complexity low).
-    coalesced: dict[str, Any] = {
+# Tagging default columns, by how a value is read. Any one a backup did not
+# carry leaves the stored setting alone: a backup older than a setting has
+# nothing to say about it.
+_TAGGING_TEXT: Final = MappingProxyType(
+    {
         "default_match_mode": "auto",
         "default_prompts_mode": "ask",
         "default_effort": "",
@@ -425,25 +428,29 @@ def _build_tagging_defaults(row) -> dict[str, Any]:
         "comicvine_url": "",
         "versedb_key": "",
     }
-    # ``sqlite3.Row`` raises on a missing column, so skip what a sidecar
-    # predating a column doesn't carry (e.g. metron_key, versedb_key) and let
-    # the model default stand.
-    cols = set(row.keys())
+)
+_TAGGING_JSON: Final = ("default_formats", "default_sources")
+_TAGGING_FLAGS: Final = ("delete_original", "merge_all_sources", "rename_files")
+
+
+def _build_tagging_defaults(row, carried: frozenset[str]) -> dict[str, Any]:
+    """
+    Map a sidecar tagging_defaults row to ``update_or_create`` defaults.
+
+    ``carried`` is what the backup itself had: the sidecar store adds a
+    newer column to an older file with its default, so a column the row
+    shows is not proof the backup set it. Columns this release dropped,
+    such as ``metron_url`` or ``active_session_id``, are not read at all.
+    """
     defaults: dict[str, Any] = {
-        key: row[key] or fallback for key, fallback in coalesced.items() if key in cols
+        key: row[key] or fallback
+        for key, fallback in _TAGGING_TEXT.items()
+        if key in carried
     }
-    defaults["default_formats"] = json.loads(row["default_formats"] or "[]")
-    defaults["default_sources"] = json.loads(row["default_sources"] or "[]")
-    defaults["delete_original"] = bool(row["delete_original"])
-    for flag in _TAGGING_FLAGS:
-        if flag in cols:
-            defaults[flag] = bool(row[flag])
-    # ``active_session_id`` / ``active_prompts`` used to be on this row before
-    # they moved to the Django cache as transient state, ``metron_url``
-    # before that no-op override was removed for good, and ``metron_user`` /
-    # ``metron_password`` until Metron took only an API key. Older sidecar
-    # backups still carry those columns — since this comprehension walks
-    # ``coalesced`` rather than the row, they are silently ignored.
+    defaults.update(
+        {key: json.loads(row[key] or "[]") for key in _TAGGING_JSON if key in carried}
+    )
+    defaults.update({key: bool(row[key]) for key in _TAGGING_FLAGS if key in carried})
     return defaults
 
 
@@ -460,35 +467,37 @@ def _restore_tagging_defaults(
     if dry_run:
         report.note_written("tagging_defaults")
         return
+    carried = store.carried_columns("tagging_defaults")
     ComicboxTaggingDefaults.objects.update_or_create(
-        pk=1, defaults=_build_tagging_defaults(row)
+        pk=1, defaults=_build_tagging_defaults(row, carried)
     )
     report.note_written("tagging_defaults")
 
 
-def _build_settings_defaults(row) -> dict[str, Any]:
-    """Map a sidecar settings_defaults row to ``update_or_create`` defaults."""
+def _build_settings_defaults(row, carried: frozenset[str]) -> dict[str, Any]:
+    """
+    Map a sidecar settings_defaults row to ``update_or_create`` defaults.
+
+    ``carried`` is what the backup itself had; see the tagging defaults.
+    """
     from codex.choices.browser import clean_table_columns
     from codex.user_data.serializers import (
         SETTINGS_DEFAULTS_BOOLS,
         SETTINGS_DEFAULTS_TEXT,
     )
 
-    # ``sqlite3.Row`` raises on a missing column; let the model default stand
-    # for anything a sidecar predating the column doesn't carry.
-    cols = set(row.keys())
     defaults: dict[str, Any] = {
         key: row[key]
         for key in SETTINGS_DEFAULTS_TEXT
-        if key in cols and row[key] is not None
+        if key in carried and row[key] is not None
     }
     defaults.update(
-        {key: bool(row[key]) for key in SETTINGS_DEFAULTS_BOOLS if key in cols}
+        {key: bool(row[key]) for key in SETTINGS_DEFAULTS_BOOLS if key in carried}
     )
     # Retired sort keys and columns are renamed, as the per-user rows are.
     if "order_by" in defaults:
         defaults["order_by"] = _rename_sort_key(defaults["order_by"])
-    if "table_columns" in cols:
+    if "table_columns" in carried:
         table_columns = _rename_table_columns(row["table_columns"])
         defaults["table_columns"], _ = clean_table_columns(table_columns)
     return defaults
@@ -545,7 +554,9 @@ def _restore_settings_defaults(
 
     rows = store.fetchall("settings_defaults")
     defaults = (
-        _build_settings_defaults(rows[0]) if rows else _legacy_settings_defaults(store)
+        _build_settings_defaults(rows[0], store.carried_columns("settings_defaults"))
+        if rows
+        else _legacy_settings_defaults(store)
     )
     if defaults is None:
         return
