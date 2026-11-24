@@ -16,7 +16,7 @@ from rest_framework.serializers import (
 from codex.choices.limits import MAX_NAME_LEN
 from codex.choices.tagging import NAMED_WRITE_FORMATS, WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
-from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES, configured_sources
+from codex.librarian.onlinetag.sources import configured_sources
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -121,16 +121,21 @@ class OnlineTagStartSerializer(Serializer):
 
     collection = CharField()
     pks = ListField(child=CharField())
-    sources = ListField(
-        child=CharField(), required=False, default=list(SUPPORTED_SOURCES)
-    )
+    # Omitted: the sources with keys, in the admin's default order.
+    sources = ListField(child=CharField(), required=False)
     mode = ChoiceField(
         choices=ComicboxTaggingDefaults.MatchModeChoices.values,
         required=False,
         default="auto",
     )
     # None falls back to the admin default, like the flags below.
-    effort = CharField(required=False, default=None, allow_null=True)
+    effort = ChoiceField(
+        choices=ComicboxTaggingDefaults.EffortChoices.values,
+        required=False,
+        default=None,
+        allow_null=True,
+        allow_blank=True,
+    )
     prompts_mode = CharField(required=False, default="ask")
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.

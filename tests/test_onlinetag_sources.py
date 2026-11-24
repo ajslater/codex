@@ -155,10 +155,11 @@ class UnregisteredSourceDefaultsTests(SimpleTestCase):
     def test_the_frontend_is_offered_the_supported_sources(self) -> None:
         assert TAGGING_CHOICES["sources"] == SUPPORTED_SOURCES
 
-    def test_a_start_request_without_sources_uses_the_supported_ones(self) -> None:
+    def test_a_start_request_without_sources_leaves_them_to_the_view(self) -> None:
+        """The view picks the keyed sources; see test_onlinetag_start_validation."""
         serializer = OnlineTagStartSerializer(data={"collection": "c", "pks": ["1"]})
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["sources"] == list(SUPPORTED_SOURCES)
+        assert "sources" not in serializer.validated_data
 
     def test_a_task_defaults_to_the_supported_sources(self) -> None:
         task = BulkOnlineTagTask(comic_pks=frozenset({1}), session_id="s")
