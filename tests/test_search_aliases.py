@@ -7,9 +7,7 @@ language, and ``a:`` did.
 """
 
 from codex.choices.search import FIELDMAP, SEARCH_FIELDS
-from codex.views.browser.filters.search.parse import (
-    _ALIAS_FIELD_MAP,  # pyright: ignore[reportPrivateUsage]
-)
+from codex.views.browser.filters.search.parse import _ALIAS_FIELD_MAP
 
 
 def test_every_alias_entry_is_a_tuple() -> None:

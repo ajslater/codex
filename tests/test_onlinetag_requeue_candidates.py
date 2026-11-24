@@ -7,6 +7,7 @@ were the representative's issues: choosing one again pinned its issue id,
 and wrote that issue's tags onto a different comic.
 """
 
+from typing import Any
 from unittest.mock import MagicMock
 
 from django.core.cache import caches
@@ -15,6 +16,7 @@ from loguru import logger
 
 from codex.librarian.onlinetag.prompt_apply import PromptApplier
 from codex.librarian.onlinetag.session_cache import get_pending_prompts
+from tests.onlinetag_session_fakes import double
 
 _FINGERPRINT = "series-fingerprint"
 
@@ -24,7 +26,7 @@ class RequeueCandidatesTests(TestCase):
 
     def test_the_requeued_prompt_drops_the_old_candidates(self) -> None:
         caches["tagging"].clear()
-        prompt = {
+        prompt: dict[str, Any] = {
             "fingerprint": _FINGERPRINT,
             "source": "metron",
             "pk": 1,
@@ -39,7 +41,7 @@ class RequeueCandidatesTests(TestCase):
                 {"source": "metron", "issue_id": 222, "summary": {"issue": "1"}},
             ],
         }
-        applier = PromptApplier(logger, MagicMock(), lambda: None)
+        applier = PromptApplier(double(logger), MagicMock(), lambda: None)
         applier._requeue_untransferable(prompt, prompt["comics"][1:])  # noqa: SLF001
         requeued = get_pending_prompts()[_FINGERPRINT]
         assert [comic["pk"] for comic in requeued["comics"]] == [2, 3]

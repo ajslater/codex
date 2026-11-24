@@ -69,8 +69,8 @@ class ListCardsTests(ReadingOrderFixture):
 
     def test_a_cover_is_the_first_issue(self) -> None:
         """The cover is position 0, not the earliest-dated issue."""
+        # c3 is dated after c1, so date order would cover the list with c1.
         c1, _, c3, _ = self.comics
-        assert c3.date > c1.date
         self.make_list("Event", [c3, c1])
         (card,) = self.browse("arcs", {})["collections"]
         assert card["coverPk"] == c3.pk

@@ -132,6 +132,23 @@ def _best_of(
     return None if best is None else best[1]
 
 
+def _live_first(pool: list, pending: Collection[int]) -> list:
+    """Return the found comics not pending delete, or all if every one is."""
+    return [comic for comic in pool if comic.path not in pending] or pool
+
+
+def _series_and_pending(
+    comic_pks: Collection[int],
+) -> tuple[dict[int, int | None], set[int]]:
+    """Return each comic's series, and the comics pending delete."""
+    rows = Comic.objects.filter(pk__in=comic_pks).values_list(
+        "pk", "series_id", "missing_since"
+    )
+    series_of = {pk: series_pk for pk, series_pk, _ in rows}
+    pending = {pk for pk, _, missing_since in rows if missing_since is not None}
+    return series_of, pending
+
+
 class SeriesNameIndex:
     """Library series by every name variant; read-only, so it can be shared."""
 
@@ -269,8 +286,7 @@ class ListMatcher:
     ) -> EntryMatch:
         """Choose among the comics comicbox found for one entry, live first."""
         sure = [comic for comic in found.comics if not comic.ambiguous]
-        pool = sure or list(found.comics)
-        pool = [comic for comic in pool if comic.path not in pending] or pool
+        pool = _live_first(sure or list(found.comics), pending)
         strongest = min(pool, key=lambda comic: list(FoundBy).index(comic.by))
         best = [comic.path for comic in pool if comic.by == strongest.by]
         comic_pk = min(best)
@@ -291,11 +307,7 @@ class ListMatcher:
         if not candidate_pks:
             return
         candidates = comic_candidates(candidate_pks)
-        rows = Comic.objects.filter(pk__in=candidate_pks).values_list(
-            "pk", "series_id", "missing_since"
-        )
-        series_of = {pk: series_pk for pk, series_pk, _ in rows}
-        pending = {pk for pk, _, missing_since in rows if missing_since is not None}
+        series_of, pending = _series_and_pending(candidate_pks)
         entries = [typed_reference(reference) for reference in open_references]
         # comicbox types the keys as paths; any sortable key works, and pks
         # keep the lowest-pk choice deterministic.

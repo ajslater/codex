@@ -124,7 +124,7 @@ def test_the_daemon_delivers_a_pause_at_once() -> None:
     thread = MagicMock()
     daemon = SimpleNamespace(_threads=SimpleNamespace(online_tag_thread=thread))
     task = OnlineTagAbortTask(session_id=_SESSION_ID)
-    assert LibrarianDaemon._requeue(daemon, task)  # pyright: ignore[reportArgumentType]  # noqa: SLF001
+    assert LibrarianDaemon._requeue(daemon, task)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]  # noqa: SLF001
     thread.cancel_session.assert_called_once_with(_SESSION_ID)
     # Still queued, for a scan that starts after it.
     thread.queue.put.assert_called_once_with(task)

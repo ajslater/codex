@@ -178,6 +178,8 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         A list another user owns is indistinguishable from a missing one.
         """
         model = Comic if scope == _COMIC_SCOPE else _SCOPE_MAP[scope][2]
+        if model is None:
+            return
         user = self.request.user
         if model is ReadingList:
             visible = self.reading_list_visibility_filter(user)
