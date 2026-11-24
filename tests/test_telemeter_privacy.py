@@ -34,7 +34,11 @@ from codex.models.collections import Imprint, Publisher, Series, Volume
 from codex.models.comic import Comic
 from codex.models.identifier import Identifier, IdentifierSource, IdentifierType
 from codex.models.library import Library
-from codex.models.shelf import Shelf, ShelfItem
+from codex.models.readinglist import (
+    ReadingList,
+    ReadingListSource,
+    ReadingListSourceKind,
+)
 from tests.api_key_factory import make_api_key
 from tests.tmp_dirs import tmp_dir
 
@@ -57,7 +61,7 @@ _BUCKET_PATHS: Final = frozenset(
     {
         "stats.file_types",
         "stats.identifiers",
-        "stats.usage.shelf_items",
+        "stats.usage.list_items",
         "stats.tagging.default_sources",
         "stats.sessions.top_collection",
         "stats.sessions.order_by",
@@ -238,21 +242,27 @@ class TelemeterPrivacyTestCase(TestCase):
             url=f"https://{SENTINEL}.example.com/1",
         )
         cls._seed_comic(library)
-        cls._seed_shelf()
+        cls._seed_list()
 
     @staticmethod
-    def _seed_shelf() -> None:
+    def _seed_list() -> None:
         """
-        Put a sentinel in a shelf name and give the shelf an item.
+        Put a sentinel in a personal list's name and its item's identity.
 
-        A shelf's name is free text its user typed. The usage counts are
-        taken from the shelf tables, so without a row the sentinel walk
-        could not tell a count of shelves from a report of their names.
+        A list's name is free text its user typed, and an item's identity
+        holds library names and paths. The usage counts are taken from those
+        tables, so without a row the sentinel walk could not tell a count of
+        lists from a report of their names.
         """
         user = User.objects.create(username=f"{SENTINEL}-user")
-        shelf = Shelf.objects.create(user=user, name=f"{SENTINEL}-shelf")
-        ShelfItem.objects.create(
-            shelf=shelf, collection=Collection.SERIES.value, target_id=1
+        reading_list = ReadingList.objects.create(user=user, name=f"{SENTINEL}-list")
+        ReadingListSource.objects.create(
+            reading_list=reading_list,
+            kind=ReadingListSourceKind.COLLECTION,
+            collection=Collection.SERIES.value,
+            target_id=1,
+            ref=f'["{SENTINEL}-publisher"]',
+            document={"label": f"{SENTINEL}-series"},
         )
         # An API key's name is free text too, and its prefix is part of a
         # credential. One of each scope, seeded on the same user so the user
@@ -330,27 +340,31 @@ class TelemeterPrivacyTestCase(TestCase):
         )
         assert SENTINEL not in payload
 
-    def test_shelves_report_counts_only(self) -> None:
-        """Shelves are counted; the per-collection bucket is the only dict."""
+    def test_personal_lists_report_counts_only(self) -> None:
+        """Lists are counted; the per-collection bucket is the only dict."""
         usage = CodexStats().get()["usage"]
-        assert usage["shelf_count"] == 1
-        assert usage["shelf_user_count"] == 1
-        assert usage["shelf_item_count"] == 1
-        assert usage["shelf_items"] == {Collection.SERIES.value: 1}
+        assert usage["personal_list_count"] == 1
+        assert usage["personal_list_user_count"] == 1
+        assert usage["list_item_count"] == 1
+        assert usage["list_items"] == {Collection.SERIES.value: 1}
 
-    def test_an_unknown_shelf_collection_folds_into_other(self) -> None:
+    def test_an_unknown_item_collection_folds_into_other(self) -> None:
         """
-        The bucket's keys come from the shelf collection vocabulary.
+        The bucket's keys come from the item collection vocabulary.
 
         Every writer validates the column today, but the module clamps
         every other data-keyed bucket, and a stored value can be anything.
         """
-        shelf = Shelf.objects.get()
-        ShelfItem.objects.create(
-            shelf=shelf, collection=f"{SENTINEL}-collection", target_id=1
+        reading_list = ReadingList.objects.get()
+        ReadingListSource.objects.create(
+            reading_list=reading_list,
+            kind=ReadingListSourceKind.COLLECTION,
+            collection=f"{SENTINEL}-collection",
+            target_id=2,
+            ref="other",
         )
         usage = CodexStats().get()["usage"]
-        assert usage["shelf_items"] == {Collection.SERIES.value: 1, "other": 1}
+        assert usage["list_items"] == {Collection.SERIES.value: 1, "other": 1}
         assert SENTINEL not in json.dumps(usage)
 
     def test_api_keys_report_counts_only(self) -> None:

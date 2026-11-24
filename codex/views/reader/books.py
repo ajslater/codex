@@ -14,6 +14,7 @@ from codex.models.settings import SettingsReader
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.browser.filters.reading_lists import READING_LIST_KIND_FILTER
 from codex.views.const import (
     COLLECTION_RELATION,
     FOLDER_COLLECTION,
@@ -106,13 +107,32 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         """
         acl_filter = self.get_acl_filter(Comic, self.request.user, include_missing=True)
         nav_filter = {f"{rel}__in": self._selected_arc_ids}
+        if self._selected_arc_collection == STORY_ARC_COLLECTION:
+            # A hidden entry is not read in its list.
+            nav_filter["reading_list_entries__ignored"] = False
         query_filter = acl_filter & Q(**nav_filter)
-        if browser_filters := self.get_from_settings("filters", browser=True):
+        if browser_filters := self._browser_filters():
             # no search at this time.
             query_filter &= ComicFieldFilterView.get_all_comic_field_filters(
-                "", browser_filters
+                "", browser_filters, self.request.user
             )
         return query_filter
+
+    def _browser_filters(self) -> dict:
+        """
+        Return the browser's filters for reading next and previous.
+
+        Reading through a list ignores the Reading List Kind: it picks
+        lists, and inside one list it does nothing.
+        """
+        filters = self.get_from_settings("filters", browser=True) or {}
+        if self._selected_arc_collection == STORY_ARC_COLLECTION:
+            filters = {
+                key: value
+                for key, value in filters.items()
+                if key != READING_LIST_KIND_FILTER
+            }
+        return filters
 
     def _get_comics_annotation_and_ordering(
         self, model, ordering
@@ -146,9 +166,10 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         ordering = ()
 
         if self._selected_arc_collection == STORY_ARC_COLLECTION:
-            arc_index = F("story_arc_numbers__number")
-            prefetch_related = (*prefetch_related, rel)
-            ordering = ("arc_index", "date", "pk")
+            # The nav filter joins the list's entries, so this is the
+            # comic's position in the selected list, not in any other.
+            arc_index = F("reading_list_entries__position")
+            ordering = ("arc_index", "pk")
         elif self._selected_arc_collection == READER_REPRINT_COLLECTION:
             # ComicInfo AlternateNumber, split into its sortable parts by
             # ``Reprint.presave`` so "#2" reads before "#10". The nav
@@ -237,7 +258,9 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         # contributes to the ORDER BY but isn't selected, so the row
         # data transfer is just N ints rather than N fully-annotated
         # Comic instances.
-        pks = list(comics.values_list("pk", flat=True))
+        # A comic may sit in a reading list more than once; it reads at its
+        # first position, as it browses.
+        pks = list(dict.fromkeys(comics.values_list("pk", flat=True)))
         try:
             current_idx = pks.index(pk)
         except ValueError:

@@ -7,7 +7,11 @@ from codex.serializers.fields import (
     VuetifyDecadeField,
     VuetifyDecimalField,
 )
-from codex.serializers.fields.browser import BookmarkFilterField
+from codex.serializers.fields.browser import (
+    BookmarkFilterField,
+    MatchAllFilterField,
+    ReadingListKindFilterField,
+)
 from codex.serializers.fields.vuetify import (
     VuetifyFileTypeChoiceField,
     VuetifyListField,
@@ -20,6 +24,10 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = BookmarkFilterField(required=False)
+    reading_list_kind = VuetifyListField(child=ReadingListKindFilterField)
+    # Not a filter of comics: the tag-like filters set to match all ticked.
+    match_all = VuetifyListField(child=MatchAllFilterField)
+    # Retired with shelves: a client still sending one gets nothing.
     shelves = VuetifyListField()
     # Dynamic filters
     age_rating_metron = VuetifyListField()
@@ -39,13 +47,13 @@ class BrowserSettingsFilterInputSerializer(Serializer):
     monochrome = VuetifyListField(child=VuetifyBooleanField)
     original_format = VuetifyListField()
     reading_direction = VuetifyListField(child=VuetifyReadingDirectionChoiceField)
+    reading_lists = VuetifyListField()
     reprints = VuetifyListField()
     series_end_year = VuetifyListField()
     series_groups = VuetifyListField()
     series_start_year = VuetifyListField()
     series_status = VuetifyListField(child=VuetifySeriesStatusChoiceField)
     stories = VuetifyListField()
-    story_arcs = VuetifyListField()
     tagger = VuetifyListField()
     tags = VuetifyListField()
     teams = VuetifyListField()

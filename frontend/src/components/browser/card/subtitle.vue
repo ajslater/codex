@@ -1,5 +1,13 @@
 <template>
   <div class="browserLink cardSubtitle text-caption">
+    <!--
+      A reading list leads with its name, bold; its sources and how much
+      of it is here follow in grey. Other cards lead with their context
+      and end with their name.
+    -->
+    <div v-if="isList" class="displayName listName">
+      {{ displayName }}
+    </div>
     <div v-if="fileName" class="fileName">
       {{ fileName }}
     </div>
@@ -15,7 +23,13 @@
     <div v-if="item.collectionTitle">
       {{ item.collectionTitle }}
     </div>
-    <div class="displayName">
+    <div v-if="item.listSources" class="listSources">
+      {{ item.listSources }}
+    </div>
+    <div v-if="listCoverage" class="listCoverage" :title="listCoverageTitle">
+      {{ listCoverage }}
+    </div>
+    <div v-if="!isList" class="displayName">
       {{ displayName }}
     </div>
   </div>
@@ -40,6 +54,19 @@ export default {
     },
   },
   computed: {
+    isList() {
+      return this.item.collection === "arcs";
+    },
+    listCoverage() {
+      // A reading list with gaps: how much of it the library has.
+      const { listInLibrary, listTotal } = this.item;
+      if (!listTotal || listInLibrary >= listTotal) return "";
+      return `${listInLibrary} of ${listTotal}`;
+    },
+    listCoverageTitle() {
+      const { listInLibrary, listTotal } = this.item;
+      return `${listInLibrary} of the list's ${listTotal} issues are in the library`;
+    },
     ...mapState(useBrowserStore, {
       orderByFilename: (state) => state.settings.orderBy === "filename",
       orderByName: (state) => state.settings.orderBy === "sort_name",
@@ -138,5 +165,15 @@ export default {
 
 .displayName {
   min-height: 1em;
+}
+
+.listName {
+  font-weight: bold;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.listSources,
+.listCoverage {
+  color: rgb(var(--v-theme-text-disabled));
 }
 </style>

@@ -41,7 +41,7 @@ _ANON_READER_GLOBAL: Final = MappingProxyType(
         "comic__isnull": True,
         "series__isnull": True,
         "folder__isnull": True,
-        "story_arc__isnull": True,
+        "reading_list__isnull": True,
     }
 )
 # ``order_by`` first: its automatic-sort match reads each row's original top.

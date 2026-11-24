@@ -22,6 +22,7 @@ from django.core.cache import cache
 from django.db.models.functions.datetime import Now
 from django.test import Client, TestCase
 
+from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.models import Comic, Folder, Imprint, Library, Publisher, Series, Volume
 from codex.models.named import Reprint, StoryArc, StoryArcNumber
@@ -81,6 +82,7 @@ class ReaderVocabularyTestCase(TestCase):
         arc = StoryArc.objects.create(name="The Big One")
         san = StoryArcNumber.objects.create(story_arc=arc, number=1)
         self.comic.story_arc_numbers.add(san)
+        sync_tag_lists()
         self.user = User.objects.create_user(  # pyright: ignore[reportUninitializedInstanceVariable]
             username="reader_test", password=_TEST_PASSWORD
         )

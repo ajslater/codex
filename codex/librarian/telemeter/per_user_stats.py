@@ -78,7 +78,7 @@ UNTOUCHED: Final[str] = ""
 _NO_MARKER: Final = object()
 
 # Scope FKs on SettingsReader. All null means the row is the user's global one.
-_SCOPE_FKS: Final[tuple[str, ...]] = ("comic", "series", "folder", "story_arc")
+_SCOPE_FKS: Final[tuple[str, ...]] = ("comic", "series", "folder", "reading_list")
 _GLOBAL_SCOPE: Final[Q] = Q(**{f"{fk}__isnull": True for fk in _SCOPE_FKS})
 
 

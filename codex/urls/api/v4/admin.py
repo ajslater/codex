@@ -40,6 +40,26 @@ from codex.views.admin.pending_deletes import (
     AdminPendingDeleteReviveView,
     AdminPendingDeletesView,
 )
+from codex.views.admin.reading_lists.imports import (
+    AdminReadingListImportView,
+    AdminReadingListPreviewView,
+    AdminReadingListSearchView,
+)
+from codex.views.admin.reading_lists.review import (
+    AdminReadingListCombineView,
+    AdminReadingListSeriesMappingsView,
+    AdminReadingListSuggestionsView,
+)
+from codex.views.admin.reading_lists.table import (
+    AdminReadingListAbortView,
+    AdminReadingListActionView,
+    AdminReadingListBulkView,
+    AdminReadingListDetailView,
+    AdminReadingListErrorsView,
+    AdminReadingListSourcesView,
+    AdminReadingListSourceView,
+    AdminReadingListsView,
+)
 from codex.views.admin.restore_user_data import (
     AdminRestoreUserDataView,
     AdminUserDataBackupsView,
@@ -181,6 +201,72 @@ urlpatterns = [
         "custom-covers/<int:pk>",
         AdminCustomCoverDeleteView.as_view(),
         name="custom_cover_detail",
+    ),
+    path("reading-lists", AdminReadingListsView.as_view(), name="reading_lists"),
+    path(
+        "reading-lists/search",
+        AdminReadingListSearchView.as_view(),
+        name="reading_lists_search",
+    ),
+    path(
+        "reading-lists/preview",
+        AdminReadingListPreviewView.as_view(),
+        name="reading_lists_preview",
+    ),
+    path(
+        "reading-lists/import",
+        AdminReadingListImportView.as_view(),
+        name="reading_lists_import",
+    ),
+    path(
+        "reading-lists/bulk",
+        AdminReadingListBulkView.as_view(),
+        name="reading_lists_bulk",
+    ),
+    path(
+        "reading-lists/combine",
+        AdminReadingListCombineView.as_view(),
+        name="reading_lists_combine",
+    ),
+    path(
+        "reading-lists/suggestions",
+        AdminReadingListSuggestionsView.as_view(),
+        name="reading_lists_suggestions",
+    ),
+    path(
+        "reading-lists/series-mappings",
+        AdminReadingListSeriesMappingsView.as_view(),
+        name="reading_lists_series_mappings",
+    ),
+    path(
+        "reading-lists/errors",
+        AdminReadingListErrorsView.as_view(),
+        name="reading_lists_errors",
+    ),
+    path(
+        "reading-lists/abort",
+        AdminReadingListAbortView.as_view(),
+        name="reading_lists_abort",
+    ),
+    path(
+        "reading-lists/<int:pk>",
+        AdminReadingListDetailView.as_view(),
+        name="reading_list",
+    ),
+    path(
+        "reading-lists/<int:pk>/sources",
+        AdminReadingListSourcesView.as_view(),
+        name="reading_list_sources",
+    ),
+    path(
+        "reading-lists/<int:pk>/sources/<int:source_pk>",
+        AdminReadingListSourceView.as_view(),
+        name="reading_list_source",
+    ),
+    path(
+        "reading-lists/<int:pk>/<str:action>",
+        AdminReadingListActionView.as_view(),
+        name="reading_list_action",
     ),
     path(
         "email-settings",

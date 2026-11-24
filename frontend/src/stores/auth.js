@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 
 import * as API from "@/api/v4/auth";
 import { useCommonStore } from "@/stores/common";
-import { useShelvesStore } from "@/stores/shelves";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 /*
  * Don't use router in here, perhaps called to early.
@@ -180,10 +180,10 @@ export const useAuthStore = defineStore("auth", {
       } finally {
         this.user = undefined;
         /*
-         * Wipe per-user shelf and key state so a different account
+         * Wipe per-user list and key state so a different account
          * signing in next doesn't see the previous user's.
          */
-        useShelvesStore().clear();
+        useReadingListsStore().clear();
         this.apiKeys = [];
         this.apiUrls = undefined;
         if (oidcLogoutUrl) {

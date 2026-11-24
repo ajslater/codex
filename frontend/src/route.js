@@ -51,6 +51,16 @@ export const browserRouteParams = ({ collection, parentIds, pks }) => {
     : { collection };
 };
 
+/*
+ * The reading list a browser route shows, or 0. The route names its pks
+ * ``parentIds``; a list is an ``arcs`` route's first one.
+ */
+export const routeReadingListPk = ({ collection, parentIds } = {}) => {
+  return collection === "arcs"
+    ? Number(normalizeParentIds(parentIds)[0]) || 0
+    : 0;
+};
+
 export const getReaderRoute = ({ ids, page, pageCount }, importMetadata) => {
   // Get the route to a comic, opening at its bookmarked page or page 0.
   if (ids.length === 0 || (importMetadata && !pageCount)) {

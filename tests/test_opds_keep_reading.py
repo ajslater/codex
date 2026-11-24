@@ -28,14 +28,14 @@ from codex.models import (
     Imprint,
     Library,
     Publisher,
+    ReadingList,
     Series,
-    Shelf,
-    ShelfItem,
     Volume,
 )
 from codex.startup import init_admin_flags
-from codex.views.opds.v1.const import RootTopLinks, shelf_top_link
-from codex.views.opds.v2.const import PREVIEW_GROUPS, shelf_preview_link
+from codex.views.opds.v1.const import RootTopLinks
+from codex.views.opds.v2.const import PREVIEW_GROUPS
+from codex.views.readinglists.entries import add_comics
 from tests.tmp_dirs import tmp_dir
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
@@ -353,9 +353,10 @@ class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
         v2_links = {
             link.title: link for group in PREVIEW_GROUPS for link in group.links
         }
-        v2_links[_SHELF] = shelf_preview_link(1, _SHELF)
         shared = 0
-        for top_link in (*RootTopLinks.ALL, shelf_top_link(1, _SHELF)):
+        # A reading list's v1 entry is the list's own feed, not a filter
+        # link, so only the static entries are compared.
+        for top_link in RootTopLinks.ALL:
             v2_link = v2_links.get(top_link.title)
             if not v2_link:
                 continue
@@ -363,19 +364,19 @@ class OPDSV1StartLinksTestCase(KeepReadingSeedTestCase):
             assert _sort_params(top_link.query_params) == _sort_params(
                 v2_link.query_params
             ), top_link.title
-        assert shared == len(RootTopLinks.ALL) + 1
+        assert shared == len(RootTopLinks.ALL)
 
-    def test_shelf_entry_only_for_the_owners_non_empty_shelves(self) -> None:
+    def test_list_entry_only_for_the_owners_non_empty_lists(self) -> None:
         self.client.force_login(self.user)
-        shelf = Shelf.objects.create(user=self.user, name=_SHELF)
-        # An empty shelf adds no entry, for its owner or anyone else.
+        reading_list = ReadingList.objects.create(user=self.user, name=_SHELF)
+        # An empty list adds no entry, for its owner or anyone else.
         assert _v1_entry_href(self._v1(self.client), _SHELF) is None
         assert _v1_entry_href(self._v1(Client()), _SHELF) is None
 
-        shelved = self.comics[3]
-        ShelfItem.objects.create(shelf=shelf, collection="comics", target_id=shelved.pk)
+        listed = self.comics[3]
+        add_comics(reading_list, [listed.pk])
         href = self._v1_href(self.client, _SHELF)
-        assert _v1_comic_pks(self._v1(self.client, href)) == [shelved.pk]
+        assert _v1_comic_pks(self._v1(self.client, href)) == [listed.pk]
         # Anonymous sessions and other users never see it.
         assert _v1_entry_href(self._v1(Client()), _SHELF) is None
         other_client = Client()

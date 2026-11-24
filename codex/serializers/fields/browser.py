@@ -13,6 +13,8 @@ from rest_framework.serializers import ListField
 
 from codex.choices.browser import (
     BROWSER_BOOKMARK_FILTER_CHOICES,
+    BROWSER_MATCH_ALL_WIRE_NAMES,
+    BROWSER_READING_LIST_KIND_CHOICES,
     DUMMY_NULL_NAME,
 )
 from codex.serializers.fields.base import CodexChoiceField
@@ -20,12 +22,43 @@ from codex.serializers.route import RouteSerializer
 
 # MetronInfo v1.2's languageCode pattern: a BCP 47 tag.
 _BCP47_RE: Final = re.compile(r"[a-zA-Z]{2,3}(-[a-zA-Z0-9]{1,8})*")
+_MATCH_ALL_API_NAMES: Final = {
+    name: api_name for api_name, name in BROWSER_MATCH_ALL_WIRE_NAMES.items()
+}
 
 
 class BookmarkFilterField(CodexChoiceField):
     """Bookmark Choice Field."""
 
     class_choices = tuple(BROWSER_BOOKMARK_FILTER_CHOICES.keys())
+
+
+class ReadingListKindFilterField(CodexChoiceField):
+    """One reading list kind: mine, curated or tags."""
+
+    class_choices = tuple(BROWSER_READING_LIST_KIND_CHOICES.keys())
+
+
+class MatchAllFilterField(CodexChoiceField):
+    """
+    A filter set to match all ticked values, as the API spells it.
+
+    Filter names are values here, which the API does not camel-case for
+    us, so this field converts them: camelCase on the wire, snake_case
+    inside. Only the tag-like filters.
+    """
+
+    class_choices = tuple(BROWSER_MATCH_ALL_WIRE_NAMES)
+
+    @override
+    def to_internal_value(self, data) -> str:
+        """Convert the API's name to the server's."""
+        return BROWSER_MATCH_ALL_WIRE_NAMES[super().to_internal_value(data)]
+
+    @override
+    def to_representation(self, value) -> str:
+        """Convert the server's name to the API's."""
+        return _MATCH_ALL_API_NAMES.get(value, value)
 
 
 class PyCountryField(CharField, ABC):

@@ -17,6 +17,7 @@ from codex.librarian.scribe.importer.delete.collect import (
 )
 from codex.librarian.scribe.janitor.cleanup import JanitorCleanup
 from codex.librarian.scribe.janitor.status import JanitorReapPendingDeletesStatus
+from codex.librarian.scribe.readinglists.live import sweep_live
 from codex.librarian.scribe.timestamp_update import TimestampUpdater
 from codex.models import Comic, Folder, Library
 from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
@@ -125,6 +126,8 @@ class JanitorReap(JanitorCleanup):
             with self.db_write_lock:
                 comics, comic_pks = self._reap_comics(cutoff, collection_map)
                 folders = self._reap_folders(cutoff)
+                # Reaped comics leave their live list entries comicless.
+                sweep_live()
             total = comics + folders
             status.complete = total
             if total:

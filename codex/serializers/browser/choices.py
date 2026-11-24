@@ -18,7 +18,11 @@ from codex.serializers.fields import (
     VuetifyDecimalField,
     VuetifyIntegerField,
 )
-from codex.serializers.fields.browser import BookmarkFilterField
+from codex.serializers.fields.browser import (
+    BookmarkFilterField,
+    MatchAllFilterField,
+    ReadingListKindFilterField,
+)
 from codex.serializers.fields.vuetify import (
     VuetifyFileTypeChoiceField,
     VuetifyReadingDirectionChoiceField,
@@ -46,13 +50,14 @@ class BrowserFilterChoicesSerializer(Serializer):
     locations = BooleanField(read_only=True)
     original_format = BooleanField(read_only=True)
     reading_direction = BooleanField(read_only=True)
+    reading_list_kind = BooleanField(read_only=True)
+    reading_lists = BooleanField(read_only=True)
     reprints = BooleanField(read_only=True)
     series_end_year = BooleanField(read_only=True)
     series_groups = BooleanField(read_only=True)
     series_start_year = BooleanField(read_only=True)
     series_status = BooleanField(read_only=True)
     stories = BooleanField(read_only=True)
-    story_arcs = BooleanField(read_only=True)
     tagger = BooleanField(read_only=True)
     tags = BooleanField(read_only=True)
     teams = BooleanField(read_only=True)
@@ -64,6 +69,8 @@ class BrowserSettingsFilterSerializer(Serializer):
     """Filter values for settings."""
 
     bookmark = BookmarkFilterField(required=False, read_only=True)
+    reading_list_kind = VuetifyReadOnlyListField(child=ReadingListKindFilterField)
+    match_all = VuetifyReadOnlyListField(child=MatchAllFilterField)
     # Dynamic filters
     age_rating_metron = VuetifyReadOnlyListField()
     age_rating_tagged = VuetifyReadOnlyListField()
@@ -84,13 +91,13 @@ class BrowserSettingsFilterSerializer(Serializer):
     reading_direction = VuetifyReadOnlyListField(
         child=VuetifyReadingDirectionChoiceField
     )
+    reading_lists = VuetifyReadOnlyListField()
     reprints = VuetifyReadOnlyListField()
     series_end_year = VuetifyReadOnlyListField()
     series_groups = VuetifyReadOnlyListField()
     series_start_year = VuetifyReadOnlyListField()
     series_status = VuetifyReadOnlyListField(child=VuetifySeriesStatusChoiceField)
     stories = VuetifyReadOnlyListField()
-    story_arcs = VuetifyReadOnlyListField()
     tagger = VuetifyReadOnlyListField()
     tags = VuetifyReadOnlyListField()
     teams = VuetifyReadOnlyListField()
@@ -169,6 +176,7 @@ _CHOICES_NAME_SERIALIZER_MAP = MappingProxyType(
         "community_rating": BrowserChoicesDecimalPkSerializer,
         "file_type": BrowserChoicesCharPkSerializer,
         "language": LanguageSerializer,
+        "reading_list_kind": BrowserChoicesCharPkSerializer,
         "reprints": BrowserChoicesReprintPkSerializer,
         "series_status": BrowserChoicesSeriesStatusPkSerializer,
         "universe": BrowserChoicesUniversePkSerializer,

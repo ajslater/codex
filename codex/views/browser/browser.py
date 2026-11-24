@@ -3,7 +3,7 @@
 from functools import cached_property
 from math import floor, log10
 from types import MappingProxyType
-from typing import override
+from typing import Any, override
 
 from django.core.cache import cache as _django_cache
 from django.db.models import Max
@@ -19,12 +19,14 @@ from codex.models import (
     Comic,
     Folder,
     Library,
+    ReadingList,
 )
 from codex.serializers.browser.page import (
     BrowserHeadSerializer,
     BrowserPageSerializer,
 )
 from codex.serializers.browser.settings import BrowserPageInputSerializer
+from codex.settings.db import get_browser_max_obj_per_page
 from codex.views.browser.columns import (
     default_columns_filtered,
     fk_name_annotations_for,
@@ -32,8 +34,19 @@ from codex.views.browser.columns import (
     m2m_columns,
     m2m_sort_annotations_for,
 )
+from codex.views.browser.const import MATCH_ALL_KEY
+from codex.views.browser.filters.reading_lists import READING_LIST_KIND_FILTER
 from codex.views.browser.intersections import compute_collection_intersections
-from codex.views.browser.shelf_membership import annotate_shelved, page_row_shelves
+from codex.views.browser.missing_entries import (
+    READING_ORDER,
+    comic_positions,
+    page_bounds,
+    page_missing_entries,
+)
+from codex.views.browser.reading_list_sources import (
+    attach_list_coverage,
+    attach_list_sources,
+)
 from codex.views.browser.title import BrowserTitleView
 from codex.views.const import (
     COLLECTION_MODEL_MAP,
@@ -41,8 +54,11 @@ from codex.views.const import (
     FOLDER_COLLECTION,
     STORY_ARC_COLLECTION,
 )
+from codex.views.readinglists.access import can_edit
 
 _LIBRARIES_EXIST_CACHE_KEY = "codex:libraries_exist"
+# Filters settings that do not narrow one list's comics.
+_NOT_COMIC_FILTERS = frozenset({READING_LIST_KIND_FILTER, MATCH_ALL_KEY})
 _LIBRARIES_EXIST_TTL_SECONDS = 60
 
 
@@ -140,21 +156,6 @@ class BrowserView(BrowserTitleView):
                 keys.append(key)
         return tuple(keys)
 
-    def _add_table_view_shelved_annotation(self, qs):
-        """
-        Annotate ``qs`` with ``shelved`` (effective membership) for table view.
-
-        Runs unconditional on model — shelves apply to every
-        browsable collection as well as Comic — and unconditional on
-        column selection, so the user can sort by ``shelved`` from the
-        order_by enum without separate gating. True exactly when the
-        row's Shelves cell lists a shelf (``annotate_shelved``).
-        """
-        if self.params.get("view_mode") != "table":
-            return qs
-        user = self.request.user
-        return annotate_shelved(qs, user, self.get_comic_acl(user))
-
     def _sort_annotation_keys(self) -> tuple[str, ...]:
         """
         Return the keys whose ORDER BY aliases this queryset must carry.
@@ -186,7 +187,7 @@ class BrowserView(BrowserTitleView):
         if not sort_keys:
             return qs
         fk_anns = fk_name_annotations_for(sort_keys)
-        m2m_anns = m2m_annotations_for(sort_keys)
+        m2m_anns = m2m_annotations_for(sort_keys, self.request.user)
         # Every key that sorts through elected-value aliases needs them
         # annotated, extras included — ``_comic_extra_fields`` resolves an
         # extra to the same aliases the primary uses. An active reprints
@@ -224,7 +225,7 @@ class BrowserView(BrowserTitleView):
             return qs
         requested_t = tuple(requested)
         fk_anns = fk_name_annotations_for(requested_t)
-        m2m_anns = m2m_annotations_for(requested_t)
+        m2m_anns = m2m_annotations_for(requested_t, self.request.user)
         if fk_anns:
             qs = qs.annotate(**fk_anns)
         if m2m_anns:
@@ -251,14 +252,6 @@ class BrowserView(BrowserTitleView):
             qs = model.objects.none()
 
         if count:
-            # Shelved annotation lands first so the order pipeline
-            # can reference ``F("shelved")`` from inside
-            # ``annotate_order_aggregates`` — Django resolves F()
-            # targets against the queryset's known annotations at
-            # ``annotate()`` call time, not at SQL compile time, so
-            # an out-of-order add raises ``Cannot resolve keyword
-            # 'shelved' into field`` for the collection queryset.
-            qs = self._add_table_view_shelved_annotation(qs)
             qs = self.annotate_order_aggregates(qs)
             qs = self._add_table_view_sort_annotations(qs)
             qs = self.add_order_by(qs)
@@ -367,6 +360,9 @@ class BrowserView(BrowserTitleView):
             collection_qs = self.annotate_cover(collection_qs)
             collection_qs = self.force_inner_joins(collection_qs)
             collection_qs = self.attach_cover_mtimes(collection_qs)
+            if collection_qs.model is ReadingList:
+                attach_list_sources(collection_qs)
+                attach_list_coverage(self, self.request.user, collection_qs)
         if page_book_count:
             book_qs = self.annotate_card_aggregates(book_qs)
             # Table-view display annotations land here, post-pagination,
@@ -403,12 +399,66 @@ class BrowserView(BrowserTitleView):
             full_count,
         )
 
+    def _is_one_list(self) -> bool:
+        """Whether the page is one reading list's comics."""
+        pks = self.kwargs.get("pks") or ()
+        return (
+            self.kwargs.get("collection") == STORY_ARC_COLLECTION
+            and len(pks) == 1
+            and bool(pks[0])
+        )
+
+    def _list_editable(self) -> bool:
+        """Whether the viewer may change the list the page shows."""
+        if not self._is_one_list():
+            return False
+        reading_list = ReadingList.objects.filter(pk=self.kwargs["pks"][0]).first()
+        return bool(reading_list and can_edit(self.request.user, reading_list))
+
+    def _wants_missing_entries(self, *, reading_order: bool) -> bool:
+        """
+        Whether the page shows the list's missing issues.
+
+        Only in Reading Order with no search or filter: a missing issue has
+        nothing else to sort or filter by. The kind picks lists, not comics,
+        and does nothing inside one list; ``match_all`` filters nothing.
+        """
+        filters = self.params.get("filters") or {}
+        return (
+            reading_order
+            and not self.params.get("search")
+            and not any(
+                value for key, value in filters.items() if key not in _NOT_COMIC_FILTERS
+            )
+            and bool(self.params.get("show_missing_issues", True))
+        )
+
+    def _missing_entries(self, *, reading_order: bool) -> dict[str, Any]:
+        """Return the page's missing issues and the list's count, or nothing."""
+        if not self._wants_missing_entries(reading_order=reading_order):
+            return {}
+        list_pk = self.kwargs["pks"][0]
+        reverse = bool(self.params.get("order_reverse"))
+        user = self.request.user
+        per_page = get_browser_max_obj_per_page()
+        bounds = page_bounds(
+            comic_positions(self, user, list_pk, reverse=reverse),
+            self.kwargs.get("page", 1),
+            per_page,
+            self.page_orphans(per_page),
+        )
+        entries, count = page_missing_entries(
+            self, user, list_pk, bounds, reverse=reverse
+        )
+        return {"missing_entries": entries, "missing_count": count}
+
     @override
     def get_object(self) -> MappingProxyType:
         """Validate settings and get the querysets."""
         collection_qs, book_qs, num_pages, total_count, zero_pad, mtime, count = (
             self._get_collection_and_books()
         )
+        reading_order = self._is_one_list() and self.order_key == READING_ORDER
 
         # get additional context
         breadcrumbs = self.get_breadcrumbs()
@@ -433,6 +483,11 @@ class BrowserView(BrowserTitleView):
                 "mtime": mtime,
                 "search_error": self.search_error,
                 "fts": self.fts_mode,
+                "reading_order": reading_order,
+                # Its editors may remove comics in place, and find a missing
+                # issue's comic or hide it.
+                "list_editable": self._list_editable(),
+                **self._missing_entries(reading_order=reading_order),
             }
         )
 
@@ -484,12 +539,6 @@ class BrowserView(BrowserTitleView):
             if collection_qs is not None:
                 data["collection_intersections"] = compute_collection_intersections(
                     collection_qs, columns, acl
-                )
-            # The shelved cell lists the row's shelves by the same rule,
-            # only when the column is shown.
-            if "shelved" in columns:
-                data["row_shelves"] = page_row_shelves(
-                    self.request.user, acl, collection_qs, data.get("books")
                 )
         serializer = self.get_serializer(data)
         return Response(serializer.data)

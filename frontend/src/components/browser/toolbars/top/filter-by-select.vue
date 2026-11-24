@@ -31,8 +31,12 @@
       </v-icon>
     </template>
     <template #prepend-item>
+      <!--
+        Rows of the filter list itself. While a sub-menu is open it shows
+        only its own rows, so a first tick there adds no row above it.
+      -->
       <v-list-item
-        v-if="isFiltersClearable"
+        v-if="isFiltersClearable && isBaseMode"
         density="compact"
         variant="plain"
         class="clearFilter"
@@ -42,11 +46,7 @@
       />
     </template>
     <template #append-item>
-      <template v-if="hasShelves">
-        <v-divider />
-        <BrowserFilterShelvesSubMenu />
-      </template>
-      <v-divider />
+      <v-divider v-if="isBaseMode" />
       <v-list-item
         v-if="dynamicChoiceNames === undefined"
         density="compact"
@@ -74,14 +74,12 @@
 
 <script>
 import { mdiCloseCircleOutline, mdiFilterMultipleOutline } from "@mdi/js";
-import { mapActions, mapState, mapWritableState } from "pinia";
+import { mapActions, mapState } from "pinia";
 
-import BrowserFilterShelvesSubMenu from "@/components/browser/toolbars/top/filter-shelves-sub-menu.vue";
 import BrowserFilterSubMenu from "@/components/browser/toolbars/top/filter-sub-menu.vue";
 import ToolbarSelect from "@/components/toolbar-select.vue";
 import { useAuthStore } from "@/stores/auth";
-import { useBrowserStore } from "@/stores/browser";
-import { useShelvesStore } from "@/stores/shelves";
+import { MATCH_ALL_FILTER, useBrowserStore } from "@/stores/browser";
 
 const ARROW_STEPS = Object.freeze({ ArrowDown: 1, ArrowUp: -1 });
 /*
@@ -94,7 +92,6 @@ const FOCUSABLE_ROW = '[tabindex]:not([tabindex="-1"]):not([disabled])';
 export default {
   name: "BrowserFilterBySelect",
   components: {
-    BrowserFilterShelvesSubMenu,
     BrowserFilterSubMenu,
     ToolbarSelect,
   },
@@ -108,7 +105,6 @@ export default {
   },
   computed: {
     ...mapState(useAuthStore, {
-      isLoggedIn: (state) => Boolean(state.user),
       siteBookmarkDefault: (state) => state.defaults?.browser?.bookmark ?? "",
     }),
     ...mapState(useBrowserStore, [
@@ -122,11 +118,9 @@ export default {
       bookmarkFilter: (state) =>
         state.settings.filters.bookmark || state.choices.static.bookmark[0],
       filters: (state) => state.settings.filters,
+      isBaseMode: (state) => state.filterMode === "base",
       filterMenuClass: function (state) {
-        /*
-         * Let me hide bookmark menu items with css when the filterMode
-         *   changes.
-         */
+        // Hides the bookmark rows while a sub-menu is open: global.scss.
         let clsName = "filterMenu";
         if (state.filterMode !== "base") {
           clsName += "Hidden";
@@ -146,13 +140,9 @@ export default {
         // Add selected filters to choices if they aren't there already.
         if (this.filters && Object.keys(this.filters).length) {
           for (const [filterKey, filterValue] of Object.entries(this.filters)) {
-            /*
-             * ``shelves`` has its own sub-menu, fed by the shelves
-             * store instead of the choices endpoints.
-             */
             if (
               filterKey !== "bookmark" &&
-              filterKey !== "shelves" &&
+              filterKey !== MATCH_ALL_FILTER &&
               filterValue?.length &&
               !names.includes(filterKey)
             ) {
@@ -180,33 +170,42 @@ export default {
         return names;
       },
     }),
-    ...mapState(useShelvesStore, {
-      shelfCount: (state) => state.shelves.length,
-    }),
-    ...mapWritableState(useBrowserStore, ["filterMode"]),
-    hasShelves() {
-      // Anonymous sessions have no shelves; neither does a new account.
-      return this.isLoggedIn && this.shelfCount > 0;
-    },
     padRight() {
       return this.$vuetify.display.xs && !this.bookmarkFilter;
     },
+  },
+  watch: {
+    menu(open) {
+      /*
+       * However the menu opens or closes. The store keeps an open menu's
+       * choices across page loads; closing returns it to the filter list
+       * and drops choices gone stale.
+       */
+      this.setFilterMenuOpen(open);
+    },
+  },
+  beforeUnmount() {
+    // Leaving with the menu open, as to the reader, closes it for the store.
+    if (this.menu) {
+      this.setFilterMenuOpen(false);
+    }
   },
   methods: {
     ...mapActions(useBrowserStore, [
       "clearFilters",
       "loadAvailableFilterChoices",
+      "setFilterMenuOpen",
       "setSettings",
+      "tickFilters",
     ]),
     onUpdateModelValue(bookmark) {
-      const data = { filters: { bookmark } };
-      this.onSubMenuSelected(data);
-    },
-    onSubMenuSelected(settings) {
-      // On sub-menu click, close the menu and reset the filter mode.
+      // A bookmark pick applies and closes the menu; closing resets it.
       this.menu = false;
-      this.setSettings(settings);
-      this.filterMode = "base";
+      this.setSettings({ filters: { bookmark } });
+    },
+    onSubMenuSelected({ filters }) {
+      // A tick: the menu stays open on its sub-menu, the page reloads behind.
+      this.tickFilters(filters);
     },
     async onClear() {
       try {
@@ -233,7 +232,6 @@ export default {
           const clearedFilters = {
             bookmark: this.siteBookmarkDefault,
             ...emptyDynamic,
-            shelves: [],
             ageRatingMetron: [],
             ageRatingTagged: [],
           };
@@ -254,8 +252,8 @@ export default {
      * which wraps from the last bookmark row straight back to the first and
      * calls ``stopImmediatePropagation()``. That preempts VList's own focus
      * walk, which is what used to carry the user into the rows this menu
-     * adds through the prepend/append slots ("Clear All Filters",
-     * "Shelves" and the filter sub-menus), leaving them mouse-only.
+     * adds through the prepend/append slots ("Clear All Filters" and the
+     * filter sub-menus), leaving them mouse-only.
      * A capture listener on the overlay content runs before the list's, so
      * stepping off either end of the bookmark rows lands on the adjacent
      * slot row instead of wrapping. Everywhere else the event is left alone

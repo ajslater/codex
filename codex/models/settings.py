@@ -218,9 +218,11 @@ class SettingsBrowserFilters(BaseModel):
         blank=True,
     )
 
-    # Shelves filter — pks of the owner's shelves. Kept apart from the
-    # dynamic tag filters because it is per-user state, not comic metadata.
-    shelves = JSONField(default=list)
+    # Reading list kinds: mine, curated, tags.
+    reading_list_kind = JSONField(default=list)
+    # The tag-like filters set to match all ticked values, not any. Not a
+    # filter of comics; see ``BROWSER_MATCH_ALL_FILTERS``.
+    match_all = JSONField(default=list)
 
     # Dynamic filters — each stores a list of ints.
     age_rating_metron = JSONField(default=list)
@@ -238,13 +240,14 @@ class SettingsBrowserFilters(BaseModel):
     monochrome = JSONField(default=list)
     original_format = JSONField(default=list)
     reading_direction = JSONField(default=list)
+    # Reading list pks; the filter only ever matches lists the user may see.
+    reading_lists = JSONField(default=list)
     reprints = JSONField(default=list)
     series_end_year = JSONField(default=list)
     series_groups = JSONField(default=list)
     series_start_year = JSONField(default=list)
     series_status = JSONField(default=list)
     stories = JSONField(default=list)
-    story_arcs = JSONField(default=list)
     tagger = JSONField(default=list)
     tags = JSONField(default=list)
     teams = JSONField(default=list)
@@ -254,7 +257,8 @@ class SettingsBrowserFilters(BaseModel):
     FILTER_KEYS = frozenset(
         {
             "bookmark",
-            "shelves",
+            "reading_list_kind",
+            "match_all",
             "age_rating_metron",
             "age_rating_tagged",
             "characters",
@@ -270,13 +274,13 @@ class SettingsBrowserFilters(BaseModel):
             "monochrome",
             "original_format",
             "reading_direction",
+            "reading_lists",
             "reprints",
             "series_end_year",
             "series_groups",
             "series_start_year",
             "series_status",
             "stories",
-            "story_arcs",
             "tagger",
             "tags",
             "teams",
@@ -371,6 +375,8 @@ class SettingsBrowser(SettingsBase):
     # Display preferences
     twenty_four_hour_time = BooleanField(default=False)
     always_show_filename = BooleanField(default=False)
+    # A reading list's missing issues as placeholders among its comics.
+    show_missing_issues = BooleanField(default=True)
 
     # Table view
     view_mode = CharField(
@@ -405,6 +411,7 @@ class SettingsBrowser(SettingsBase):
             "search",
             "twenty_four_hour_time",
             "always_show_filename",
+            "show_missing_issues",
             "view_mode",
             "table_columns",
             "table_cover_size",
@@ -437,7 +444,7 @@ _READER_GLOBAL_SCOPE = Q(
     comic__isnull=True,
     series__isnull=True,
     folder__isnull=True,
-    story_arc__isnull=True,
+    reading_list__isnull=True,
 )
 
 
@@ -449,7 +456,7 @@ class SettingsReader(SettingsBase):
     - comic set      per-comic settings (replaces old Bookmark model)
     - series set     per-series settings
     - folder set     per-folder settings
-    - story_arc set  per-story-arc settings
+    - reading_list set  per-reading-list settings
     - none set       global reader defaults for the user/session
     """
 
@@ -463,8 +470,8 @@ class SettingsReader(SettingsBase):
     folder = ForeignKey(
         "codex.Folder", db_index=True, on_delete=SET_NULL, null=True, blank=True
     )
-    story_arc = ForeignKey(
-        "codex.StoryArc", db_index=True, on_delete=CASCADE, null=True, blank=True
+    reading_list = ForeignKey(
+        "codex.ReadingList", db_index=True, on_delete=CASCADE, null=True, blank=True
     )
 
     # Reader display settings
@@ -507,36 +514,36 @@ class SettingsReader(SettingsBase):
                         comic__isnull=True,
                         series__isnull=True,
                         folder__isnull=True,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=False,
                         series__isnull=True,
                         folder__isnull=True,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=True,
                         series__isnull=False,
                         folder__isnull=True,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=True,
                         series__isnull=True,
                         folder__isnull=False,
-                        story_arc__isnull=True,
+                        reading_list__isnull=True,
                     )
                     | Q(
                         comic__isnull=True,
                         series__isnull=True,
                         folder__isnull=True,
-                        story_arc__isnull=False,
+                        reading_list__isnull=False,
                     )
                 ),
                 name="settingsreader_scope_xor",
             ),
-            # ---- Global scope (no comic/series/folder/story_arc) ----
+            # ---- Global scope (no comic/series/folder/reading_list) ----
             UniqueConstraint(
                 fields=("user", "client"),
                 condition=Q(user__isnull=False) & _READER_GLOBAL_SCOPE,
@@ -580,15 +587,15 @@ class SettingsReader(SettingsBase):
                 condition=Q(session__isnull=False, folder__isnull=False),
                 name="unique_settingsreader_session_folder",
             ),
-            # ---- StoryArc scope ----
+            # ---- ReadingList scope ----
             UniqueConstraint(
-                fields=("user", "client", "story_arc"),
-                condition=Q(user__isnull=False, story_arc__isnull=False),
-                name="unique_settingsreader_user_story_arc",
+                fields=("user", "client", "reading_list"),
+                condition=Q(user__isnull=False, reading_list__isnull=False),
+                name="unique_settingsreader_user_reading_list",
             ),
             UniqueConstraint(
-                fields=("session", "client", "story_arc"),
-                condition=Q(session__isnull=False, story_arc__isnull=False),
-                name="unique_settingsreader_session_story_arc",
+                fields=("session", "client", "reading_list"),
+                condition=Q(session__isnull=False, reading_list__isnull=False),
+                name="unique_settingsreader_session_reading_list",
             ),
         )

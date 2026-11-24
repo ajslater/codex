@@ -21,12 +21,12 @@
       @error="onImgError"
     />
   </span>
-  <span v-else-if="column === 'shelved'" class="tableShelvedCell">
-    <span v-if="shelfPk" class="tableShelfMenu" @click.stop>
-      <ShelfMenu :collection="shelfCollection" :pk="shelfPk" />
+  <span v-else-if="column === 'reading_lists'" class="tableReadingListsCell">
+    <span v-if="targetPk" class="tableListMenu" @click.stop>
+      <ReadingListMenu :collection="targetCollection" :pk="targetPk" />
     </span>
-    <span v-if="shelfNames" class="tableListCell" :title="shelfNames">{{
-      shelfNames
+    <span v-if="listValue" class="tableListCell" :title="listValue">{{
+      listValue
     }}</span>
   </span>
   <span v-else-if="isList" class="tableListCell" :title="listValue">{{
@@ -53,10 +53,9 @@ import prettyBytes from "pretty-bytes";
 import { getCoverSrc, getPlaceholderSrc } from "@/api/v4/browser";
 import { READING_DIRECTION } from "@/choices/reader-map.json";
 import CoverPopup from "@/components/cover-popup.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import { DATE_FORMAT, getDateTime } from "@/datetime";
 import { useBrowserStore } from "@/stores/browser";
-import { useShelvesStore } from "@/stores/shelves";
 
 // What .tableCoverThumb used to say, minus the height the size class
 // still owns. Inline because CoverPopup's menu branch is a fragment and
@@ -78,7 +77,7 @@ const M2M_COLUMNS = new Set([
   "reprints",
   "series_groups",
   "stories",
-  "story_arcs",
+  "reading_lists",
   "tags",
   "teams",
   "universes",
@@ -130,7 +129,7 @@ export default {
   name: "BrowserTableCell",
   components: {
     CoverPopup,
-    ShelfMenu,
+    ReadingListMenu,
   },
   props: {
     column: {
@@ -165,7 +164,6 @@ export default {
     ...mapState(useBrowserStore, {
       twentyFourHourTime: (state) => state.settings.twentyFourHourTime,
     }),
-    ...mapState(useShelvesStore, ["shelvesByPks"]),
     placeholderSrc() {
       return getPlaceholderSrc(this.coverCollection);
     },
@@ -182,7 +180,7 @@ export default {
     coverSizeClass() {
       return `tableCoverSize-${this.coverSize}`;
     },
-    shelfCollection() {
+    targetCollection() {
       /*
        * Collection rows carry an explicit ``collection``; comic rows
        * omit it (the table view's lone comic-only top-collection) and
@@ -190,25 +188,15 @@ export default {
        */
       return this.row?.collection ?? "comics";
     },
-    shelfPk() {
+    targetPk() {
       /*
        * Comic rows expose ``pk`` directly; collection rows use ``ids``
-       * and only the single-id case can be shelved atomically.
+       * and only the single-id case can go in a list atomically.
        */
       const ids = this.row?.ids;
       if (Array.isArray(ids) && ids.length === 1) return ids[0];
       if (Array.isArray(ids)) return undefined;
       return this.row?.pk;
-    },
-    shelfNames() {
-      /*
-       * The server sends the pks of the shelves the row is on, itself or
-       * through a parent (every comic under it, for a collection row); the
-       * names come from the store so a rename shows at once.
-       */
-      return this.shelvesByPks(this.row?.shelves)
-        .map(({ name }) => name)
-        .join(", ");
     },
     rowAttrName() {
       /*
@@ -314,14 +302,14 @@ export default {
   justify-content: center;
 }
 
-.tableShelvedCell {
+.tableReadingListsCell {
   display: inline-flex;
   align-items: center;
   gap: 2px;
   vertical-align: middle;
 }
 
-.tableShelfMenu {
+.tableListMenu {
   display: inline-flex;
   flex: none;
 }

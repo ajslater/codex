@@ -7,8 +7,8 @@
 
 <script>
 /*
- * A titled block inside a menu. The shelf menu has one ("Shelves")
- * today; a later section such as "Reading lists" is another
+ * A titled block inside a menu. The reading list menu has one
+ * ("Reading Lists"); another kind of grouping would be another
  * ``MenuSection`` beside it.
  */
 export default {

@@ -42,7 +42,7 @@ urlpatterns += [
     path("browse/", include("codex.urls.api.v4.browse")),
     path("comics/", include("codex.urls.api.v4.comics")),
     path("reader/", include("codex.urls.api.v4.reader")),
-    path("shelves/", include("codex.urls.api.v4.shelves")),
+    path("reading-lists/", include("codex.urls.api.v4.readinglists")),
     path("mtime", MtimeView.as_view(), name="mtime"),
     path("session", SessionView.as_view(), name="session"),
     path("version", VersionView.as_view(), name="version"),

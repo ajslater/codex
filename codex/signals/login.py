@@ -15,7 +15,7 @@ from django.db.models import Exists, OuterRef, QuerySet, Value
 from django.db.models.functions import Coalesce
 from loguru import logger
 
-_READER_SCOPE_FIELDS = ("comic_id", "series_id", "folder_id", "story_arc_id")
+_READER_SCOPE_FIELDS = ("comic_id", "series_id", "folder_id", "reading_list_id")
 
 
 def _adopt_rows(anonymous: QuerySet, owned: QuerySet, fields: Mapping) -> None:

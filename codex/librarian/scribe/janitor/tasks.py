@@ -36,6 +36,18 @@ class JanitorCleanFKsTask(JanitorTask):
     """Clean unused foreign keys."""
 
 
+class JanitorSyncReadingListsTask(JanitorTask):
+    """Sync the reading lists from story-arc tags."""
+
+
+class JanitorRematchReadingListsTask(JanitorTask):
+    """Match every reading list's missing entries again."""
+
+
+class JanitorRefreshReadingListsTask(JanitorTask):
+    """Fetch again the remote reading list sources due a refresh."""
+
+
 class JanitorCleanCoversTask(JanitorTask):
     """Clean unused custom covers."""
 
@@ -50,10 +62,6 @@ class JanitorCleanupBookmarksTask(JanitorTask):
 
 class JanitorCleanupSettingsTask(JanitorTask):
     """Clean orphan settings rows."""
-
-
-class JanitorCleanupShelfItemsTask(JanitorTask):
-    """Clean shelf items whose target row no longer exists."""
 
 
 @dataclass

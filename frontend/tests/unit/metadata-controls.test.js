@@ -1,9 +1,9 @@
 /*
- * The metadata toolbar has no shelf button of its own.
+ * The metadata toolbar has no list button of its own.
  *
- * It used ``<ShelfMenu>`` and imported it but never registered it, so Vue
- * rendered an unknown ``<shelfmenu>`` element and warned on every open.
- * Shelving from the metadata dialog lives in its Shelves row.
+ * It once used a menu component it imported but never registered, so Vue
+ * rendered an unknown element and warned on every open. Adding to a list
+ * from the metadata dialog lives in its Reading Lists row.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { mount } from "@vue/test-utils";
@@ -45,13 +45,12 @@ describe("MetadataControls", () => {
     vi.restoreAllMocks();
   });
 
-  test("renders no unresolved shelf element", () => {
+  test("renders no unresolved component", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const wrapper = mountControls();
 
-    expect(wrapper.find("#shelfButton").exists()).toBe(false);
-    expect(wrapper.html().toLowerCase()).not.toContain("<shelfmenu");
+    expect(wrapper.html().toLowerCase()).not.toContain("<readinglistmenu");
     const unresolved = warn.mock.calls.filter((args) =>
       String(args[0]).includes("Failed to resolve component"),
     );

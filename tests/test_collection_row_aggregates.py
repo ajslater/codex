@@ -20,11 +20,11 @@ import json
 import shutil
 from typing import Final, override
 
-import pytest
 from django.contrib.auth.models import User
 from django.test import Client, TestCase
 from django.utils import timezone
 
+from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.models import (
     Bookmark,
     Character,
@@ -38,6 +38,7 @@ from codex.models import (
     Volume,
 )
 from codex.models.named import StoryArcNumber
+from codex.models.readinglist import ReadingList
 from codex.startup import init_admin_flags
 from tests.tmp_dirs import tmp_dir
 
@@ -147,6 +148,7 @@ class CollectionRowAggregateTestCase(TestCase):
         self.other = User.objects.create_user(username="other", password=_PW)
         for comic in self.comics:
             Bookmark.objects.create(user=self.other, comic=comic, page=5)
+        sync_tag_lists()
         self.client = Client()
         self.client.force_login(self.me)
 
@@ -294,37 +296,32 @@ class CollectionRowAggregateTestCase(TestCase):
         """
         A fully-read arc with a duplicated arc row must report read.
 
-        ``StoryArc`` reaches Comic through ``StoryArcNumber``, and
         ``unique_together = ("story_arc", "number")`` lets one comic sit in
-        two numbers of the same arc, which repeats its joined row. The
-        counts are COUNT DISTINCT so they survive it; the two Σ aggregates
-        cannot, and are asserted as the known gap below.
+        two numbers of the same arc. Its reading list holds the comic once,
+        at its lowest number.
         """
         self._finish(_N)
         san_dup = StoryArcNumber.objects.create(story_arc=self.arc, number=99)
         self.comics[0].story_arc_numbers.add(san_dup)
+        sync_tag_lists()
         row = self._row("arcs", "0")
         assert row["childCount"] == _N, row["childCount"]
         assert row["finished"] is True, row["finished"]
 
-    @pytest.mark.xfail(
-        reason=(
-            "Known gap: a Σ cannot survive a repeated joined row. StoryArc "
-            "reaches Comic through StoryArcNumber, so a comic in two numbers "
-            "of one arc counts its pages twice (browse: 312 not 288), and "
-            "/metadata compounds it with its own arc-m2m display join (360). "
-            "Only a pre-deduplicated comic set fixes it; the importer deletes "
-            "stale arc links and the dev corpus has 0 of 171 such links. The "
-            "counts are COUNT DISTINCT and are already exact."
-        ),
-        strict=True,
-    )
     def test_duplicate_arc_row_sums(self) -> None:
-        """A duplicated arc row must not inflate Σ page_count / Σ page."""
+        """
+        A duplicated arc row no longer inflates Σ page_count / Σ page.
+
+        Arc browse reached Comic through StoryArcNumber and counted such a
+        comic's pages twice. The reading list from the arc holds each
+        comic once, so the sums are exact.
+        """
         self._finish(1)
         san_dup = StoryArcNumber.objects.create(story_arc=self.arc, number=99)
         self.comics[0].story_arc_numbers.add(san_dup)
-        md = self._get("/api/v4/browse/arcs/1/metadata")
+        sync_tag_lists()
+        list_pk = ReadingList.objects.get(name="Arc").pk
+        md = self._get(f"/api/v4/browse/arcs/{list_pk}/metadata")
         assert md["childCount"] == _N, md["childCount"]
         assert md["pageCount"] == _TOTAL_PAGES, md["pageCount"]
         assert md["page"] == _PAGES, md["page"]

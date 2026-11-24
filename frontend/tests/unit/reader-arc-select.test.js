@@ -49,7 +49,7 @@ describe("reader arc select", () => {
       wrapper.vm.items.map((item) => [item.collection, item.subtitle]),
     );
     expect(byCollection.series).toBe("Series");
-    expect(byCollection.arcs).toBe("Story Arc");
+    expect(byCollection.arcs).toBe("Reading List");
     expect(byCollection.reprints).toBe("Reprints");
   });
 });

@@ -57,6 +57,7 @@ export const TABS = Object.freeze([
   "Email",
   "Libraries",
   "Tagging",
+  "Reading Lists",
   "Custom Covers",
   "Settings",
   "Defaults",

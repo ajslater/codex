@@ -3,6 +3,7 @@
 from collections.abc import Mapping
 from types import MappingProxyType
 
+from caseconverter import camelcase
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 
 from codex.views.browser.const import BROWSER_FILTER_KEYS
@@ -14,6 +15,39 @@ BROWSER_BOOKMARK_FILTER_CHOICES = MappingProxyType(
         "READ": "Read",
         "UNREAD": "Unread",
     },
+)
+# Lists by whose they are, or where they come from, in menu order. Each
+# list is one kind: the viewer's own are Mine, other lists made from tags
+# alone are From Tags, the rest are Curated. Cleared means every list.
+BROWSER_READING_LIST_KIND_CHOICES = MappingProxyType(
+    {
+        "mine": "Mine",
+        "curated": "Curated",
+        "tags": "From Tags",
+    },
+)
+# The filters a comic can hold several values of, so "Match all ticked"
+# means something: under All a comic must hold every ticked value. Every
+# other filter holds one value per comic. The one definition; a test holds
+# it to the model. ``match_all`` in the filters setting names these.
+BROWSER_MATCH_ALL_FILTERS = (
+    "characters",
+    "credits",
+    "genres",
+    "identifier_source",
+    "locations",
+    "reading_lists",
+    "reprints",
+    "series_groups",
+    "stories",
+    "tags",
+    "teams",
+    "universes",
+)
+# The same names as the API and the frontend spell them, camelCase like
+# every filter key, to the server's. The one place they convert.
+BROWSER_MATCH_ALL_WIRE_NAMES = MappingProxyType(
+    {camelcase(name): name for name in BROWSER_MATCH_ALL_FILTERS}
 )
 BROWSER_ORDER_BY_CHOICES = MappingProxyType(
     {
@@ -51,10 +85,9 @@ BROWSER_ORDER_BY_CHOICES = MappingProxyType(
         "search_score": "Search Score",
         "series_name": "Series",
         "series_groups": "Series Groups",
-        "shelved": "Shelved",
         "stories": "Stories",
-        "story_arc_number": "Story Arc Number",
-        "story_arcs": "Story Arcs",
+        "story_arc_number": "Reading Order",
+        "reading_lists": "Reading Lists",
         "tags": "Tags",
         "tagger": "Tagger",
         "teams": "Teams",
@@ -95,8 +128,9 @@ BROWSER_COVER_ORDER_BY_KEYS = frozenset(
 # / tertiary chain reachable via shift-click on a table header).
 # They sort fine as the primary, but the per-extra annotation
 # pipeline can't safely produce a value for them on every model
-# / context: ``story_arc_number`` requires StoryArc-context ``pks``
-# to resolve which arc's number to pick, and ``search_score``'s
+# / context: ``story_arc_number`` (Reading Order) needs a reading list,
+# the one browsed or the Reading Lists filter's, to say whose order, and
+# ``search_score``'s
 # ``ComicFTSRank`` only resolves when an FTS subquery is joined.
 # Mirrored on the frontend so the table headers can grey out the
 # affected columns and refuse the shift-click.
@@ -120,7 +154,7 @@ BROWSER_TOP_COLLECTION_CHOICES = MappingProxyType(
         **_COLLECTION_NAMES,
         "comics": "Issues",
         "folders": "Folders",
-        "arcs": "Story Arcs",
+        "arcs": "Reading Lists",
     },
 )
 BROWSER_ROUTE_COLLECTION_CHOICES = MappingProxyType(
@@ -158,6 +192,7 @@ BROWSER_CHOICES = MappingProxyType(
         "VUETIFY_NULL_CODE": VUETIFY_NULL_CODE,
         "SETTINGS_COLLECTION": {**_COLLECTION_NAMES},
         "IDENTIFIER_SOURCES": _IDENTIFIER_SOURCES,
+        "MATCH_ALL_FILTERS": tuple(BROWSER_MATCH_ALL_WIRE_NAMES),
     }
 )
 
@@ -177,6 +212,7 @@ BROWSER_CHOICES_VUETIFY_KEYS = frozenset(
         "VIEW_MODE",
         "VUETIFY_NULL_CODE",
         "SETTINGS_COLLECTION",
+        "MATCH_ALL_FILTERS",
     }
 )
 
@@ -247,10 +283,10 @@ def coherent_top_collection(
 
 
 # Order-by choices an admin may pick as the site default. ``""`` is the
-# automatic per-collection sort (Name; Filename in Folders; Story Arc Number
-# in Story Arcs) the ``SettingsBrowser.order_by`` default already means. The
+# automatic per-collection sort (Name; Filename in Folders; Reading Order in
+# Reading Lists) the ``SettingsBrowser.order_by`` default already means. The
 # keys that cannot be a standing sort are left out: ``search_score`` only
-# means anything during a search and ``story_arc_number`` only inside an arc.
+# means anything during a search and ``story_arc_number`` only inside a list.
 SETTINGS_DEFAULTS_ORDER_BY_CHOICES = MappingProxyType(
     {
         "": "Automatic",
@@ -269,9 +305,9 @@ _DEFAULT_SHOW = MappingProxyType(
 _DEFAULT_FILTERS = MappingProxyType(
     {
         "bookmark": "",
-        # Pks of the user's shelves; a row on any selected shelf matches.
-        "shelves": (),
         **dict.fromkeys(BROWSER_FILTER_KEYS, ()),
+        # Not a filter of comics: the filters set to match all ticked.
+        "match_all": (),
     }
 )
 # ──────────────────────────────────────────────────────────────────────
@@ -525,22 +561,6 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        # Per-user state. ``shelved`` is the only currently-editable
-        # cell — its button opens the shelf menu, which writes through
-        # ``PATCH /api/v4/shelves/<pk>/items``. The annotation (true when
-        # the cell lists at least one shelf) is added in
-        # ``BrowserView._add_table_view_shelved_annotation`` for both
-        # collection and Comic querysets so the column is sortable and
-        # renderable across all browsable models. Beside the button the
-        # cell lists the shelves the row is on, from the ``shelves`` pks
-        # ``codex.views.browser.shelf_membership`` adds to each row.
-        "shelved": {
-            "label": "Shelves",
-            "sort_key": "shelved",
-            "m2m": False,
-            "editable": True,
-            "edit_widget": "checkbox",
-        },
         # M2M relations — sortable as of Phase 7 M2M-sort experiment.
         # ``sort_key`` matches the column key so header clicks set
         # ``order_by`` to the same string the backend recognizes.
@@ -606,12 +626,12 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
             "editable": False,
             "edit_widget": None,
         },
-        "story_arcs": {
-            "label": "Story Arcs",
-            "sort_key": "story_arcs",
+        "reading_lists": {
+            "label": "Reading Lists",
+            "sort_key": "reading_lists",
             "m2m": True,
-            "editable": False,
-            "edit_widget": None,
+            "editable": True,
+            "edit_widget": "checkbox",
         },
         "tags": {
             "label": "Tags",
@@ -666,7 +686,7 @@ BROWSER_TABLE_COLUMNS = MappingProxyType(
 #   shape). Display is one query for the whole page; sort scales
 #   with the filtered collection count when the user clicks the header.
 # - ``high``: composite-M2M columns (``credits`` / ``identifiers``
-#   / ``reprints`` / ``universes`` / ``story_arcs``). Display issues its own
+#   / ``reprints`` / ``universes`` / ``reading_lists``). Display issues its own
 #   per-column query (composite display strings can't share the
 #   simple-M2M union shape); sort runs a per-outer-row correlated
 #   subquery that JOINs the bespoke composite expression. Both
@@ -689,7 +709,7 @@ BROWSER_TABLE_COLUMN_COSTS: MappingProxyType[str, str] = MappingProxyType(
         "credits": "high",
         "identifiers": "high",
         "reprints": "high",
-        "story_arcs": "high",
+        "reading_lists": "high",
         "universes": "high",
     }
 )
@@ -788,6 +808,7 @@ BROWSER_DEFAULTS = MappingProxyType(
         "top_collection": "publishers",
         "twenty_four_hour_time": False,
         "always_show_filename": False,
+        "show_missing_issues": True,
         # Frontend export now speaks the v4 route dialect end to end —
         # the publishers collection (root resolves there) + no parent ids.
         "last_route": MappingProxyType(

@@ -4,11 +4,13 @@ from typing import Final
 
 from django.db.models.query_utils import Q
 
+from codex.models import ReadingList
 from codex.views.browser.params import BrowserParamsView
 from codex.views.const import (
     COLLECTION_RELATION,
     FILTER_ONLY_COLLECTION_RELATION,
     FOLDER_COLLECTION,
+    STORY_ARC_COLLECTION,
 )
 
 _COLLECTION_REL_TARGETS: Final = frozenset(
@@ -38,6 +40,50 @@ class CollectionFilterView(BrowserParamsView):
         rel += "__in"
         return rel
 
+    def _reading_list_scope(self, rel: str) -> Q:
+        """
+        Scope a list's pks to the lists the user may see, shown entries only.
+
+        One Q with the pks, so the tests ride the same join. On the lists
+        themselves, the ACL filter skips hidden entries instead.
+        """
+        user = self.request.user
+        target = rel.removesuffix("__in")
+        if target == "pk":
+            return self.reading_list_visibility_filter(user)
+        entries_prefix = target.removesuffix("reading_list")
+        return self.reading_list_entries_filter(user, entries_prefix)
+
+    def _query_route(self, collection, pks) -> tuple:
+        """
+        Return a query's collection and pks: those given, else the route's.
+
+        As for :meth:`get_collection_filter`; the mtime probe passes its own.
+        """
+        if collection is None:
+            collection = self.kwargs.get("collection")
+        if pks is None:
+            pks = self.kwargs.get("pks")
+        return collection, pks
+
+    def is_in_lists(self, collection=None, pks=None) -> bool:
+        """Whether a query reads chosen lists: one list's page, card or files."""
+        collection, pks = self._query_route(collection, pks)
+        return collection == STORY_ARC_COLLECTION and bool(pks) and 0 not in pks
+
+    def is_lists_grid(self, model, collection=None, pks=None) -> bool:
+        """
+        Whether a query reads the grid of lists, not one list.
+
+        ReadingList is the model for one list too: its page mtime, metadata
+        and download. Filters that pick lists, not comics, apply on the grid
+        only.
+        """
+        if model is not ReadingList:
+            return False
+        collection, pks = self._query_route(collection, pks)
+        return collection == STORY_ARC_COLLECTION and not (pks and 0 not in pks)
+
     def get_collection_filter(
         self, collection=None, pks=None, *, page_mtime=False
     ) -> Q:
@@ -49,10 +95,11 @@ class CollectionFilterView(BrowserParamsView):
 
         if pks and 0 not in pks:
             rel = self._get_rel_for_pks(collection, page_mtime=page_mtime)
-            collection_filter_dict = {rel: pks}
-        elif collection == FOLDER_COLLECTION and self.TARGET != "choices":
+            collection_filter = Q(**{rel: pks})
+            if collection == STORY_ARC_COLLECTION:
+                collection_filter &= self._reading_list_scope(rel)
+            return collection_filter
+        if collection == FOLDER_COLLECTION and self.TARGET != "choices":
             # Top folder search
-            collection_filter_dict = {"parent_folder": None}
-        else:
-            collection_filter_dict = {}
-        return Q(**collection_filter_dict)
+            return Q(parent_folder=None)
+        return Q()

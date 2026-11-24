@@ -1,5 +1,6 @@
 // Common store functions
 import { defineStore } from "pinia";
+import { markRaw } from "vue";
 
 import * as API from "@/api/v4/common";
 
@@ -113,6 +114,13 @@ export const useCommonStore = defineStore("common", {
      * silently-broken state and needs a user-visible nudge.
      */
     sessionError: "",
+    /*
+     * App-wide notice for an action taken outside a form, such as adding
+     * comics to a reading list from a menu, where ``form.success`` and
+     * ``form.errors`` have nothing to show them. ``notice-snackbar.vue``
+     * in the root component shows it.
+     */
+    notice: { text: "", error: false, action: undefined },
   }),
   actions: {
     async loadVersions() {
@@ -146,6 +154,24 @@ export const useCommonStore = defineStore("common", {
         state.form.fieldErrors = {};
         state.form.success = "";
       });
+    },
+    setNotice(text, { error = false, action } = {}) {
+      /*
+       * ``action`` is ``{label, run}``: a button on the notice that runs
+       * ``run`` and closes it, such as removing the series an issue is in
+       * a list through. Raw: a function nothing renders.
+       */
+      this.notice = {
+        text,
+        error,
+        action: action ? markRaw(action) : undefined,
+      };
+    },
+    setErrorNotice(xiorError) {
+      this.setNotice(getErrors(xiorError).join(" "), { error: true });
+    },
+    clearNotice() {
+      this.notice = { text: "", error: false, action: undefined };
     },
     setSessionError(message) {
       this.sessionError = message;

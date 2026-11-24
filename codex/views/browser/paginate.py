@@ -13,6 +13,17 @@ _ORPHANS = 5
 class BrowserPaginateView(BrowserPageInBoundsView):
     """Paginate Collections and Books."""
 
+    def page_orphans(self, per_page: int) -> int:
+        """Return how many leftover rows the last page takes in."""
+        orphans = (
+            0
+            if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
+            else _ORPHANS
+        )
+        # Django 7.0 raises ValueError when orphans >= per_page; keep it below.
+        # A small admin-configured page size would otherwise trip this.
+        return min(orphans, per_page - 1)
+
     def get_browser_paginator(self, count: int) -> Paginator:
         """
         Paginate the collections and then the books as one list of rows.
@@ -22,16 +33,11 @@ class BrowserPaginateView(BrowserPageInBoundsView):
         An empty listing has no pages.
         """
         per_page = get_browser_max_obj_per_page()
-        orphans = (
-            0
-            if self.model_collection == FOLDER_COLLECTION or self.params.get("search")
-            else _ORPHANS
-        )
-        # Django 7.0 raises ValueError when orphans >= per_page; keep it below.
-        # A small admin-configured page size would otherwise trip this.
-        orphans = min(orphans, per_page - 1)
         return Paginator(
-            range(count), per_page, orphans=orphans, allow_empty_first_page=False
+            range(count),
+            per_page,
+            orphans=self.page_orphans(per_page),
+            allow_empty_first_page=False,
         )
 
     @staticmethod

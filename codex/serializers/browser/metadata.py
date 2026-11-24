@@ -234,21 +234,26 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         """Whether any selected comic lives in a writable (non-read-only) library."""
         return bool(getattr(obj, "editable", False))
 
-    # Set by MetadataView.get_object: pks of the requesting user's shelves that
-    # every selected comic is on, directly or through a parent. Names stay
-    # client-side in the shelves store.
-    shelves = SerializerMethodField(read_only=True)
+    # Set by MetadataView.get_object: the reading lists the viewer may see
+    # that hold any selected comic, ``{pk, name, position, count, editable}``.
+    reading_lists = SerializerMethodField(read_only=True)
+    # One reading list's own details, when the selection is that list.
+    reading_list_details = SerializerMethodField(read_only=True)
 
-    def get_shelves(self, obj) -> list[int]:
-        """Return the user's shelves the whole selection shares."""
-        return list(getattr(obj, "shelves", None) or ())
+    def get_reading_list_details(self, obj) -> dict | None:
+        """Return the list's details, or None for any other selection."""
+        return getattr(obj, "reading_list_details", None)
+
+    def get_reading_lists(self, obj) -> list[dict]:
+        """Return the reading lists the selection is in."""
+        return list(getattr(obj, "reading_lists", None) or ())
 
     publisher_list = CollectionSerializer(many=True, required=False)
     imprint_list = CollectionSerializer(many=True, required=False)
     series_list = CollectionSerializer(many=True, required=False)
     volume_list = CollectionSerializer(many=True, required=False)
     folder_list = CollectionSerializer(many=True, required=False)
-    story_arc_list = CollectionSerializer(many=True, required=False)
+    reading_list_list = CollectionSerializer(many=True, required=False)
     publisher = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     imprint = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]

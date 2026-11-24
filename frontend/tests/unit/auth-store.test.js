@@ -31,6 +31,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useBrowserStore } from "@/stores/browser";
 import { useCommonStore } from "@/stores/common";
 import { useReaderStore } from "@/stores/reader";
+import { useReadingListsStore } from "@/stores/reading-lists";
 import { reloadOnDefaultsChange } from "@/stores/socket";
 
 const DEFAULTS = Object.freeze({
@@ -300,6 +301,19 @@ describe("useAuthStore — API keys", () => {
     await store.logout();
     expect(store.apiKeys).toEqual([]);
     expect(store.apiUrls).toBeUndefined();
+  });
+
+  it("forgets the user's own reading lists on logout", async () => {
+    API.logout.mockResolvedValue({});
+    API.getSession.mockResolvedValue(sessionResponse());
+    const store = useAuthStore();
+    store.user = { username: "alice" };
+    const lists = useReadingListsStore();
+    lists.myLists = [{ pk: 2, name: "Mine", personal: true }];
+    lists.myListsLoaded = true;
+    await store.logout();
+    expect(lists.myLists).toEqual([]);
+    expect(lists.myListsLoaded).toBe(false);
   });
 });
 

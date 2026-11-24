@@ -75,6 +75,16 @@
   }
 
   /*
+   * The filter menu while one filter's sub-menu is open: its content
+   * carries ``filterMenuHidden``. The bookmark rows (All, Unread…) are
+   * the select's own items, teleported and outside the menu component's
+   * scope, so they are hidden from here; they sat above the sub-menu.
+   */
+  .filterMenuHidden .v-list-item[aria-posinset] {
+    display: none;
+  }
+
+  /*
    * Sub-header inside the settings drawers. Shared by six components
    * across the browser and reader drawers.
    */

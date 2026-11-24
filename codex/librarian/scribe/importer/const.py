@@ -44,6 +44,7 @@ from codex.models.named import (
     Universe,
 )
 from codex.models.paths import CustomCover
+from codex.models.readinglist import ReadingList
 
 ###############
 # FIELD NAMES #
@@ -501,7 +502,7 @@ CLASS_CUSTOM_COVER_COLLECTION_MAP = frozenbidict(
         Imprint: CustomCover.CollectionChoices.IMPRINTS.value,
         Series: CustomCover.CollectionChoices.SERIES.value,
         Volume: CustomCover.CollectionChoices.VOLUMES.value,
-        StoryArc: CustomCover.CollectionChoices.ARCS.value,
+        ReadingList: CustomCover.CollectionChoices.ARCS.value,
         Folder: CustomCover.CollectionChoices.FOLDERS.value,
     }
 )

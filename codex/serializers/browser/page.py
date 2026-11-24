@@ -1,6 +1,5 @@
 """Browser Page Serializer."""
 
-from collections.abc import Mapping
 from typing import override
 
 import pycountry
@@ -8,7 +7,9 @@ from rest_framework.fields import (
     BooleanField,
     CharField,
     DecimalField,
+    DictField,
     IntegerField,
+    ListField,
     SerializerMethodField,
 )
 from rest_framework.serializers import Serializer
@@ -125,6 +126,16 @@ class BrowserCardSerializer(BrowserAggregateSerializerMixin, Serializer):
     cover_pk = SerializerMethodField(read_only=True)
     cover_custom_pk = SerializerMethodField(read_only=True)
     cover_mtime = SerializerMethodField(read_only=True)
+    # A reading list's sources, ``Tags + Metron · CBRO``; blank otherwise.
+    list_sources = SerializerMethodField(read_only=True)
+    # A reading list's "31 of 98": its comics the viewer has, of its shown
+    # entries. Absent on every other card.
+    list_in_library = IntegerField(read_only=True, required=False)
+    list_total = IntegerField(read_only=True, required=False)
+
+    def get_list_sources(self, obj) -> str:
+        """Return the sources label a reading list card shows."""
+        return getattr(obj, "list_sources", "") or ""
 
     def get_cover_pk(self, obj) -> int:
         """Return pre-computed cover pk, falling back to the card's own pk."""
@@ -217,7 +228,6 @@ def _row_repr(
     instance,
     columns: tuple[str, ...],
     intersections: dict | None = None,
-    row_shelves: Mapping[int, list[int]] | None = None,
 ) -> dict:
     """
     Project a queryset row to the per-row dict for table view.
@@ -247,14 +257,9 @@ def _row_repr(
     row_intersections = (
         intersections.get(instance.pk) if intersections else None
     ) or {}
-    shelves = row_shelves or {}
     for col in columns:
         if col in _ROUTING_COLUMNS:
             continue
-        if col == "shelved":
-            # Beside the sortable "on any shelf" flag, the pks of the
-            # shelves the row is effectively on (``shelf_membership``).
-            row["shelves"] = shelves.get(instance.pk, [])
         _emit_column(row, instance, col, row_intersections, m2m_keys, fk_keys)
     return row
 
@@ -288,6 +293,21 @@ class BrowserPageSerializer(Serializer):
     fts = BooleanField(read_only=True)
     search_error = CharField(read_only=True)
     mtime = TimestampField(read_only=True)
+    # Inside a reading list in Reading Order: the list's missing issues
+    # that fall on this page, and how many the list is missing.
+    missing_entries = ListField(child=DictField(), read_only=True, required=False)
+    missing_count = IntegerField(read_only=True, required=False)
+    # Inside one reading list: whether the viewer may change it.
+    list_editable = BooleanField(read_only=True, required=False)
+
+    @staticmethod
+    def _book_row(item, columns, *, reading_order: bool) -> dict:
+        row = _row_repr(item, columns)
+        if reading_order:
+            # Where the comic sits in the list, to place missing issues by.
+            order_value = getattr(item, "order_value", None)
+            row["position"] = None if order_value is None else int(order_value)
+        return row
 
     def get_rows(self, obj) -> list:
         """Project collections + books through ``columns`` if requested."""
@@ -298,21 +318,17 @@ class BrowserPageSerializer(Serializer):
         collections = obj.get("collections", ()) or ()
         books = obj.get("books", ()) or ()
         intersections = obj.get("collection_intersections") or None
-        # Keyed apart: folder view lists folders and comics whose pks collide.
-        row_shelves = obj.get("row_shelves") or {}
-        collection_shelves = row_shelves.get("collections", {})
-        book_shelves = row_shelves.get("books", {})
         return [
             *(
-                _row_repr(
-                    item,
-                    columns,
-                    intersections=intersections,
-                    row_shelves=collection_shelves,
-                )
+                _row_repr(item, columns, intersections=intersections)
                 for item in collections
             ),
-            *(_row_repr(item, columns, row_shelves=book_shelves) for item in books),
+            *(
+                self._book_row(
+                    item, columns, reading_order=bool(obj.get("reading_order"))
+                )
+                for item in books
+            ),
         ]
 
     @override

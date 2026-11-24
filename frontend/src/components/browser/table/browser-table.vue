@@ -37,36 +37,53 @@
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="row in rows"
-          :key="rowKey(row)"
-          class="browserTableRow"
-          :class="{ selected: isSelected(row) }"
-          @click="onRowClick(row, $event)"
-        >
-          <td class="browserTableCheckboxCell" @click.stop>
-            <v-checkbox-btn
-              density="compact"
-              :model-value="isSelected(row)"
-              :aria-label="`select ${row.name || 'item'}`"
-              @click.stop.prevent="
-                selectItemAt(row, { shift: $event.shiftKey })
-              "
-            />
-          </td>
-          <td
-            v-for="col in visibleColumns"
-            :key="col"
-            :class="cellClasses(col, false)"
+        <template v-for="row in displayRows" :key="rowKey(row)">
+          <tr
+            v-if="row.missingRun"
+            class="missingRow missingRunRow"
+            @click="expandRun(row.key)"
           >
-            <BrowserTableCell
-              :column="col"
-              :row="row"
-              :cover-size="coverSize"
-              :cover-collection="coverCollectionFor(row)"
-            />
-          </td>
-        </tr>
+            <td class="browserTableCheckboxCell" />
+            <td :colspan="visibleColumns.length">
+              {{ row.count }} more missing · Show them
+            </td>
+          </tr>
+          <tr v-else-if="row.missing" class="missingRow">
+            <td class="browserTableCheckboxCell" />
+            <td :colspan="visibleColumns.length">
+              {{ missingLabel(row) }}
+            </td>
+          </tr>
+          <tr
+            v-else
+            class="browserTableRow"
+            :class="{ selected: isSelected(row) }"
+            @click="onRowClick(row, $event)"
+          >
+            <td class="browserTableCheckboxCell" @click.stop>
+              <v-checkbox-btn
+                density="compact"
+                :model-value="isSelected(row)"
+                :aria-label="`select ${row.name || 'item'}`"
+                @click.stop.prevent="
+                  selectItemAt(row, { shift: $event.shiftKey })
+                "
+              />
+            </td>
+            <td
+              v-for="col in visibleColumns"
+              :key="col"
+              :class="cellClasses(col, false)"
+            >
+              <BrowserTableCell
+                :column="col"
+                :row="row"
+                :cover-size="coverSize"
+                :cover-collection="coverCollectionFor(row)"
+              />
+            </td>
+          </tr>
+        </template>
       </tbody>
     </table>
     <BrowserEmptyState v-if="rows.length === 0" />
@@ -79,12 +96,13 @@ import { mapActions, mapState } from "pinia";
 
 import BROWSER_CHOICES from "@/choices/browser-choices.json";
 import BrowserEmptyState from "@/components/browser/empty.vue";
+import { interleaveMissing } from "@/components/browser/missing/interleave";
 import BrowserTableCell from "@/components/browser/table/browser-table-cell.vue";
 import BROWSER_TABLE_COLUMNS from "@/choices/browser-table-columns.json";
 import { routeForCollection } from "@/route";
 import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
-import { useShelvesStore } from "@/stores/shelves";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 /*
  * Sort keys that work as the primary sort but not as an extra
@@ -106,6 +124,8 @@ export default {
     return {
       mdiArrowDown,
       mdiArrowUp,
+      // The long runs of missing issues the viewer opened, by first pk.
+      expandedRuns: new Set(),
     };
   },
   computed: {
@@ -121,7 +141,7 @@ export default {
       isSelected: (state) => state.isSelected,
       selectedCount: (state) => state.selectedItems.size,
     }),
-    ...mapState(useShelvesStore, ["membershipVersion"]),
+    ...mapState(useReadingListsStore, ["membershipVersion"]),
     rows() {
       /*
        * Backend emits ``rows`` for table mode, ``collections``/``books`` for
@@ -133,6 +153,13 @@ export default {
       const collections = page?.collections ?? [];
       const books = page?.books ?? [];
       return [...collections, ...books];
+    },
+    displayRows() {
+      // A reading list's missing issues, greyed, at their places.
+      return interleaveMissing(this.rows, this.pageData?.missingEntries, {
+        reverse: Boolean(this.orderReverse),
+        expanded: this.expandedRuns,
+      });
     },
     visibleColumns() {
       return useBrowserStore()._resolveTableColumns();
@@ -161,13 +188,13 @@ export default {
   watch: {
     membershipVersion() {
       /*
-       * The Shelves column lists shelves the server works out through
-       * parents and across a collection's comics, so a membership change
-       * anywhere (a cell, a card, the selection toolbar, the metadata
-       * dialog) refetches the page rather than patching rows. In place,
-       * so an open shelf menu stays open.
+       * The Reading Lists column names the lists the server works out
+       * through series and the other collections a list holds whole, so
+       * a membership change anywhere (a cell, a card, the selection
+       * toolbar, the metadata dialog) refetches the page rather than
+       * patching rows. In place, so an open list menu stays open.
        */
-      if (this.visibleColumns.includes("shelved")) {
+      if (this.visibleColumns.includes("reading_lists")) {
         this.refreshBrowserPage();
       }
     },
@@ -300,7 +327,18 @@ export default {
       }
       this.setSettings({ orderExtraKeys: extras });
     },
+    expandRun(key) {
+      this.expandedRuns = new Set([...this.expandedRuns, key]);
+    },
+    missingLabel(row) {
+      const issue = row.issue ? ` #${row.issue}` : "";
+      const year = row.year ? ` (${row.year})` : "";
+      const type = row.entryType ? ` · ${row.entryType}` : "";
+      return `${row.position + 1}. Missing: ${row.seriesName || "Unknown series"}${issue}${year}${type}`;
+    },
     rowKey(row) {
+      if (row.missingRun) return `missingRun${row.key}`;
+      if (row.missing) return `missing${row.pk}`;
       /*
        * ``rowKey`` matches the BrowserCard's ``${item.collection}${item.ids}``
        * shape so vue's diff is stable across re-renders.
@@ -526,6 +564,15 @@ export default {
   .browserTableRow.selected .browserTableCheckboxCell,
   .browserTableRow.selected .browserTableCoverColumn {
     background-color: rgb(var(--v-theme-surface-light));
+  }
+
+  .missingRow td {
+    color: rgb(var(--v-theme-text-disabled));
+    font-style: italic;
+  }
+
+  .missingRunRow {
+    cursor: pointer;
   }
 
   .browserTableRow {

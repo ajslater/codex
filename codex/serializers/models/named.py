@@ -202,14 +202,17 @@ class StoryArcSerializer(URLNamedModelSerializer):
 class StoryArcNumberSerializer(BaseModelSerializer):
     """StoryArc model."""
 
+    # ``name`` is the display form, ``Arc:3``. The tag editor writes the
+    # arc back by its own name with its number, so it needs both parts.
     name = CharField(read_only=True)
+    arc_name = CharField(read_only=True, source="story_arc.name")
     url = URLField(read_only=True, source="story_arc.identifier.url")
 
     class Meta(BaseModelSerializer.Meta):
         """Configure model."""
 
         model = StoryArcNumber
-        fields = ("pk", "name", "number", "url")
+        fields = ("pk", "name", "arc_name", "number", "url")
         depth = 1
 
 

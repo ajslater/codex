@@ -52,6 +52,12 @@ PENDING_DELETES_CHANGED_TASK = NotifierTask(
 TAG_WRITE_ERRORS_CHANGED_TASK = NotifierTask(
     Notifications.TAG_WRITE_ERRORS, ChannelGroups.ADMIN
 )
+# Everyone: it carries no names. The admin tab refreshes its table and every
+# user's drawer and add-to-list menus reload. Browsed pages learn of a list
+# change through LIBRARY_CHANGED, which a list import also sends.
+READING_LISTS_CHANGED_TASK = NotifierTask(
+    Notifications.READING_LISTS, ChannelGroups.ALL
+)
 USERS_CHANGED_TASK = NotifierTask(Notifications.USERS, ChannelGroups.ALL)
 ADMIN_USERS_CHANGED_TASK = NotifierTask(Notifications.USERS, ChannelGroups.ADMIN)
 

@@ -293,7 +293,8 @@ const SHOW_FIELDS = new Set(Object.values(SHOW_KEYS));
 const EXCLUDED_ORDER_BY = new Set(BROWSER_CHOICES.EXTRA_SORT_UNSUPPORTED_KEYS);
 const AUTOMATIC_ORDER_BY = Object.freeze({
   value: "",
-  title: "Automatic (Name; Filename in Folders; Arc Number in Story Arcs)",
+  title:
+    "Automatic (Name; Filename in Folders; Reading Order in Reading Lists)",
 });
 // The server errors a field of this tab shows next to its input.
 const BOUND_ERROR_FIELDS = Object.freeze([

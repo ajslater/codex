@@ -8,20 +8,26 @@
  *     the only thing left that closes this menu after a pick.
  *   - the list keydown capture added by ``useScrolling`` wraps from either
  *     end of the bookmark rows and stops propagation, which used to strand
- *     prepend/append slot rows ("Clear All Filters", "Shelves", the
- *     filter sub-menus) with no keyboard route in. ``onMenuKeydownCapture``
- *     hands those two edge steps to the adjacent slot row instead.
+ *     prepend/append slot rows ("Clear All Filters", the filter
+ *     sub-menus) with no keyboard route in. ``onMenuKeydownCapture`` hands
+ *     those two edge steps to the adjacent slot row instead.
  *
- * It also covers the "Shelves" sub-menu, which lists the signed-in
- * user's shelves from the shelves store as checkboxes that set
- * ``filters.shelves``.
+ * Shelves folded into reading lists, whose filter is an ordinary
+ * sub-menu: there is no Shelves row.
  *
  * Real Vuetify is mounted so the overlay, list and its keyboard handlers
  * are the ones that ship; store actions are stubbed by createTestingPinia.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
-import { afterEach, beforeAll, describe, expect, test } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "vitest";
 
 import FilterBySelect from "@/components/browser/toolbars/top/filter-by-select.vue";
 import vuetify from "@/plugins/vuetify";
@@ -45,26 +51,21 @@ beforeAll(() => {
 
 const wrappers = [];
 
-const SHELVES = [
-  { pk: 4, name: "Favorites", items: {} },
-  { pk: 9, name: "Want to Read", items: {} },
-];
-
 async function mountOpenMenu({
-  loggedIn = true,
-  shelves = SHELVES,
   filters = {},
+  dynamic = { characters: true },
+  choicesStale = false,
 } = {}) {
   const pinia = createTestingPinia({
     initialState: {
-      auth: { user: loggedIn ? { pk: 1 } : undefined },
+      auth: { user: { pk: 1 } },
       browser: {
         filterMode: "base",
+        choicesStale,
         // A non-default bookmark makes the "Clear All Filters" row render.
         settings: { filters: { bookmark: "UNREAD", ...filters } },
-        choices: { dynamic: { characters: true } },
+        choices: { dynamic },
       },
-      shelves: { shelves },
     },
   });
   const wrapper = mount(FilterBySelect, {
@@ -103,24 +104,172 @@ describe("BrowserFilterBySelect — closing on select", () => {
   });
 });
 
+const CHARACTERS = Object.freeze([
+  { pk: 1, name: "Spider-Man" },
+  { pk: 2, name: "Iron Man" },
+]);
+
+async function openCharacters(options = {}) {
+  const opened = await mountOpenMenu({
+    dynamic: { characters: CHARACTERS },
+    ...options,
+  });
+  const row = [...opened.content.querySelectorAll(".v-list-item")].find(
+    (candidate) => candidate.textContent.includes("Characters"),
+  );
+  row.click();
+  await flushPromises();
+  const choice = (title) =>
+    [...opened.content.querySelectorAll("[role=menuitemcheckbox]")].find(
+      (candidate) => candidate.textContent.includes(title),
+    );
+  return { ...opened, choice };
+}
+
+const key = (el, name) =>
+  el.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: name,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+
+describe("BrowserFilterBySelect — ticking in a sub-menu", () => {
+  test("a tick applies and leaves the menu open on its sub-menu", async () => {
+    const { wrapper, browserStore, choice } = await openCharacters();
+    choice("Iron Man").click();
+    await flushPromises();
+    expect(browserStore.tickFilters).toHaveBeenCalledWith({ characters: [2] });
+    expect(browserStore.setSettings).not.toHaveBeenCalled();
+    expect(wrapper.vm.menu).toBe(true);
+    expect(browserStore.filterMode).toBe("characters");
+  });
+
+  test("a letter key on a choice row stays in the sub-menu", async () => {
+    const { content, wrapper, browserStore, choice } = await openCharacters();
+    const reached = [];
+    content.addEventListener("keydown", (event) => {
+      reached.push(event.key);
+    });
+    key(choice("Spider-Man"), "a");
+    key(choice("Spider-Man"), "ArrowDown");
+    key(choice("Spider-Man"), "Escape");
+    await flushPromises();
+    expect(reached).toEqual(["ArrowDown", "Escape"]);
+    expect(browserStore.setSettings).not.toHaveBeenCalled();
+    expect(wrapper.vm.menu).toBe(false);
+  });
+
+  test("back at the filter list, stale choices are fetched again", async () => {
+    const { content, browserStore } = await openCharacters({
+      choicesStale: true,
+    });
+    browserStore.loadAvailableFilterChoices.mockClear();
+    content.querySelector(".filterHeaderTitle").click();
+    await flushPromises();
+    expect(browserStore.filterMode).toBe("base");
+    expect(browserStore.loadAvailableFilterChoices).toHaveBeenCalledOnce();
+  });
+
+  test("back at the filter list, fresh choices are kept", async () => {
+    const { content, browserStore } = await openCharacters();
+    browserStore.loadAvailableFilterChoices.mockClear();
+    content.querySelector(".filterHeaderTitle").click();
+    await flushPromises();
+    expect(browserStore.loadAvailableFilterChoices).not.toHaveBeenCalled();
+  });
+
+  test("in a sub-menu, Clear All Filters gives way to its own Clear Filter", async () => {
+    const { content } = await openCharacters({
+      filters: { characters: [1] },
+    });
+    expect(content.querySelector(".clearFilter")).toBeNull();
+    const clear = content.querySelector(
+      ":scope .filterHeaderTitle .clearFilterIcon",
+    );
+    expect(clear.getAttribute("aria-label")).toBe("Clear Filter");
+  });
+
+  test("the filter list shows how many values are ticked", async () => {
+    const { content } = await mountOpenMenu({
+      filters: { characters: [1, 2] },
+      dynamic: { characters: CHARACTERS },
+    });
+    const row = content.querySelector(".filterTickedCount");
+    expect(row.textContent.trim()).toBe("2");
+  });
+});
+
+describe("BrowserFilterBySelect — arrow keys in a sub-menu", () => {
+  /*
+   * Vuetify's list walks only rendered rows (``offsetParent``), and
+   * happy-dom renders nothing, so its arrow keys would move no focus at
+   * all. Give every element its parent as ``offsetParent`` while these
+   * run, so both nested lists really handle the key.
+   */
+  const descriptor = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    "offsetParent",
+  );
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "offsetParent", {
+      configurable: true,
+      get() {
+        return this.parentElement;
+      },
+    });
+  });
+  afterEach(() => {
+    if (descriptor) {
+      Object.defineProperty(HTMLElement.prototype, "offsetParent", descriptor);
+    }
+  });
+
+  test("an arrow key on a choice row steps one row", async () => {
+    const { choice } = await openCharacters();
+    choice("Iron Man").focus();
+    key(choice("Iron Man"), "ArrowDown");
+    expect(document.activeElement).toBe(choice("Spider-Man"));
+    key(choice("Spider-Man"), "ArrowUp");
+    expect(document.activeElement).toBe(choice("Iron Man"));
+  });
+
+  test("an arrow key off the end of the choices leaves them, not wraps", async () => {
+    const { content, choice } = await openCharacters();
+    choice("Iron Man").focus();
+    key(choice("Iron Man"), "ArrowUp");
+    expect(document.activeElement).not.toBe(choice("Spider-Man"));
+    expect(document.activeElement.getAttribute("role")).not.toBe(
+      "menuitemcheckbox",
+    );
+    expect(content.contains(document.activeElement)).toBe(true);
+  });
+});
+
+describe("BrowserFilterBySelect — the store knows the menu is open", () => {
+  test("opening and closing tell the store", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu();
+    expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(true);
+    wrapper.vm.menu = false;
+    await flushPromises();
+    expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(false);
+  });
+
+  test("leaving the page with the menu open tells the store it closed", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu();
+    wrapper.unmount();
+    wrappers.length = 0;
+    expect(browserStore.setFilterMenuOpen).toHaveBeenLastCalledWith(false);
+  });
+});
+
 const arrow = (el, key) =>
   el.dispatchEvent(
     new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
   );
 
 describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
-  test("ArrowDown off the last bookmark row lands on Shelves", async () => {
-    const { content, rows } = await mountOpenMenu();
-    const last = rows.at(-1);
-
-    last.focus();
-    arrow(last, "ArrowDown");
-
-    expect(document.activeElement).toBe(
-      content.querySelector(".shelvesFilter"),
-    );
-  });
-
   test("ArrowUp off the first bookmark row lands on Clear All Filters", async () => {
     const { content, rows } = await mountOpenMenu();
     const first = rows[0];
@@ -145,149 +294,65 @@ describe("BrowserFilterBySelect — keyboard reach into the slot rows", () => {
      * event is one that still reaches the row Vuetify navigates from.
      */
     expect(reached).toBe(1);
-    expect(document.activeElement).not.toBe(
-      content.querySelector(".shelvesFilter"),
-    );
+    expect(content.contains(document.activeElement)).toBe(true);
   });
 
-  test("logged out, the last row steps to the first filter sub-menu", async () => {
-    const { content, rows } = await mountOpenMenu({ loggedIn: false });
+  test("ArrowDown off the last row steps to the first filter sub-menu", async () => {
+    const { content, rows } = await mountOpenMenu();
     const last = rows.at(-1);
 
     last.focus();
     arrow(last, "ArrowDown");
 
     // Not a bookmark row: it stepped past the list instead of wrapping.
-    expect(content.querySelector(".shelvesFilter")).toBeNull();
     expect(content.contains(document.activeElement)).toBe(true);
     expect(document.activeElement.hasAttribute("aria-posinset")).toBe(false);
   });
-});
 
-const shelfRows = (content) => [
-  ...content.querySelectorAll(".shelvesFilterRow"),
-];
-
-async function openShelves(options) {
-  const mounted = await mountOpenMenu(options);
-  mounted.content.querySelector(".shelvesFilter").click();
-  await flushPromises();
-  return mounted;
-}
-
-describe("BrowserFilterBySelect — shelves sub-menu", () => {
-  test("there is no Favorites Only row", async () => {
-    const { content } = await mountOpenMenu();
+  test("there is no Shelves row", async () => {
+    const { content, wrapper } = await mountOpenMenu({
+      filters: { readingLists: [4] },
+    });
+    expect(content.textContent).not.toContain("Shelves");
     expect(content.textContent).not.toContain("Favorites Only");
-  });
-
-  test("hidden when the user has no shelves", async () => {
-    const { content } = await mountOpenMenu({ shelves: [] });
-    expect(content.querySelector(".shelvesFilter")).toBeNull();
-  });
-
-  test("selected shelves never render as a choices sub-menu", async () => {
-    const { wrapper } = await mountOpenMenu({ filters: { shelves: [4] } });
-    expect(wrapper.vm.dynamicChoiceNames).toEqual(["characters"]);
-  });
-
-  test("lists the user's shelves with the selected ones ticked", async () => {
-    const { content, browserStore } = await openShelves({
-      filters: { shelves: [9] },
-    });
-    expect(browserStore.filterMode).toBe("shelves");
-    const rows = shelfRows(content);
-    expect(rows.map((row) => row.textContent.trim())).toEqual([
-      "Favorites",
-      "Want to Read",
-    ]);
-    expect(rows.map((row) => row.getAttribute("aria-checked"))).toEqual([
-      "false",
-      "true",
+    // A selected list filter is an ordinary choices sub-menu.
+    expect(wrapper.vm.dynamicChoiceNames).toEqual([
+      "characters",
+      "readingLists",
     ]);
   });
 
-  test("ticking a shelf adds it to filters.shelves and keeps the menu open", async () => {
-    const { wrapper, content, browserStore } = await openShelves({
-      filters: { shelves: [9] },
+  test("the Any/All switch is no sub-menu", async () => {
+    const { wrapper } = await mountOpenMenu({
+      filters: { matchAll: ["characters"] },
     });
-
-    shelfRows(content)[0].click();
-    await flushPromises();
-
-    expect(browserStore.setSettings).toHaveBeenCalledExactlyOnceWith({
-      filters: { shelves: [9, 4] },
-    });
-    expect(wrapper.vm.menu).toBe(true);
-    expect(browserStore.filterMode).toBe("shelves");
+    expect(wrapper.vm.dynamicChoiceNames).toContain("characters");
+    expect(wrapper.vm.dynamicChoiceNames).not.toContain("matchAll");
   });
 
-  test("unticking a shelf removes it from filters.shelves", async () => {
-    const { content, browserStore } = await openShelves({
-      filters: { shelves: [4, 9] },
+  test("a picked reading list kind is an ordinary sub-menu", async () => {
+    const { content, wrapper } = await mountOpenMenu({
+      filters: { readingListKind: ["mine"] },
     });
-
-    shelfRows(content)[1].click();
-    await flushPromises();
-
-    expect(browserStore.setSettings).toHaveBeenCalledExactlyOnceWith({
-      filters: { shelves: [4] },
-    });
+    expect(wrapper.vm.dynamicChoiceNames).toContain("readingListKind");
+    expect(content.textContent).toContain("Reading List Kind");
   });
 
-  test("Clear Filter empties filters.shelves", async () => {
-    const { content, browserStore } = await openShelves({
-      filters: { shelves: [4] },
-    });
-
-    content.querySelector(".clearShelvesFilter").click();
-    await flushPromises();
-
-    expect(browserStore.setSettings).toHaveBeenCalledExactlyOnceWith({
-      filters: { shelves: [] },
-    });
-  });
-
-  test("ticking a shelf reloads the filter choices", async () => {
-    /*
-     * The page reload that a tick triggers clears ``choices.dynamic``;
-     * without a reload every other filter row showed a progress bar until
-     * the menu was reopened.
-     */
-    const { content, browserStore } = await openShelves({
-      filters: { shelves: [9] },
-    });
-
-    shelfRows(content)[0].click();
-    await flushPromises();
-
-    expect(browserStore.loadAvailableFilterChoices).toHaveBeenCalledOnce();
-    expect(browserStore.setSettings.mock.invocationCallOrder[0]).toBeLessThan(
-      browserStore.loadAvailableFilterChoices.mock.invocationCallOrder[0],
-    );
-  });
-
-  test("Clear Filter reloads the filter choices", async () => {
-    const { content, browserStore } = await openShelves({
-      filters: { shelves: [4] },
-    });
-
-    content.querySelector(".clearShelvesFilter").click();
-    await flushPromises();
-
-    expect(browserStore.loadAvailableFilterChoices).toHaveBeenCalledOnce();
-  });
-
-  test("Clear All Filters also empties filters.shelves", async () => {
+  test("Clear All Filters resets the Match all ticked switch", async () => {
     const { wrapper, browserStore } = await mountOpenMenu({
-      filters: { shelves: [4] },
+      filters: { characters: [1], matchAll: ["characters"] },
     });
-
     await wrapper.vm.onClear();
+    const sent = browserStore.setSettings.mock.calls.at(-1)[0];
+    expect(sent.filters.matchAll).toStrictEqual([]);
+  });
 
-    expect(browserStore.clearFilters).toHaveBeenCalled();
-    const cleared = browserStore.setSettings.mock.calls.at(-1)[0];
-    expect(cleared.filters.shelves).toEqual([]);
-    expect(cleared.filters).not.toHaveProperty("favorite");
+  test("Clear All Filters clears the kind to an empty list", async () => {
+    const { wrapper, browserStore } = await mountOpenMenu({
+      filters: { readingListKind: ["tags"] },
+    });
+    await wrapper.vm.onClear();
+    const sent = browserStore.setSettings.mock.calls.at(-1)[0];
+    expect(sent.filters.readingListKind).toStrictEqual([]);
   });
 });

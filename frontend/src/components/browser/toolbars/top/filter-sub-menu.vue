@@ -3,31 +3,54 @@
     <v-slide-x-transition hide-on-leave>
       <v-list-item
         v-if="filterMode === 'base'"
+        class="filterSubMenuRow"
+        :class="{ filterRowTicked: isActive }"
         density="compact"
         variant="plain"
         :title="title"
         :active="isActive"
-        :append-icon="filterMenuIcon"
         @click="setUIFilterMode(name)"
-      />
+      >
+        <template #append>
+          <span v-if="tickedCount" class="filterTickedCount">{{
+            tickedCount
+          }}</span>
+          <v-icon :icon="filterMenuIcon" />
+        </template>
+      </v-list-item>
     </v-slide-x-transition>
     <v-slide-x-reverse-transition hide-on-leave>
-      <div v-if="filterMode === name">
+      <div v-if="filterMode === name" @keydown="onSubMenuKeydown">
         <header class="filterHeader">
           <v-list-item
             class="filterHeaderTitle"
             :prepend-icon="mdiChevronLeft"
             :title="lowerTitle"
             @click="setUIFilterMode('base')"
-          />
-          <v-list-item
-            v-if="isClearable"
-            density="compact"
-            class="clearFilter"
-            title="Clear Filter"
-            :append-icon="mdiCloseCircleOutline"
-            @click="onClear"
-          />
+          >
+            <!--
+              Clear Filter. Always there, unseen with nothing ticked, so it
+              showing moves nothing: not the row's height, not the menu's
+              width. The row goes back when clicked, so the icon's click
+              and Enter or Space stop here.
+            -->
+            <template #append>
+              <v-btn
+                class="clearFilterIcon"
+                :class="{ clearFilterIconIdle: !isClearable }"
+                :icon="mdiCloseCircleOutline"
+                aria-label="Clear Filter"
+                title="Clear Filter"
+                color="primary"
+                variant="text"
+                :disabled="!isClearable"
+                :aria-hidden="isClearable ? undefined : 'true'"
+                @click.stop="onClear"
+                @keydown.enter.stop
+                @keydown.space.stop
+              />
+            </template>
+          </v-list-item>
           <v-text-field
             v-if="hasAnyChoices"
             v-model="search"
@@ -45,6 +68,23 @@
             rounded
             indeterminate
           />
+          <!--
+            Tag-like filters only, and always shown there, so the list
+            does not move when a value is ticked.
+          -->
+          <v-switch
+            v-if="isTagLike"
+            class="matchAllSwitch"
+            color="primary"
+            density="compact"
+            hide-details
+            label="Match all ticked"
+            :model-value="isMatchAll"
+            @update:model-value="onMatchAll"
+          />
+          <div v-if="isMatchAll" class="matchAllHint">
+            {{ matchAllHint }}
+          </div>
         </header>
         <!--
           Age Rating: dual-tab UI. The "Standardized" tab (metron
@@ -102,6 +142,7 @@
           :choices="choices"
           :filter="filter"
           :search="search"
+          :match-all="isMatchAll"
           @selected="onSelected"
         />
       </div>
@@ -120,9 +161,12 @@ import {
 import { mapActions, mapState, mapWritableState } from "pinia";
 import { capitalCase } from "text-case";
 
+import BROWSER_CHOICES, {
+  VUETIFY_NULL_CODE,
+} from "@/choices/browser-choices.json";
 import { NULL_PKS, toVuetifyItems } from "@/vuetify-items";
 import BrowserFilterChoiceList from "@/components/browser/toolbars/top/filter-choice-list.vue";
-import { useBrowserStore } from "@/stores/browser";
+import { MATCH_ALL_FILTER, useBrowserStore } from "@/stores/browser";
 
 const FILTER_TITLE_OVERRIDES = {
   ageRatingMetron: "Age Rating",
@@ -132,6 +176,18 @@ const FILTER_TITLE_OVERRIDES = {
 };
 // Tab values are the filter keys; "Standardized" is the default tab.
 const AGE_RATING_DEFAULT_TAB = "ageRatingMetron";
+/*
+ * The filters a comic holds several values of, where "Match all ticked"
+ * means something. Defined once on the server; see make build-choices.
+ */
+const TAG_LIKE_FILTERS = Object.freeze(
+  new Set(BROWSER_CHOICES.MATCH_ALL_FILTERS),
+);
+// A tick in one Age Rating tab narrows the other tab's choices.
+const OTHER_AGE_RATING_TAB = Object.freeze({
+  ageRatingMetron: "ageRatingTagged",
+  ageRatingTagged: "ageRatingMetron",
+});
 
 export default {
   name: "BrowserFilterSubMenu",
@@ -150,6 +206,9 @@ export default {
       mdiCloseCircleOutline,
       search: "",
       activeTab: AGE_RATING_DEFAULT_TAB,
+      // The list to refetch once the page reloads after a tick.
+      refreshAfterLoad: undefined,
+      matchAllHint: "Dimmed rows don't occur with every ticked value.",
     };
   },
   computed: {
@@ -164,6 +223,10 @@ export default {
       taggedChoices: (state) => state.choices.dynamic.ageRatingTagged,
       metronFilter: (state) => state.settings.filters.ageRatingMetron,
       taggedFilter: (state) => state.settings.filters.ageRatingTagged,
+      choicesStale: (state) => state.choicesStale,
+      page: (state) => state.page,
+      matchAllFilters: (state) =>
+        state.settings.filters[MATCH_ALL_FILTER] || [],
     }),
     ...mapWritableState(useBrowserStore, ["filterMode"]),
     isAgeRating() {
@@ -221,6 +284,23 @@ export default {
     filterMenuIcon() {
       return this.isActive ? mdiChevronRightCircle : mdiChevronRight;
     },
+    tickedCount() {
+      if (this.isAgeRating) {
+        return (
+          (this.metronFilter?.length ?? 0) + (this.taggedFilter?.length ?? 0)
+        );
+      }
+      return this.filter?.length ?? 0;
+    },
+    isOpen() {
+      return this.filterMode === this.name;
+    },
+    isTagLike() {
+      return TAG_LIKE_FILTERS.has(this.name);
+    },
+    isMatchAll() {
+      return this.isTagLike && this.matchAllFilters.includes(this.name);
+    },
     isClearable() {
       if (this.isAgeRating) {
         return this.metronHasSelections || this.taggedHasSelections;
@@ -263,6 +343,28 @@ export default {
         this.activeTab = AGE_RATING_DEFAULT_TAB;
       }
     },
+    page() {
+      /*
+       * The page reloaded after a tick. Under Any a filter's own value
+       * leaves its own list alone, so only the other Age Rating tab can
+       * have changed; under All the open list narrows to what still
+       * occurs with the ticked values. Refetch it in place.
+       */
+      const key = this.refreshAfterLoad;
+      if (!key || !this.isOpen) {
+        return;
+      }
+      this.refreshAfterLoad = undefined;
+      this.loadFilterChoices(key);
+    },
+    choices(value) {
+      this._loadIfEmptied(this.name, value);
+    },
+    taggedChoices(value) {
+      if (this.isAgeRating) {
+        this._loadIfEmptied("ageRatingTagged", value);
+      }
+    },
   },
   methods: {
     ...mapActions(useBrowserStore, [
@@ -275,10 +377,19 @@ export default {
       this.filterMode = mode;
       this.search = "";
       this.activeTab = AGE_RATING_DEFAULT_TAB;
+      this.refreshAfterLoad = undefined;
       if (mode === "base") {
+        /*
+         * Back at the filter list: refetch which filters are on offer
+         * once, here, after ticks made them stale. It is the slow request,
+         * so it is never sent per tick. The rows stay until it answers.
+         */
+        if (this.choicesStale) {
+          this.loadAvailableFilterChoices();
+        }
         return;
       }
-      if (typeof this.choices !== "object") {
+      if (typeof this.choices !== "object" || this.choicesStale) {
         this.loadFilterChoices(mode);
       }
       /*
@@ -286,8 +397,32 @@ export default {
        * so the As-tagged panel can render without its own loading
        * state when the user expands it.
        */
-      if (this.isAgeRating && typeof this.taggedChoices !== "object") {
+      if (
+        this.isAgeRating &&
+        (typeof this.taggedChoices !== "object" || this.choicesStale)
+      ) {
         this.loadFilterChoices("ageRatingTagged");
+      }
+    },
+    _loadIfEmptied(fieldName, value) {
+      // Choices replaced while this sub-menu is open load again, in place.
+      if (this.isOpen && typeof value !== "object") {
+        this.loadFilterChoices(fieldName);
+      }
+    },
+    onSubMenuKeydown(event) {
+      /*
+       * Vuetify's select picks a bookmark for any printable key pressed
+       * in its list, and a bookmark pick closes the menu. Keep those keys
+       * in the sub-menu; Escape and the navigation keys go through.
+       */
+      const isPrintable =
+        event.key?.length === 1 &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey;
+      if (isPrintable) {
+        event.stopPropagation();
       }
     },
     onSearchKeydown(event) {
@@ -304,9 +439,27 @@ export default {
       }
     },
     onSelected(value) {
+      if (this.isMatchAll) {
+        this.refreshAfterLoad = this.name;
+      }
       this.$emit("selected", { filters: { [this.name]: value } });
     },
+    onMatchAll(on) {
+      const others = this.matchAllFilters.filter((name) => name !== this.name);
+      const filters = {
+        [MATCH_ALL_FILTER]: on ? [...others, this.name] : others,
+      };
+      if (on && this.filter?.includes(VUETIFY_NULL_CODE)) {
+        // None cannot combine with All.
+        filters[this.name] = this.filter.filter(
+          (value) => value !== VUETIFY_NULL_CODE,
+        );
+      }
+      this.refreshAfterLoad = this.name;
+      this.$emit("selected", { filters });
+    },
     onAgeRatingSelected(key, value) {
+      this.refreshAfterLoad = OTHER_AGE_RATING_TAB[key];
       this.$emit("selected", { filters: { [key]: value } });
     },
     async _loadSubAvailableFilterChoices() {
@@ -321,6 +474,8 @@ export default {
       }
     },
     async onClear() {
+      // Back to the filter list; a settings change no longer does it.
+      this.filterMode = "base";
       if (this.isAgeRating) {
         /*
          * Single setSettings call clears both keys atomically;
@@ -383,14 +538,48 @@ export default {
     width: 88%;
   }
 
-  .clearFilter {
-    color: rgb(var(--v-theme-on-primary));
-    background-color: rgb(var(--v-theme-primary));
-    opacity: 0.7;
+  /*
+   * A 48px tap target that takes the room of a 36px one: the negative
+   * margins keep the title row its own height, with a gap after the
+   * title. Vuetify caps a button at its cell's width, which the negative
+   * margin makes narrower; lift the cap.
+   */
+  .clearFilterIcon {
+    width: 48px;
+    max-width: none;
+    height: 48px;
+    margin: -6px -6px -6px 2px;
   }
 
-  .clearFilter:hover {
+  .clearFilterIconIdle {
+    visibility: hidden;
+  }
+
+  // A plain row sits at 0.62 opacity unless hovered; one with ticks doesn't.
+  .filterRowTicked {
     opacity: 1;
+  }
+
+  .matchAllSwitch {
+    padding-left: 16px;
+  }
+
+  /*
+   * No wider than the menu already is: a hint that widened the menu
+   * moved the switch out from under the pointer.
+   */
+  .matchAllHint {
+    width: 0;
+    min-width: 100%;
+    padding: 0 16px 4px;
+    color: rgb(var(--v-theme-text-disabled));
+    font-size: smaller;
+  }
+
+  .filterTickedCount {
+    margin-right: 4px;
+    color: rgb(var(--v-theme-primary));
+    font-size: smaller;
   }
 
   /*

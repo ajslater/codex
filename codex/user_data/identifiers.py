@@ -1,7 +1,7 @@
 """
 Stable identifiers for the sidecar.
 
-The main DB stores polymorphic shelf items and tag-filter lists as integer
+The main DB stores polymorphic list items and tag-filter lists as integer
 PKs that won't survive a full rebuild. The sidecar replaces those PKs
 with name-chain tuples (or comic paths) — values that *do* survive,
 because the librarian's filesystem-driven import will re-create rows
@@ -15,7 +15,8 @@ Identifier shape per collection (the collection value names the collection):
 * ``imprints`` (Imprint): ``[publisher.name, imprint.name]``
 * ``series`` (Series): ``[publisher.name, imprint.name, series.name]``
 * ``volumes`` (Volume): ``[publisher.name, imprint.name, series.name, volume.name, volume.number_to]``
-* ``arcs`` (Story Arc): ``[story_arc.name]``
+* ``arcs`` (Reading List): ``[reading_list.name, reading_list.uuid]``; a
+  backup from before reading lists holds ``[story_arc.name]``
 
 Tag filter lists in :class:`SettingsBrowserFilters` JSONField columns
 get rewritten from ``[pk, ...]`` to ``[name, ...]`` per column. Some
@@ -28,6 +29,7 @@ from __future__ import annotations
 import json
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
+from uuid import UUID
 
 from codex.collection import Collection
 
@@ -59,7 +61,6 @@ _FILTER_TAG_MODEL_REFS: Final[MappingProxyType[str, str]] = MappingProxyType(
         "reprints": "codex.Reprint",
         "series_groups": "codex.SeriesGroup",
         "stories": "codex.Story",
-        "story_arcs": "codex.StoryArc",
         "tagger": "codex.Tagger",
         "tags": "codex.Tag",
         "teams": "codex.Team",
@@ -110,7 +111,7 @@ def decode_identifier(blob: str) -> tuple[str, list[Any]]:
 
 
 # Per-collection part extractors. Keys are the collection values from
-# :data:`codex.models.shelf.SHELF_MODEL_COLLECTIONS` (a ``Collection``
+# :data:`codex.models.collection_models.BROWSE_MODEL_COLLECTIONS` (a ``Collection``
 # member hashes equal to its collection-name value, so a plain-string
 # lookup finds it). Each callable takes the row instance and returns the
 # identifier ``parts`` list. Pulled out of an ``if``/``elif`` chain to
@@ -123,7 +124,7 @@ _IDENTIFIER_PART_BUILDERS: Final[MappingProxyType[str, Callable[[Any], list[Any]
             Collection.COMIC: lambda obj: [str(obj.path)],
             Collection.FOLDER: lambda obj: [str(obj.path)],
             Collection.PUBLISHER: lambda obj: [obj.name],
-            Collection.ARC: lambda obj: [obj.name],
+            Collection.ARC: lambda obj: [obj.name, str(obj.uuid)],
             Collection.IMPRINT: lambda obj: [obj.publisher.name, obj.name],
             Collection.SERIES: lambda obj: [
                 obj.publisher.name,
@@ -154,3 +155,70 @@ def identifier_for_browse_collection(collection: str, instance: Model) -> list[A
         msg = f"unknown browse-collection: {collection!r}"
         raise ValueError(msg)
     return builder(instance)
+
+
+def watched_path_pks(model, path: str) -> tuple[int, ...]:
+    """
+    Return every ``WatchedPath`` row at ``path``, lowest pk first.
+
+    ``WatchedPath`` is unique on ``(library, path)``, not on ``path``, so
+    nested or overlapping library roots hold the same file under two
+    libraries. The sidecar keys bookmarks and comic and folder items on
+    the path alone -- one file on disk -- and cannot say which library a
+    row came from, so taking the arbitrary first match dropped the user's
+    data in whichever library they actually browse. Restore into all of
+    them instead.
+    """
+    return tuple(
+        model.objects.filter(path=path).order_by("pk").values_list("pk", flat=True)
+    )
+
+
+def resolve_reading_list(model, parts: list[Any]):
+    """
+    Find a reading list by its UUID, else a global one by name.
+
+    A rebuilt database makes new lists from the tags, with new UUIDs, and a
+    backup from before reading lists named the story arc only.
+    """
+    if len(parts) > 1:
+        try:
+            uuid = UUID(str(parts[1]))
+        except ValueError:
+            uuid = None
+        if uuid and (obj := model.objects.filter(uuid=uuid).first()):
+            return obj
+    return model.objects.filter(name=parts[0], user__isnull=True).order_by("pk").first()
+
+
+def resolve_browse_collection_pks(
+    collection: str, parts: list[Any], model
+) -> tuple[int, ...]:
+    """Resolve a name-chain identifier back to main-DB PKs."""
+    match collection:
+        case Collection.COMIC | Collection.FOLDER:
+            # Path is only unique within a library -- see watched_path_pks.
+            return watched_path_pks(model, parts[0])
+        case Collection.ARC:
+            obj = resolve_reading_list(model, parts)
+        case Collection.PUBLISHER:
+            obj = model.objects.filter(name=parts[0]).first()
+        case Collection.IMPRINT:
+            obj = model.objects.filter(publisher__name=parts[0], name=parts[1]).first()
+        case Collection.SERIES:
+            obj = model.objects.filter(
+                publisher__name=parts[0],
+                imprint__name=parts[1],
+                name=parts[2],
+            ).first()
+        case Collection.VOLUME:
+            obj = model.objects.filter(
+                publisher__name=parts[0],
+                imprint__name=parts[1],
+                series__name=parts[2],
+                name=parts[3],
+                number_to=parts[4],
+            ).first()
+        case _:
+            return ()
+    return () if obj is None else (obj.pk,)

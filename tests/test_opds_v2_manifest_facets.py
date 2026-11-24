@@ -2,10 +2,10 @@
 OPDS v2 manifests and facets do not inherit the last feed's state.
 
 The manifest went through the browser pipeline, so the saved OPDS
-filters applied to it: after a shelf feed, a book not on that shelf got
-a manifest with no reading order. A Read Filter facet on a shelf feed
-replaced ``filters`` wholesale (the shelf dropped) but kept its ``title``
-(the shelf's name).
+filters applied to it: after a list feed, a book not in that list got
+a manifest with no reading order. A Read Filter facet on a list feed
+replaced ``filters`` wholesale (the list dropped) but kept its ``title``
+(the list's name). These were shelves before shelves folded into lists.
 """
 
 import json
@@ -14,7 +14,8 @@ from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth.models import Group
 
-from codex.models import Comic, GroupAuth, Library, Shelf, ShelfItem
+from codex.models import Comic, GroupAuth, Library, ReadingList
+from codex.views.readinglists.entries import add_comics
 from tests.test_opds_keep_reading import (
     _TEST_PASSWORD,
     _TMP_DIR,
@@ -39,10 +40,8 @@ class OPDS2ManifestFacetTestCase(KeepReadingSeedTestCase):
 
     def _shelf_feed_url(self) -> str:
         """Return the shelf's own link from the start page, as a client follows it."""
-        shelf = Shelf.objects.create(user=self.user, name=_SHELF_NAME)
-        ShelfItem.objects.create(
-            shelf=shelf, collection="comics", target_id=self.comics[0].pk
-        )
+        shelf = ReadingList.objects.create(user=self.user, name=_SHELF_NAME)
+        add_comics(shelf, [self.comics[0].pk])
         group = _group(self._feed(self.client), _SHELF_NAME)
         assert group is not None
         href = group["links"][0]["href"]
@@ -97,11 +96,11 @@ class OPDS2ManifestFacetTestCase(KeepReadingSeedTestCase):
         response, _ = self._get(_manifest_url(999_999))
         assert response.status_code == _HTTP_NOT_FOUND, response.content[:300]
 
-    def test_read_filter_facet_keeps_the_shelf_and_drops_the_title(self) -> None:
+    def test_read_filter_facet_keeps_the_list_and_drops_the_title(self) -> None:
         self._login()
         response, feed = self._get(self._shelf_feed_url())
         assert response.status_code == _HTTP_OK, response.content[:300]
-        shelf_pk = Shelf.objects.get(user=self.user).pk
+        list_pk = ReadingList.objects.get(user=self.user).pk
 
         # The v2 feed carries its facets as navigation groups.
         facet = next(
@@ -114,5 +113,5 @@ class OPDS2ManifestFacetTestCase(KeepReadingSeedTestCase):
 
         filters = json.loads(query["filters"][0])
         assert filters.get("bookmark") == "UNREAD", filters
-        assert filters.get("shelves") == [shelf_pk], filters
+        assert filters.get("reading_lists") == [list_pk], filters
         assert "title" not in query, query

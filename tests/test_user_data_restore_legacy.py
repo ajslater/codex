@@ -48,20 +48,21 @@ class LegacyKeyRenameTests(TestCase):
 
     def test_site_defaults_rename_the_favorite_sort_and_column(self) -> None:
         """
-        A pre-shelves backup's site defaults sort and show ``shelved``.
+        A pre-shelves backup's site defaults sort and show Reading Lists.
 
-        The per-user rows were renamed; the site defaults kept a
-        ``favorite`` sort nothing understands and dropped the column.
+        Favorites became shelves, and shelves became reading lists: a
+        ``favorite`` or ``shelved`` sort and column are ``reading_lists``.
         """
         from codex.user_data.restore import _build_settings_defaults
 
-        row = {
-            "order_by": "favorite",
-            "table_columns": '{"comics": ["issue", "favorite"]}',
-        }
-        defaults = _build_settings_defaults(row)
-        assert defaults["order_by"] == "shelved"
-        assert defaults["table_columns"]["comics"] == ["issue", "shelved"]
+        for old in ("favorite", "shelved"):
+            row = {
+                "order_by": old,
+                "table_columns": f'{{"comics": ["issue", "{old}"]}}',
+            }
+            defaults = _build_settings_defaults(row)
+            assert defaults["order_by"] == "reading_lists"
+            assert defaults["table_columns"]["comics"] == ["issue", "reading_lists"]
 
     def test_browser_defaults_pass_current_keys_through(self) -> None:
         """Current-name rows restore unchanged."""

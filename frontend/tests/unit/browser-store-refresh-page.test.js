@@ -31,11 +31,11 @@ function storeWith({ browserPageLoaded = true } = {}) {
       auth: { user: { pk: 1 } },
       browser: {
         browserPageLoaded,
-        page: Object.freeze({ rows: [{ pk: 1, shelves: [] }] }),
+        page: Object.freeze({ rows: [{ pk: 1, readingLists: [] }] }),
         settings: {
           breadcrumbs: [],
           show: {},
-          tableColumns: { publishers: ["name", "shelved"] },
+          tableColumns: { publishers: ["name", "reading_lists"] },
           topCollection: "publishers",
           viewMode: "table",
         },
@@ -52,7 +52,7 @@ beforeEach(() => {
 describe("refreshBrowserPage", () => {
   test("swaps in the fresh page without the loading placeholder", async () => {
     API.getBrowserPage.mockResolvedValue({
-      data: { breadcrumbs: [], rows: [{ pk: 1, shelves: [3] }] },
+      data: { breadcrumbs: [], rows: [{ pk: 1, readingLists: ["Mine"] }] },
     });
     const store = storeWith();
     const loaded = [];
@@ -62,11 +62,11 @@ describe("refreshBrowserPage", () => {
 
     await store.refreshBrowserPage();
 
-    expect(store.page.rows).toEqual([{ pk: 1, shelves: [3] }]);
+    expect(store.page.rows).toEqual([{ pk: 1, readingLists: ["Mine"] }]);
     expect(store.browserPageLoaded).toBe(true);
     expect(loaded).not.toContain(false);
     const [, settings] = API.getBrowserPage.mock.calls[0];
-    expect(settings.columns).toBe("name,shelved");
+    expect(settings.columns).toBe("name,reading_lists");
   });
 
   test("leaves a full load in flight alone", async () => {
