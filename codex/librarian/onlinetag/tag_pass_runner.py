@@ -167,13 +167,22 @@ class TagPassRunner:
         *,
         flush_writes: bool,
     ) -> None:
-        """Run one tag_many pass, updating status and draining the queue."""
+        """
+        Run one tag_many pass, updating status and draining the queue.
+
+        A Pause stops the pass only after the result in hand is kept. It
+        asks comicbox to stop, and a lookup already under way runs to its
+        end, outside a retry wait, and reports its comic written. Dropping
+        that result would leave the comic matched in the table and out of
+        the resume set, but never written.
+        """
         for result in state.session.tag_many(paths):
-            if state.cancelled:
-                break
             if result.cancelled:
-                # Before advancing anything: this comic was not looked at.
-                self._halt_for_comicbox(state, status)
+                # Before advancing anything: this comic was not looked at. A
+                # Pause has already set ``cancelled``; otherwise comicbox
+                # stopped the run itself.
+                if not state.cancelled:
+                    self._halt_for_comicbox(state, status)
                 break
             self._drain_queue(state)
             was_rate_limited = self._detect_rate_limit_recovery(status)
@@ -181,6 +190,8 @@ class TagPassRunner:
             self._store_result_tags(state, result, batch, flush_writes=flush_writes)
             if flush_writes and was_rate_limited and batch:
                 self._flush_batch(state, batch)
+            if state.cancelled:
+                break
 
     def begin_status(self, total: int) -> OnlineLookupStatus:
         """

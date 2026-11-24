@@ -58,7 +58,7 @@ border-radius: 128px;
 - Answering a tagging prompt from a Merge all sources run no longer overwrites
   tags a higher-priority source already wrote.
 - Pause stops online tagging at once, also while refreshing tagged comics or
-  waiting out a rate limit.
+  waiting out a rate limit, and still writes the comic it was looking up.
 - Tag Online's Effort applies, and a scan that cannot run, such as one using a
   source with no key, is refused with its reason instead of spinning.
 - Tag Online started during a Tag by ID run no longer tags its comics with that
