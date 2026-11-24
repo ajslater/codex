@@ -36,7 +36,7 @@ from comicbox.write import BulkWriteItem, bulk_write
 from codex.librarian.onlinetag.session_cache import get_pending_prompts
 from codex.librarian.onlinetag.session_snapshot import get_resume_state, get_snapshot
 from codex.librarian.onlinetag.session_state import SessionState
-from codex.librarian.onlinetag.statuses import QUEUED
+from codex.librarian.onlinetag.statuses import ERROR
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagPromptResponseTask,
@@ -557,10 +557,12 @@ class MixedLookupMergeTests(OnlineTagSessionTestCase):
 
     def test_a_stored_id_that_fails_holds_the_comic_for_resume(self) -> None:
         """
-        Not written, not searched, and queued for Resume.
+        Not written, not searched, shown as held, and retried by Resume.
 
         Writing Comic Vine's half would put a lower-priority source's title
-        over the Metron one the comic had, and mark the comic done.
+        over the Metron one the comic had, and mark the comic done. A held
+        comic is not an errored one, which Resume would skip: its row reads
+        Error in Metron's column, and the snapshot says which sources held it.
         """
         with fake_sources() as sources:
             sources["metron"].failing.add(METRON_ID)
@@ -575,7 +577,12 @@ class MixedLookupMergeTests(OnlineTagSessionTestCase):
         snapshot = get_snapshot()
         assert snapshot is not None
         (row,) = snapshot["comics"]
-        assert row["status"] == QUEUED
+        assert row["status"] == ERROR
+        assert row["source_statuses"] == {"metron": ERROR}
+        assert snapshot["resumable"] is True
+        assert snapshot["held"] == {"count": 1, "sources": ["metron"]}
+        assert snapshot["batch"]["error"] == 1
+        assert snapshot["batch"]["matched"] == 0
 
 
 class StoredIdSightTests(OnlineTagSessionTestCase):

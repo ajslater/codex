@@ -661,6 +661,51 @@ describe("AdminTaggingStatusTable", () => {
     expect(wrapper.text()).toContain("daily API request quota exhausted");
   });
 
+  /*
+   * A comic whose stored issue id could not be fetched is held: nothing is
+   * written and Resume tries it again. Its row reads Error; this says why,
+   * naming each source as its column does.
+   */
+  test("explains a comic held back for Resume", () => {
+    const base = makeSnapshot();
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot({
+        active: false,
+        resumable: true,
+        held: { count: 1, sources: ["metron"] },
+        batch: { ...base.batch, queued: 0, error: 1 },
+      }),
+    });
+
+    expect(wrapper.text()).toContain(
+      "1 comic not written: its stored issue id could not be fetched from Metron Cloud.",
+    );
+  });
+
+  test("explains several comics held back by several sources", () => {
+    const base = makeSnapshot();
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot({
+        active: false,
+        resumable: true,
+        held: { count: 3, sources: ["comicvine", "metron"] },
+        batch: { ...base.batch, queued: 0, error: 3 },
+      }),
+    });
+
+    expect(wrapper.text()).toContain(
+      "3 comics not written: their stored issue ids could not be fetched from Comic Vine, Metron Cloud.",
+    );
+  });
+
+  test("says nothing about held comics when none were held", () => {
+    const { wrapper } = mountTable({
+      snapshot: makeSnapshot({ held: { count: 0, sources: [] } }),
+    });
+
+    expect(wrapper.text()).not.toContain("not written");
+  });
+
   test("says nothing about a pause when the run simply finished", () => {
     const base = makeSnapshot();
     const { wrapper } = mountTable({

@@ -57,6 +57,7 @@ from comicbox.events import (
 
 from codex.librarian.onlinetag.issue_id import parse_issue_id
 from codex.librarian.onlinetag.statuses import (
+    ERROR,
     MATCHED,
     NEEDS_REVIEW,
     NO_MATCH,
@@ -95,6 +96,11 @@ class OnlineTagOutcomeStats:
     # of the terminal buckets and in the resume set for the next run,
     # instead of being recorded as a comic no source could find.
     quota_reserved_paths: set[Path] = field(default_factory=set)
+    # Comics held back because a source could not fetch their stored issue
+    # id, with those sources. Deliberately NOT ``errored_paths``: nothing was
+    # written, and an errored comic is done, so Resume would skip it. A held
+    # one stays to be processed and Resume tries it again.
+    held_sources_by_path: dict[Path, tuple[str, ...]] = field(default_factory=dict)
 
     def record(self, event: Event) -> None:
         """Fold one comicbox event into the running tallies."""
@@ -254,8 +260,21 @@ class OnlineTagOutcomeStats:
             self.matched_ids_by_path,
             self.source_status_by_path,
             self.started_sources_by_path,
+            self.held_sources_by_path,
         ):
             by_path.pop(path, None)
+
+    def hold(self, path: Path, sources: Collection[str]) -> None:
+        """
+        Record a comic held back because ``sources`` could not fetch its ids.
+
+        Whatever the lookup said about it is dropped, since none of it was
+        written. What is left is an error in each failed source's column.
+        """
+        self.forget(path)
+        self.held_sources_by_path[path] = tuple(sources)
+        for source in sources:
+            self._set_source_status(path, source, ERROR)
 
     @property
     def matched(self) -> int:
@@ -282,6 +301,11 @@ class OnlineTagOutcomeStats:
     def errored(self) -> int:
         """Comics that raised before finishing."""
         return len(self.errored_paths)
+
+    @property
+    def held(self) -> int:
+        """Comics held back for Resume because a stored id did not fetch."""
+        return len(self.held_sources_by_path)
 
     @property
     def left_for_next_run(self) -> int:
@@ -326,6 +350,8 @@ class OnlineTagOutcomeStats:
             parts.append(f"{reserved} left for the next run (daily API quota)")
         if self.errored:
             parts.append(f"{self.errored} errored")
+        if self.held:
+            parts.append(f"{self.held} held for Resume (a stored id did not fetch)")
         comics = "comic" if self.total == 1 else "comics"
         return (
             f"Online tag session finished in {elapsed}: "
