@@ -26,6 +26,7 @@ from comicbox.readinglists import (
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import HttpResponse
+from django.utils.http import content_disposition_header
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -367,5 +368,9 @@ class ReadingListExportView(ReadingListAccessView):
         filename = export_filename(
             reading_list, f" (missing){suffix}" if missing else suffix
         )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        # ``filename*`` for a name outside Latin-1, which Django would
+        # otherwise MIME-encode into a header no browser reads.
+        response["Content-Disposition"] = content_disposition_header(
+            as_attachment=True, filename=filename
+        )
         return response

@@ -20,6 +20,7 @@ from uuid import uuid4
 from comicbox.exceptions import OnlineLookupAbortedError, ReadingListError
 from comicbox.readinglists import loads
 from djangorestframework_camel_case.parser import CamelCaseJSONParser
+from djangorestframework_camel_case.util import underscoreize
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -242,7 +243,9 @@ class AdminReadingListPreviewView(AdminAPIView):
         sources = self.request.data.get("sources") or []
         if isinstance(sources, str):
             try:
-                sources = json.loads(sources)
+                # A multipart field is a string the camel-case parser never
+                # sees, so its keys are converted here as a JSON body's are.
+                sources = underscoreize(json.loads(sources))
             except ValueError as exc:
                 reason = "sources must be a JSON list."
                 raise ValidationError(reason) from exc

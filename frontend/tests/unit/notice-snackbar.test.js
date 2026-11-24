@@ -6,7 +6,7 @@ import { mount } from "@vue/test-utils";
  * and ``form.errors`` have nothing to show them.
  */
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import NoticeSnackbar from "@/components/notice-snackbar.vue";
 import vuetify from "@/plugins/vuetify";
@@ -66,3 +66,48 @@ describe("notices", () => {
     expect(store.form.success).toBe("Saved.");
   });
 });
+
+describe("a notice's own timer", () => {
+  /*
+   * A notice that replaces one still showing leaves the snackbar open, and
+   * Vuetify starts its timer only when it opens: the second notice used to
+   * close when the first one's time ran out.
+   */
+  let pinia;
+  beforeEach(() => {
+    // The real snackbar's overlay reads visualViewport, which happy-dom lacks.
+    globalThis.visualViewport ??= {
+      width: 1024,
+      height: 768,
+      addEventListener() {},
+      removeEventListener() {},
+    };
+    vi.useFakeTimers();
+    pinia = createPinia();
+    setActivePinia(pinia);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  test("a second notice gets its full time", async () => {
+    const wrapper = mount(NoticeSnackbar, {
+      attachTo: document.body,
+      global: { plugins: [vuetify, pinia] },
+    });
+    const store = useCommonStore();
+    store.setNotice("First.");
+    await wrapper.vm.$nextTick();
+    await vi.advanceTimersByTimeAsync(3000);
+    store.setNotice("Second.");
+    await wrapper.vm.$nextTick();
+    // Past the first notice's 4 s, well inside the second's.
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(store.notice.text).toBe("Second.");
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(store.notice.text).toBe("");
+    wrapper.unmount();
+  });
+});
+
+export default {};

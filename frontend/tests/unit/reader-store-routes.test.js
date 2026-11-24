@@ -192,3 +192,55 @@ describe("reader store loadBooks page routes", () => {
     expect(store.routes.next).toBe(false);
   });
 });
+
+describe("reader store ?list=", () => {
+  /*
+   * Continue Reading opens a comic with ``?list=`` so its list is the
+   * reading order. The server keeps that arc for the books after, so the
+   * query is read once: left in the route, every later reload of the same
+   * book (a library change) forced the list back over the reading order
+   * the reader had picked since.
+   */
+  const book = { pk: 3, maxPage: 9, settings: {} };
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    vi.spyOn(READER_API, "getSettings").mockResolvedValue({
+      data: { scopes: {} },
+    });
+    vi.spyOn(READER_API, "getReaderInfo").mockResolvedValue({
+      data: {
+        books: { current: book, prev: false, next: false },
+        arcs: {},
+        arc: { collection: "series", ids: [] },
+        mtime: 2,
+      },
+    });
+    router.currentRoute.value = {
+      name: "reader",
+      params: { pk: "3" },
+      query: { page: "0", list: "5" },
+    };
+    router.replace = vi.fn(async (to) => {
+      router.currentRoute.value = { ...router.currentRoute.value, ...to };
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete router.replace;
+  });
+
+  it("reads the list once, then follows the reader's choice", async () => {
+    const store = useReaderStore();
+
+    await store.loadBooks({});
+    await store.loadBooks({ mtime: 3 });
+
+    const arcs = READER_API.getReaderInfo.mock.calls.map(([, settings]) => {
+      return settings.arc;
+    });
+    expect(arcs).toStrictEqual([{ collection: "arcs", ids: [5] }, undefined]);
+    expect(router.currentRoute.value.query).toStrictEqual({ page: "0" });
+  });
+});

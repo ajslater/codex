@@ -1,5 +1,6 @@
 <template>
   <v-snackbar
+    :key="noticeKey"
     v-model="show"
     class="noticeSnackbar"
     :color="notice.error ? 'error' : undefined"
@@ -34,7 +35,10 @@ import { useCommonStore } from "@/stores/common";
 export default {
   name: "NoticeSnackbar",
   data() {
-    return { TIMEOUT: 4000, ERROR_TIMEOUT: 8000 };
+    // A new key per notice remounts the snackbar, which starts its timer
+    // only when it opens: a notice replacing one still showing would
+    // otherwise close on the first one's time.
+    return { TIMEOUT: 4000, ERROR_TIMEOUT: 8000, noticeKey: 0 };
   },
   computed: {
     ...mapState(useCommonStore, ["notice"]),
@@ -45,6 +49,11 @@ export default {
       set(value) {
         if (!value) this.clearNotice();
       },
+    },
+  },
+  watch: {
+    notice() {
+      this.noticeKey += 1;
     },
   },
   methods: {
