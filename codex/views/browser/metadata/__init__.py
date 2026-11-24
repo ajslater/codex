@@ -89,7 +89,9 @@ class MetadataView(MetadataCopyIntersectionsView):
         reading_list = visible_lists(self.request.user).filter(pk=pks[0]).first()
         if reading_list is None:
             return None
-        return list_details(self, self.request, reading_list)
+        return list_details(
+            self, self.request, reading_list, self.params.get("filters") or {}
+        )
 
     @override
     def get_object(self) -> Any:

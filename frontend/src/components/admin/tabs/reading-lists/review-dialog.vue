@@ -4,27 +4,36 @@
       <v-card-title class="dialogTitle">{{ readingList.name }}</v-card-title>
       <v-card-text>
         <div class="reviewBar">
-          <v-btn-toggle
-            v-model="filter"
-            density="compact"
-            mandatory
-            variant="outlined"
+          <!-- A checklist: nothing ticked is every issue. -->
+          <v-chip-group
+            v-model="filters"
+            class="reviewFilter"
+            column
+            filter
+            multiple
           >
-            <v-btn value="review">Needs Review</v-btn>
-            <v-btn value="missing">Missing</v-btn>
-            <v-btn value="all">All</v-btn>
-            <v-btn value="hidden">Hidden</v-btn>
-          </v-btn-toggle>
+            <v-chip
+              v-for="choice of filterChoices"
+              :key="choice.value"
+              :value="choice.value"
+              size="small"
+              variant="outlined"
+            >
+              {{ choice.title }}
+            </v-chip>
+          </v-chip-group>
           <v-spacer />
           <v-btn
             size="small"
             variant="tonal"
             :disabled="!reviewCount"
-            :title="reviewCount ? '' : 'No issue needs review.'"
             @click="acceptAll"
           >
             Accept All Best Guesses
           </v-btn>
+          <span v-if="!reviewCount" class="adminHint reviewHint">
+            {{ noReviewHint }}
+          </span>
         </div>
         <p class="adminProse">
           Edits here are saved in Codex only and never change a comic file.
@@ -46,116 +55,155 @@
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="entry in entries"
-              :key="entry.pk"
-              :class="{
-                dragOver: dragOverPk === entry.pk,
-                hidden: entry.ignored,
-              }"
-              :draggable="filter === 'all'"
-              @dragstart="dragStart(entry)"
-              @dragover.prevent="dragOverPk = entry.pk"
-              @dragleave="dragOverPk = null"
-              @drop.prevent="drop(entry)"
-            >
-              <td class="positionCol">
-                <div class="positionControls">
-                  <!--
-                    No number spinner: its up arrow counts the position up,
-                    which moves the entry down the list. These arrows move
-                    it as they point, one place at a time, so only on the
-                    whole list, as dragging.
-                  -->
+            <template v-for="{ key, item, entry } in rows" :key="key">
+              <!--
+                A held collection is one row: the issues it brings are its,
+                so no control here acts on one of them.
+              -->
+              <tr v-if="item" class="itemRow">
+                <td class="positionCol">
                   <v-text-field
-                    :model-value="entry.position + 1"
+                    v-if="!isSourced && item.position != null"
+                    :model-value="item.position + 1"
                     inputmode="numeric"
                     density="compact"
                     hide-details
                     variant="plain"
                     class="positionInput"
-                    @change="move(entry, $event.target.value - 1)"
+                    @change="moveItem(item, $event.target.value - 1)"
                   />
-                  <span
-                    v-if="filter === 'all' && entry.liveSource == null"
-                    class="moveArrows"
-                  >
-                    <v-btn
-                      class="moveUp"
-                      :icon="mdiArrowUp"
-                      size="small"
+                </td>
+                <td colspan="5">
+                  <span class="itemLabel">{{ item.label }}</span>
+                  <span class="itemCount">{{ itemCaption(item) }}</span>
+                </td>
+                <td class="adminActionCell entryActions">
+                  <v-btn
+                    v-if="!item.dangling"
+                    class="removeItem"
+                    :icon="mdiTrashCanOutline"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Remove this collection and its issues"
+                    @click="removeItem(item)"
+                  />
+                </td>
+              </tr>
+              <tr
+                v-else
+                :class="{
+                  dragOver: dragOverPk === entry.pk,
+                  hidden: entry.ignored,
+                }"
+                :draggable="!filters.length"
+                @dragstart="dragStart(entry)"
+                @dragover.prevent="dragOverPk = entry.pk"
+                @dragleave="dragOverPk = null"
+                @drop.prevent="drop(entry)"
+              >
+                <td class="positionCol">
+                  <div class="positionControls">
+                    <!--
+                    No number spinner: its up arrow counts the position up,
+                    which moves the entry down the list. These arrows move
+                    it as they point, one place at a time, so only on the
+                    whole list, as dragging.
+                  -->
+                    <v-text-field
+                      :model-value="entry.position + 1"
+                      inputmode="numeric"
                       density="compact"
-                      variant="text"
-                      title="Move up"
-                      aria-label="Move up"
-                      :disabled="entry.position === 0"
-                      @click="move(entry, entry.position - 1)"
+                      hide-details
+                      variant="plain"
+                      class="positionInput"
+                      @change="move(entry, $event.target.value - 1)"
                     />
-                    <v-btn
-                      class="moveDown"
-                      :icon="mdiArrowDown"
+                    <span
+                      v-if="!filters.length && entry.liveSource == null"
+                      class="moveArrows"
+                    >
+                      <v-btn
+                        class="moveUp"
+                        :icon="mdiArrowUp"
+                        size="small"
+                        density="compact"
+                        variant="text"
+                        title="Move up"
+                        aria-label="Move up"
+                        :disabled="entry.position === 0"
+                        @click="move(entry, entry.position - 1)"
+                      />
+                      <v-btn
+                        class="moveDown"
+                        :icon="mdiArrowDown"
+                        size="small"
+                        density="compact"
+                        variant="text"
+                        title="Move down"
+                        aria-label="Move down"
+                        :disabled="downTarget(entry) === undefined"
+                        @click="move(entry, downTarget(entry))"
+                      />
+                    </span>
+                  </div>
+                </td>
+                <td>{{ entry.seriesName }}</td>
+                <td>{{ entry.issue }}</td>
+                <td>{{ entry.year }}</td>
+                <td>{{ entry.entryType }}</td>
+                <td>
+                  <span v-if="entry.comic" :title="tierTitle(entry)">
+                    {{ comicLabel(entry.comic) }}
+                    <v-icon
+                      v-if="entry.needsReview"
                       size="small"
-                      density="compact"
-                      variant="text"
-                      title="Move down"
-                      aria-label="Move down"
-                      :disabled="downTarget(entry) === undefined"
-                      @click="move(entry, downTarget(entry))"
-                    />
+                      color="primary"
+                    >
+                      {{ mdiHelpCircleOutline }}
+                    </v-icon>
                   </span>
-                </div>
-              </td>
-              <td>{{ entry.seriesName }}</td>
-              <td>{{ entry.issue }}</td>
-              <td>{{ entry.year }}</td>
-              <td>{{ entry.entryType }}</td>
-              <td>
-                <span v-if="entry.comic" :title="tierTitle(entry)">
-                  {{ comicLabel(entry.comic) }}
-                  <v-icon v-if="entry.needsReview" size="small" color="primary">
-                    {{ mdiHelpCircleOutline }}
-                  </v-icon>
-                </span>
-                <span v-else class="missing">{{ missingLabel(entry) }}</span>
-              </td>
-              <td class="adminActionCell entryActions">
-                <v-btn
-                  :icon="mdiMagnify"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  title="Find the comic"
-                  @click="find(entry)"
-                />
-                <v-btn
-                  v-if="admin && entry.seriesName"
-                  :icon="mdiSourceMerge"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  title="Map this series to a library series, for every row and list"
-                  @click="find(entry, true)"
-                />
-                <v-btn
-                  :icon="entry.ignored ? mdiEyeOutline : mdiEyeOffOutline"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  :title="entry.ignored ? 'Show in List' : 'Hide from List'"
-                  @click="setHidden(entry, !entry.ignored)"
-                />
-                <v-btn
-                  v-if="entry.manual"
-                  :icon="mdiTrashCanOutline"
-                  size="small"
-                  density="compact"
-                  variant="text"
-                  title="Remove this issue added by hand"
-                  @click="remove(entry)"
-                />
-              </td>
-            </tr>
-            <tr v-if="!entries.length">
+                  <span v-else class="missing">{{ missingLabel(entry) }}</span>
+                </td>
+                <td class="adminActionCell entryActions">
+                  <v-btn
+                    :icon="mdiMagnify"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Find the comic"
+                    @click="find(entry)"
+                  />
+                  <v-btn
+                    v-if="admin && entry.seriesName"
+                    :icon="mdiSourceMerge"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Map this series to a library series, for every row and list"
+                    @click="find(entry, true)"
+                  />
+                  <v-btn
+                    :icon="entry.ignored ? mdiEyeOutline : mdiEyeOffOutline"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    :title="entry.ignored ? 'Show in List' : 'Hide from List'"
+                    @click="setHidden(entry, !entry.ignored)"
+                  />
+                  <v-btn
+                    v-if="entry.manual"
+                    :icon="mdiTrashCanOutline"
+                    size="small"
+                    density="compact"
+                    variant="text"
+                    title="Remove this issue added by hand"
+                    @click="remove(entry)"
+                  />
+                </td>
+              </tr>
+            </template>
+            <tr v-if="!rows.length">
               <td colspan="7" class="adminNoData">
                 {{ loading ? "Loading…" : "Nothing here." }}
               </td>
@@ -211,8 +259,17 @@ const ENTRY_FILTERS = Object.freeze({
   review: (entry) => entry.needsReview && !entry.ignored,
   missing: (entry) => !entry.comic && !entry.ignored,
   hidden: (entry) => entry.ignored,
-  all: () => true,
 });
+const FILTER_CHOICES = Object.freeze([
+  { value: "review", title: "Needs Review" },
+  { value: "missing", title: "Missing" },
+  { value: "hidden", title: "Hidden" },
+]);
+
+// The ticked filters an opener asks for: "all" ticks none.
+function initialFilters(filter) {
+  return filter in ENTRY_FILTERS ? [filter] : [];
+}
 
 export default {
   name: "ReviewDialog",
@@ -235,8 +292,12 @@ export default {
       mdiMagnify,
       mdiSourceMerge,
       mdiTrashCanOutline,
-      filter: this.initialFilter,
+      noReviewHint: "No issue needs review.",
+      filterChoices: FILTER_CHOICES,
+      filters: initialFilters(this.initialFilter),
       allEntries: [],
+      // The list's held collections: their issues fold into one row each.
+      items: [],
       loading: false,
       loadSeq: 0,
       dragPk: null,
@@ -255,9 +316,32 @@ export default {
       return Boolean(this.readingList?.sources?.length);
     },
     entries() {
-      // One fetch of every entry; the filters narrow it here.
-      const test = ENTRY_FILTERS[this.filter] || ENTRY_FILTERS.all;
-      return this.allEntries.filter((entry) => test(entry));
+      // One fetch of every entry; the ticked filters narrow it here.
+      if (!this.filters.length) return this.allEntries;
+      const tests = this.filters.map((name) => ENTRY_FILTERS[name]);
+      return this.allEntries.filter((entry) =>
+        tests.some((test) => test?.(entry)),
+      );
+    },
+    rows() {
+      /*
+       * The table's rows. A held collection is one row at its first issue,
+       * and only under All: its issues are never missing, hidden or in
+       * need of review.
+       */
+      const rows = this.entries
+        .filter((entry) => entry.liveSource == null)
+        .map((entry) => ({ key: `e${entry.pk}`, entry, at: entry.position }));
+      if (!this.filters.length) {
+        for (const item of this.items) {
+          rows.push({
+            key: `i${item.pk}`,
+            item,
+            at: item.position ?? Infinity,
+          });
+        }
+      }
+      return rows.sort((a, b) => a.at - b.at);
     },
     reviewCount() {
       return this.allEntries.filter((entry) => ENTRY_FILTERS.review(entry))
@@ -275,7 +359,7 @@ export default {
   watch: {
     modelValue(value) {
       if (value) {
-        this.filter = this.initialFilter;
+        this.filters = initialFilters(this.initialFilter);
         this.load();
       }
     },
@@ -283,6 +367,7 @@ export default {
       if (value?.pk === previous?.pk) return;
       // Another list: never show the last one's rows while this one loads.
       this.allEntries = [];
+      this.items = [];
       if (this.modelValue) this.load();
     },
   },
@@ -306,7 +391,10 @@ export default {
           API.getEntries(this.readingList.pk, "all"),
         );
         // A later load, for another list or after an edit, wins.
-        if (seq === this.loadSeq) this.allEntries = data?.entries || [];
+        if (seq === this.loadSeq) {
+          this.allEntries = data?.entries || [];
+          this.items = data?.items || [];
+        }
       } finally {
         if (seq === this.loadSeq) this.loading = false;
       }
@@ -339,6 +427,22 @@ export default {
       await this.call(
         API.updateEntry(this.readingList.pk, entry.pk, { ignored }),
       );
+      await this.changed();
+    },
+    itemCaption(item) {
+      if (item.dangling) return " — gone from the library";
+      const issues = item.count === 1 ? "1 issue" : `${item.count} issues`;
+      return ` — ${issues}, kept current`;
+    },
+    async moveItem(item, position) {
+      const target = Math.max(0, Number(position) || 0);
+      if (target === item.position) return;
+      await this.call(API.reorderItem(this.readingList.pk, item.pk, target));
+      await this.changed();
+    },
+    async removeItem(item) {
+      const remove = { [item.collection]: [item.targetId] };
+      await this.call(API.updateItems(this.readingList.pk, { remove }));
       await this.changed();
     },
     async remove(entry) {
@@ -405,9 +509,14 @@ export default {
 @layer codex-components {
   .reviewBar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: $space-2;
     margin-bottom: $space-2;
+  }
+
+  .reviewHint {
+    margin-top: 0;
   }
 
   .positionCol {
@@ -433,7 +542,8 @@ export default {
     white-space: nowrap;
   }
 
-  .missing {
+  .missing,
+  .itemCount {
     color: rgb(var(--v-theme-text-disabled));
   }
 

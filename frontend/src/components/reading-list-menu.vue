@@ -28,8 +28,9 @@
         />
       </slot>
     </template>
+    <!-- No header: every opener of this menu already says "Reading Lists". -->
     <v-sheet class="listMenu" @click.stop>
-      <MenuSection title="Reading Lists">
+      <section class="listMenuSection">
         <v-text-field
           v-if="rows.length > FILTER_AFTER"
           v-model="query"
@@ -85,7 +86,7 @@
           A series, folder or other group added whole keeps its comics current.
           Saved in Codex only: no comic file changes.
         </div>
-      </MenuSection>
+      </section>
     </v-sheet>
   </v-menu>
 </template>
@@ -95,7 +96,6 @@ import { mdiPlaylistPlus, mdiPlus } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ListNameInput from "@/components/list-name-input.vue";
-import MenuSection from "@/components/menu-section.vue";
 import { useAuthStore } from "@/stores/auth";
 import { getErrors } from "@/stores/common";
 import { useReadingListsStore } from "@/stores/reading-lists";
@@ -118,7 +118,7 @@ const READING_LISTS = "arcs";
  */
 export default {
   name: "ReadingListMenu",
-  components: { ListNameInput, MenuSection },
+  components: { ListNameInput },
   // The class and id a call site passes belong on the button, not on the
   // menu overlay VMenu would forward them to.
   inheritAttrs: false,

@@ -174,7 +174,7 @@ class ReadingListWriteTests(ReadingListFixture):
         assert self.order(copy) == [c3.pk, None, c1.pk, c3.pk]
         self._read_back(copy)
         assert self.order(copy) == [c3.pk, None, c1.pk, c3.pk]
-        # The source rows hold the comics now; only the repeat and the
-        # missing issue are still the list's own.
+        # The source rows hold the comics now, and stay hand-added, so they
+        # outlive the arc tag.
         manual = ReadingListEntry.objects.filter(reading_list=copy, manual=True)
-        assert sorted(manual.values_list("position", flat=True)) == [1, 3]
+        assert sorted(manual.values_list("position", flat=True)) == [0, 1, 2, 3]

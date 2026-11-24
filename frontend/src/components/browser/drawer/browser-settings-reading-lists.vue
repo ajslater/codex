@@ -12,7 +12,13 @@
       @delete="onDelete"
     >
       <template #menu="{ item }">
-        <v-list-item title="Open" @click="open(item)" />
+        <!-- An empty list has no page to open: off, and says why. -->
+        <v-list-item
+          title="Open"
+          :disabled="!item.count"
+          :subtitle="item.count ? '' : emptyOpenHint"
+          @click="open(item)"
+        />
         <v-list-item title="Edit Issues" @click="edit(item)" />
         <v-list-item title="Duplicate" @click="onDuplicate(item.pk)" />
         <ReadingListExportMenu :pk="item.pk" />
@@ -45,7 +51,7 @@
       v-model="showEditor"
       :reading-list="editing"
       :admin="false"
-      @changed="loadMyLists"
+      @changed="onEdited"
     />
   </div>
   <v-divider v-if="isLoggedIn" />
@@ -84,6 +90,7 @@ export default {
     return {
       maxLength: LIMITS.maxNameLen,
       mdiPlus,
+      emptyOpenHint: "Empty. Add issues from any Reading Lists menu.",
       createError: "",
       creating: false,
       editing: null,
@@ -123,7 +130,11 @@ export default {
       "loadMyLists",
       "renameList",
     ]),
-    ...mapActions(useBrowserStore, ["refreshBrowserPage", "routeWithSettings"]),
+    ...mapActions(useBrowserStore, [
+      "refreshBrowserPage",
+      "refreshIfShowingLists",
+      "routeWithSettings",
+    ]),
     /*
      * The user's lists are cards in the reading lists grid too, so every
      * change refetches the shown page in place.
@@ -140,11 +151,18 @@ export default {
       if (await this.duplicateList(pk)) await this.refreshBrowserPage();
     },
     open(item) {
+      // An empty list does not resolve: the browser would bounce it.
+      if (!item.count) return;
       const route = {
         name: "browser",
         params: { collection: ARCS, pks: String(item.pk), page: 1 },
       };
       this.routeWithSettings({ topCollection: ARCS }, route);
+    },
+    async onEdited() {
+      // The menus, and the grid when it shows this or any list.
+      await this.loadMyLists();
+      await this.refreshIfShowingLists();
     },
     edit(item) {
       this.editing = { pk: item.pk, name: item.name };

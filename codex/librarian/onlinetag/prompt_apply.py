@@ -39,7 +39,7 @@ scan; this owns what happens after one.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from comicbox.exceptions import ComicboxError
 from comicbox.online_session import MatchMode, OnlineSession
@@ -78,6 +78,9 @@ if TYPE_CHECKING:
 type Resolution = tuple[str, Any, int | None]
 #: pk -> {source: issue id}: the ids an answer's queued writes carry.
 type WrittenIds = dict[int, dict[str, int]]
+#: Marks a prompt re-asked for a series' remaining comics: its candidates are
+#: the issues of the comic first asked about, so only their volume transfers.
+REQUEUED_KEY: Final = "requeued"
 
 
 def comic_prompt(prompt: dict[str, Any], comic: dict[str, Any]) -> dict[str, Any]:
@@ -147,8 +150,11 @@ class PromptApplier:
         if not credentials:
             self.log.warning("Online tag: no credentials for prompt resolution.")
             return
-        representative, *followers = comics
         resolution = (action, payload, chosen_volume_id)
+        if prompt.get(REQUEUED_KEY) and action == "choose":
+            self._apply_volume_to_all(prompt, list(comics), resolution, credentials)
+            return
+        representative, *followers = comics
         self._apply_to_representative(prompt, representative, resolution, credentials)
         if not followers:
             return
@@ -214,6 +220,26 @@ class PromptApplier:
                 comic_prompt(prompt, comic), pk, path_str, credentials, resolution
             )
 
+    def _apply_volume_to_all(
+        self,
+        prompt: dict[str, Any],
+        comics: list[dict[str, Any]],
+        resolution: Resolution,
+        credentials: OnlineCredentials,
+    ) -> None:
+        """
+        Answer a re-queued prompt: only a chosen volume speaks for its comics.
+
+        Its candidates are the issues of the comic first asked about, none of
+        them an issue of these, so a choice pins no issue id. Each comic, the
+        first included, replays its own search with the volume. A choice with
+        no volume speaks for none of them, so they are asked again.
+        """
+        if resolution[2] is None:
+            self._requeue_untransferable(prompt, comics)
+            return
+        self._apply_to_followers(prompt, comics, resolution, credentials)
+
     def _requeue_untransferable(
         self, prompt: dict[str, Any], followers: list[dict[str, Any]]
     ) -> None:
@@ -224,9 +250,14 @@ class PromptApplier:
         one issue. The other issues of the series were waiting on the same
         question, so they go back in the queue under it — answering again
         peels off one comic at a time rather than writing one issue's match
-        onto all of them.
+        onto all of them. The candidates stay, marked as another comic's:
+        choosing one transfers its volume, never its issue id.
         """
-        remaining = {**comic_prompt(prompt, followers[0]), "comics": list(followers)}
+        remaining = {
+            **comic_prompt(prompt, followers[0]),
+            "comics": list(followers),
+            REQUEUED_KEY: True,
+        }
         add_pending_prompts({prompt["fingerprint"]: remaining})
         self.librarian_queue.put(ONLINE_TAG_PROMPT_TASK)
         count = len(followers)

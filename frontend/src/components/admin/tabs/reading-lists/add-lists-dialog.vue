@@ -197,6 +197,13 @@
         <span v-if="!cards.length && pickedCount" class="pickSummary">
           {{ pickSummary }}
         </span>
+        <!-- Why Preview or Import is off, in words: a title never shows. -->
+        <span v-else-if="!cards.length" class="pickSummary">
+          {{ pickNoneHint }}
+        </span>
+        <span v-else-if="!importable" class="pickSummary">
+          {{ importNoneHint }}
+        </span>
         <v-spacer />
         <v-btn variant="text" @click="show = false">Cancel</v-btn>
         <v-btn
@@ -204,7 +211,6 @@
           variant="tonal"
           :loading="previewing"
           :disabled="!pickedCount"
-          :title="pickedCount ? '' : 'Pick at least one list on any tab.'"
           @click="preview"
         >
           Preview {{ pickedCount || "" }}
@@ -214,7 +220,6 @@
           variant="tonal"
           :loading="importing"
           :disabled="!importable"
-          :title="importable ? '' : 'Every list here failed to load.'"
           @click="doImport"
         >
           Import
@@ -301,6 +306,8 @@ export default {
       previewing: false,
       importing: false,
       cards: [],
+      pickNoneHint: "Pick at least one list on any tab.",
+      importNoneHint: "Every list here failed to load.",
       choices: {},
     };
   },

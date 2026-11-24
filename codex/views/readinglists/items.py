@@ -27,6 +27,7 @@ from codex.librarian.scribe.readinglists.live import (
     ItemRefusedError,
     add_item,
     is_large,
+    lock_list,
     reconcile_includers,
     reconcile_list,
 )
@@ -169,6 +170,7 @@ class ReadingListItemsView(ReadingListAccessView):
         remove = serializer.validated_data.get("remove", {})
         # One change: a failed add must not leave the removes applied.
         with transaction.atomic():
+            lock_list(reading_list)
             result = remove_comics(reading_list, remove.get(COMICS, ()))
             result["removed"] += self._remove_items(reading_list, remove)
             added, refused = self._add_items(reading_list, add)

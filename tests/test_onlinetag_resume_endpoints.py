@@ -17,6 +17,7 @@ from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagDismissTask,
 )
+from codex.models import ComicboxTaggingDefaults
 
 _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _RESUME_URL: Final = "/api/v4/admin/tag-sessions/resume"
@@ -65,6 +66,11 @@ class TagResumeTestCase(TestCase):
     def setUp(self) -> None:
         caches["default"].clear()
         caches["tagging"].clear()
+        # Keys for the sources the descriptor names: a source without one
+        # cannot resume.
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "m", "comicvine_key": "c"}
+        )
         self.client = Client()
         self.client.force_login(_make_admin())
 
@@ -150,6 +156,9 @@ class TagSnapshotResumableTestCase(TestCase):
     def setUp(self) -> None:
         caches["default"].clear()
         caches["tagging"].clear()
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "m", "comicvine_key": "c"}
+        )
         self.client = Client()
         self.client.force_login(
             User.objects.create_user(

@@ -23,6 +23,12 @@ from codex.models import (
     ReadingListSource,
 )
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
+from codex.models.settings import (
+    ClientChoices,
+    SettingsBrowser,
+    SettingsBrowserFilters,
+    SettingsBrowserShow,
+)
 from codex.user_data import store as store_module
 from codex.user_data.dump import dump_user_data
 from codex.user_data.dump_reading_lists import READING_LIST_TABLES
@@ -239,6 +245,91 @@ class ReadingListBackupTests(ReadingListFixture):
             uuid for uuid, row in before["lists"].items() if row["name"] == "Civil War"
         )
         assert [str(uuid) for uuid in holders] == [civil_war]
+
+    def test_a_filter_on_a_tag_list_survives_a_rebuild(self) -> None:
+        """
+        A saved filter on a list made from tags alone names the rebuilt list.
+
+        Such a list is not backed up: the tag sync makes it again, under a
+        new uuid, so the filter's uuid alone named nothing after a rebuild.
+        """
+        self._seed()
+        other = ReadingList.objects.get(name="Other Arc")
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(
+            user=self.user, client=ClientChoices.API, show=show
+        )
+        SettingsBrowserFilters.objects.create(browser=browser, reading_lists=[other.pk])
+        snapshot = self._snapshot()
+        # The database rebuilt: the lists and settings gone, the tags read again.
+        ReadingList.objects.all().delete()
+        SettingsBrowser.objects.filter(user=self.user).delete()
+        sync_tag_lists()
+        rebuilt = ReadingList.objects.get(name="Other Arc")
+        assert rebuilt.uuid != other.uuid
+
+        restore(sidecar_path=snapshot)
+
+        filters = SettingsBrowserFilters.objects.get(browser__user=self.user)
+        assert filters.reading_lists == [rebuilt.pk]
+
+    def _filter_on(self, reading_list: ReadingList) -> None:
+        show, _ = SettingsBrowserShow.objects.get_or_create()
+        browser = SettingsBrowser.objects.create(
+            user=self.user, client=ClientChoices.API, show=show
+        )
+        SettingsBrowserFilters.objects.create(
+            browser=browser, reading_lists=[reading_list.pk]
+        )
+
+    def _second_holder(self, ref: str) -> ReadingList:
+        """Give the user a list that holds the arc's tags, and more."""
+        holder = import_document(_document(), _upload(), user=self.user, name="Also")
+        ReadingListSource.objects.create(
+            reading_list=holder, kind=ReadingListSourceKind.TAGS, ref=ref, rank=1
+        )
+        return holder
+
+    def _restored_filter(self, snapshot) -> list[int]:
+        restore(sidecar_path=snapshot)
+        filters = SettingsBrowserFilters.objects.get(browser__user=self.user)
+        return filters.reading_lists
+
+    def test_a_found_list_ticks_no_other_holder_of_its_tags(self) -> None:
+        """A list its uuid finds is the one ticked; its tags find nothing more."""
+        self._seed()
+        combined = ReadingList.objects.get(name="Civil War")
+        self._filter_on(combined)
+        snapshot = self._snapshot()
+        self._second_holder("civil war")
+        assert self._restored_filter(snapshot) == [combined.pk]
+
+    def test_a_missed_list_is_found_by_its_tags_alone(self) -> None:
+        """Of the lists holding the tags, the one made from them alone."""
+        self._seed()
+        self._filter_on(ReadingList.objects.get(name="Other Arc"))
+        snapshot = self._snapshot()
+        ReadingList.objects.all().delete()
+        SettingsBrowser.objects.filter(user=self.user).delete()
+        sync_tag_lists()
+        rebuilt = ReadingList.objects.get(name="Other Arc")
+        self._second_holder("other arc")
+        assert self._restored_filter(snapshot) == [rebuilt.pk]
+
+    def test_a_list_found_by_nothing_is_reported(self) -> None:
+        """A filtered list that resolves to no list is a skipped row's reason."""
+        self._seed()
+        self._filter_on(ReadingList.objects.get(name="Mine"))
+        snapshot = self._snapshot()
+        with sqlite3.connect(snapshot) as conn:
+            conn.execute(
+                "UPDATE settings_filters SET reading_lists = ?",
+                (json.dumps(["00000000-0000-0000-0000-000000000000"]),),
+            )
+        report = restore(sidecar_path=snapshot)
+        filters = SettingsBrowserFilters.objects.get(browser__user=self.user)
+        assert filters.reading_lists == []
+        assert report.skipped.get("settings_filters") == 1, report.unmatched_log
 
     def test_restore_is_idempotent(self) -> None:
         """A second restore changes nothing."""

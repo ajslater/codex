@@ -171,6 +171,10 @@ export async function readingListsNotified() {
       loads.push(store.loadTable());
     }
     if (store.myListsLoaded) loads.push(store.loadMyLists());
+    // A ticked Reading Lists filter may name a list deleted elsewhere.
+    if (currentRouteName() === "browser") {
+      loads.push(useBrowserStore().syncReadingListsFilter());
+    }
     await Promise.all(loads);
   } catch (error) {
     console.error(error);

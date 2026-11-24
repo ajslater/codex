@@ -6,7 +6,8 @@ user's personal list pk matches nothing, and its comics never count as
 "in a list" for the None choice.
 """
 
-from typing import Final
+from collections.abc import Mapping
+from typing import Any, Final
 
 from django.db.models import Q, QuerySet
 
@@ -21,6 +22,19 @@ READING_LIST_KIND_FILTER: Final = "reading_list_kind"
 RETIRED_SHELVES_FILTER: Final = "shelves"
 _IN_LISTS: Final = "reading_list_entries__reading_list__in"
 _SHOWN: Final = "reading_list_entries__ignored"
+
+
+def filters_within_a_list(filters: Mapping[str, Any]) -> dict[str, Any]:
+    """
+    Return the browser filters that apply to reading inside one list.
+
+    The Reading List Kind picks lists, so inside one list it does nothing.
+    The reader and Continue Reading both read through this, so Continue
+    never offers a comic the reader then refuses.
+    """
+    return {
+        key: value for key, value in filters.items() if key != READING_LIST_KIND_FILTER
+    }
 
 
 def listed_comics(user, pks=None, kinds=None) -> QuerySet[Comic]:

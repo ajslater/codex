@@ -249,6 +249,35 @@ def _filter_reading_list_uuids(filters, user) -> list[str]:
     return [str(uuid) for uuid in uuids]
 
 
+def _filter_reading_list_tags(filters, user) -> dict[str, str]:
+    """
+    Return the tags ref of each of the filter's lists, by the list's uuid.
+
+    A list from tags alone is not backed up; the tag sync makes it again
+    under a new uuid, and its tags source's ref finds it then. Of a list's
+    tags sources the first by rank is kept.
+    """
+    from codex.models.readinglist import ReadingListSource, ReadingListSourceKind
+    from codex.views.auth import GroupACLMixin
+
+    if not filters.reading_lists:
+        return {}
+    visible = GroupACLMixin.reading_list_visibility_filter(user, "reading_list__")
+    rows = (
+        ReadingListSource.objects.filter(
+            visible,
+            kind=ReadingListSourceKind.TAGS,
+            reading_list_id__in=filters.reading_lists,
+        )
+        .order_by("reading_list_id", "rank", "pk")
+        .values_list("reading_list__uuid", "ref")
+    )
+    refs: dict[str, str] = {}
+    for uuid, ref in rows:
+        refs.setdefault(str(uuid), ref)
+    return refs
+
+
 def serialize_settings_filters(
     filters,
 ) -> tuple[str, tuple[str, ...], dict[str, Any]] | None:
@@ -266,6 +295,9 @@ def serialize_settings_filters(
     }
     data["reading_lists"] = json.dumps(
         _filter_reading_list_uuids(filters, browser.user), separators=(",", ":")
+    )
+    data["reading_list_tags"] = json.dumps(
+        _filter_reading_list_tags(filters, browser.user), separators=(",", ":")
     )
     for column in SettingsBrowserFilters.FILTER_KEYS:
         if column in _SPECIAL_FILTER_COLUMNS:
@@ -381,6 +413,9 @@ def serialize_tagging_defaults(
             "default_sources": json.dumps(
                 defaults.default_sources, separators=(",", ":")
             ),
+            "default_effort": defaults.default_effort or "",
+            "merge_all_sources": int(bool(defaults.merge_all_sources)),
+            "rename_files": int(bool(defaults.rename_files)),
             "metron_key": defaults.metron_key or "",
             "comicvine_key": defaults.comicvine_key or "",
             "comicvine_url": defaults.comicvine_url or "",

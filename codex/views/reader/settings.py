@@ -18,6 +18,7 @@ from codex.serializers.reader import (
 )
 from codex.settings.db import get_reader_defaults
 from codex.views.bookmark import BookmarkAuthMixin
+from codex.views.readinglists.access import to_pk
 from codex.views.settings import NULL_VALUES, SettingsBaseView
 
 # scope → (SettingsReader FK field, Comic FK for auto-resolve, Model for name).
@@ -165,10 +166,29 @@ class ReaderSettingsView(ReaderSettingsBaseView):
         """Return the scope pk for an intermediate scope, or None."""
         if scope == Collection.ARC:
             raw = self.request.GET.get("reading_list_pk")
-            return int(raw) if raw else None
+            return to_pk(raw, "reading_list_pk") if raw else None
         if comic and comic_fk:
             return getattr(comic, comic_fk, None)
         return None
+
+    def _check_scope_target(self, scope: str, scope_pk: int) -> None:
+        """
+        Refuse settings for anything the user may not see, or that is not there.
+
+        A list another user owns is indistinguishable from a missing one.
+        """
+        model = Comic if scope == _COMIC_SCOPE else _SCOPE_MAP[scope][2]
+        if model is None:
+            return
+        user = self.request.user
+        if model is ReadingList:
+            visible = self.reading_list_visibility_filter(user)
+        else:
+            # The reader stays open on a stamped comic (D8); so do its settings.
+            visible = self.get_acl_filter(model, user, include_missing=True)
+        if not model.objects.filter(visible, pk=scope_pk).exists():
+            reason = f"{scope} {scope_pk} not found"
+            raise NotFound(detail=reason)
 
     @staticmethod
     def _canonical_scope(scope: str) -> str:
@@ -328,6 +348,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             # FK name and the guard above proved ``scope_pk`` is set;
             # narrow both for the type checker.
             fk_field = cast("str", config[0])
+            self._check_scope_target(scope, scope_pk)
             instance = self._get_or_create_scoped_settings(fk_field, scope_pk)
 
         for key, value in data.items():

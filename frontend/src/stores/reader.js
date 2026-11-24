@@ -575,8 +575,14 @@ export const useReaderStore = defineStore("reader", {
       }
       if (!arc && route.query?.list) {
         // Continue Reading opens a comic with its list as the reading
-        // order; the server keeps it for the books after.
+        // order; the server keeps it for the books after. Read once: left
+        // in the route, a later reload of this book would force the list
+        // back over a reading order picked since.
         arc = { collection: "arcs", ids: [Number(route.query.list)] };
+        const { list: _list, ...query } = route.query;
+        void router
+          .replace({ name: route.name, params: route.params, query })
+          .catch(console.debug);
       }
       const pk = params.pk;
       const settings = { arc };

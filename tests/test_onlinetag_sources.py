@@ -155,10 +155,11 @@ class UnregisteredSourceDefaultsTests(SimpleTestCase):
     def test_the_frontend_is_offered_the_supported_sources(self) -> None:
         assert TAGGING_CHOICES["sources"] == SUPPORTED_SOURCES
 
-    def test_a_start_request_without_sources_uses_the_supported_ones(self) -> None:
+    def test_a_start_request_without_sources_leaves_them_to_the_view(self) -> None:
+        """The view picks the keyed sources; see test_onlinetag_start_validation."""
         serializer = OnlineTagStartSerializer(data={"collection": "c", "pks": ["1"]})
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data["sources"] == list(SUPPORTED_SOURCES)
+        assert "sources" not in serializer.validated_data
 
     def test_a_task_defaults_to_the_supported_sources(self) -> None:
         task = BulkOnlineTagTask(comic_pks=frozenset({1}), session_id="s")
@@ -240,6 +241,40 @@ class UnregisteredSourceEndpointTests(TestCase):
             {"collection": "comics", "pks": ["1"], "ids": {_UNREGISTERED: "123"}},
         )
         assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+class StoredUnregisteredSourceTests(TestCase):
+    """
+    A stored source name outside the registry does not lock the Tagging tab.
+
+    A restore writes ``default_sources`` without the write validation, so a
+    backup naming a source this build does not register put it in the row.
+    The tab then sent it back with every auto-save, and each one was a 400.
+    """
+
+    @override
+    def setUp(self) -> None:
+        self.client = Client()
+        self.client.force_login(_make_admin())
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"metron_key": "m", "default_sources": ["metron", _UNREGISTERED]},
+        )
+
+    def test_the_tab_can_save_what_it_was_given(self) -> None:
+        """The defaults read without the unknown name, so they save back."""
+        response = self.client.get(_DEFAULTS_URL)
+        assert response.status_code == HTTPStatus.OK, response.content
+        draft = response.json()["data"]
+        assert draft["defaultSources"] == ["metron"]
+        response = self.client.put(
+            _DEFAULTS_URL,
+            data=json.dumps(
+                {"defaultSources": draft["defaultSources"], "deleteOriginal": True}
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == HTTPStatus.OK, response.content
 
 
 class ConfiguredSourcesFieldTests(TestCase):

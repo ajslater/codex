@@ -541,7 +541,7 @@ export default {
         await this.pauseSession();
       } catch (error) {
         this.pausing = false;
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async confirmResume() {
@@ -553,7 +553,7 @@ export default {
         // started first, or the remainder is gone) and silently dropping
         // that leaves the button looking broken.
         this.resuming = false;
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async confirmDismiss() {

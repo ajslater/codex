@@ -313,6 +313,23 @@ describe("useOnlineTagStore — startSession", () => {
     );
   });
 
+  it("sends the effort the launcher picked", async () => {
+    const store = useOnlineTagStore();
+    HTTP.post.mockResolvedValue(started);
+
+    await store.startSession({
+      collection: "comics",
+      pks: [7],
+      sources: ["comicvine"],
+      effort: "thorough",
+    });
+
+    expect(HTTP.post).toHaveBeenCalledWith(
+      "/admin/tag-sessions/start",
+      expect.objectContaining({ effort: "thorough" }),
+    );
+  });
+
   it("defaults ids to an empty mapping for a plain search", async () => {
     const store = useOnlineTagStore();
     HTTP.post.mockResolvedValue(started);

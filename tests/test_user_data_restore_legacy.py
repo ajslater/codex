@@ -60,7 +60,7 @@ class LegacyKeyRenameTests(TestCase):
                 "order_by": old,
                 "table_columns": f'{{"comics": ["issue", "{old}"]}}',
             }
-            defaults = _build_settings_defaults(row)
+            defaults = _build_settings_defaults(row, frozenset(row))
             assert defaults["order_by"] == "reading_lists"
             assert defaults["table_columns"]["comics"] == ["issue", "reading_lists"]
 
@@ -185,7 +185,8 @@ class TaggingDefaultsRestoreTests(TestCase):
     def test_metron_key_round_trips(self) -> None:
         from codex.user_data.restore import _build_tagging_defaults
 
-        defaults = _build_tagging_defaults(self._row())
+        row = self._row()
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert defaults["metron_key"] == "token"
 
     def test_sidecar_without_metron_key_restores(self) -> None:
@@ -194,14 +195,15 @@ class TaggingDefaultsRestoreTests(TestCase):
 
         row = self._row()
         del row["metron_key"]
-        defaults = _build_tagging_defaults(row)
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert "metron_key" not in defaults
         assert defaults["default_match_mode"] == "auto"
 
     def test_versedb_key_round_trips(self) -> None:
         from codex.user_data.restore import _build_tagging_defaults
 
-        defaults = _build_tagging_defaults(self._row())
+        row = self._row()
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert defaults["versedb_key"] == "versedb-token"
 
     def test_sidecar_without_versedb_key_restores(self) -> None:
@@ -210,34 +212,31 @@ class TaggingDefaultsRestoreTests(TestCase):
 
         row = self._row()
         del row["versedb_key"]
-        defaults = _build_tagging_defaults(row)
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert "versedb_key" not in defaults
         assert defaults["metron_key"] == "token"
 
     def test_comicvine_url_round_trips(self) -> None:
         from codex.user_data.restore import _build_tagging_defaults
 
-        defaults = _build_tagging_defaults(
-            self._row(comicvine_url="https://cv.example.com/api")
-        )
+        row = self._row(comicvine_url="https://cv.example.com/api")
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert defaults["comicvine_url"] == "https://cv.example.com/api"
 
     def test_a_retired_metron_url_column_is_ignored(self) -> None:
         """Sidecars predating the removal carry a column the model dropped."""
         from codex.user_data.restore import _build_tagging_defaults
 
-        defaults = _build_tagging_defaults(
-            self._row(metron_url="https://metron.example.com")
-        )
+        row = self._row(metron_url="https://metron.example.com")
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert "metron_url" not in defaults
 
     def test_a_retired_metron_login_is_ignored(self) -> None:
         """Sidecars from before Metron took only a key carry its login columns."""
         from codex.user_data.restore import _build_tagging_defaults
 
-        defaults = _build_tagging_defaults(
-            self._row(metron_user="u", metron_password="p")  # noqa: S106
-        )
+        row = self._row(metron_user="u", metron_password="p")  # noqa: S106
+        defaults = _build_tagging_defaults(row, frozenset(row))
         assert "metron_user" not in defaults
         assert "metron_password" not in defaults
         assert defaults["metron_key"] == "token"

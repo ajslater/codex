@@ -740,7 +740,7 @@ export default {
         this.dialog = false;
         this.$emit("started");
       } catch (error) {
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       } finally {
         this.working = false;
       }

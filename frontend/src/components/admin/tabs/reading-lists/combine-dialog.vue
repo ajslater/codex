@@ -18,12 +18,15 @@
         <AdminKeyValueTable v-if="result" :items="resultRows" class="result" />
       </v-card-text>
       <v-card-actions>
+        <!-- Why Combine is off, in words: a title never shows. -->
+        <span v-if="disabledReason" class="combineHint">
+          {{ disabledReason }}
+        </span>
         <v-spacer />
         <v-btn variant="text" @click="show = false">Cancel</v-btn>
         <v-btn
           variant="tonal"
           :disabled="Boolean(disabledReason)"
-          :title="disabledReason"
           :loading="working"
           @click="combine"
         >
@@ -150,6 +153,12 @@ export default {
 @layer codex-components {
   .result {
     margin-top: $space-4;
+  }
+
+  .combineHint {
+    padding-left: $space-2;
+    font-size: $text-small;
+    color: rgb(var(--v-theme-text-secondary));
   }
 
   .dialogTitle {

@@ -6,6 +6,7 @@ from types import MappingProxyType
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
 from codex.models.collections import Volume
+from codex.models.readinglist import ReadingList
 from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
 from codex.views.browser.columns import (
     m2m_alias_for,
@@ -213,6 +214,9 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             )
         elif qs.model is Volume and order_key == "sort_name":
             order_fields_head = ["name", "number_to"]
+        elif qs.model is ReadingList and self.order_key == "story_arc_number":
+            # No reading order runs across lists: the lists grid reads by name.
+            order_fields_head = ["sort_name"]
         elif self.order_key == "age_rating":
             # Collection rows annotate two columns for age_rating —
             # ``order_value`` is the metron name string (display) and

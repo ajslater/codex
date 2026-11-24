@@ -108,6 +108,8 @@ class SidecarStore:
         # WAL + busy_timeout.
         self._schema_lock = threading.Lock()
         self._schema_applied = False
+        # The columns this store added to an older file, by table.
+        self._added_columns: dict[str, frozenset[str]] = {}
 
     @classmethod
     def in_memory(cls) -> Self:
@@ -147,7 +149,9 @@ class SidecarStore:
         return conn
 
     @staticmethod
-    def _reconcile_columns(conn: sqlite3.Connection, ddl: str) -> None:
+    def _reconcile_columns(
+        conn: sqlite3.Connection, ddl: str
+    ) -> dict[str, frozenset[str]]:
         """
         Add columns a release introduced to a sidecar that predates them.
 
@@ -157,7 +161,9 @@ class SidecarStore:
         The wanted columns are read back out of a throwaway database
         built from the current schema so they derive from the schema
         file instead of a hand-kept list that would rot the same way.
+        Returns the columns added, by table.
         """
+        added: dict[str, set[str]] = {}
         reference = sqlite3.connect(":memory:")
         reference.row_factory = sqlite3.Row
         try:
@@ -175,9 +181,11 @@ class SidecarStore:
                         continue
                     clause = _add_column_clause(column)
                     conn.execute(f"ALTER TABLE {table} ADD COLUMN {clause}")
+                    added.setdefault(table, set()).add(column["name"])
                     logger.info(f"Sidecar schema: added {table}.{column['name']}")
         finally:
             reference.close()
+        return {table: frozenset(names) for table, names in added.items()}
 
     def _ensure_schema(self, conn: sqlite3.Connection) -> None:
         """Apply ``schema.sql`` and stamp the version row once per process."""
@@ -191,7 +199,7 @@ class SidecarStore:
             with _transaction(conn):
                 conn.executescript(ddl)
                 if not self._is_memory:
-                    self._reconcile_columns(conn, ddl)
+                    self._added_columns = self._reconcile_columns(conn, ddl)
                 conn.execute(
                     "INSERT OR IGNORE INTO schema_version (version) VALUES (?)",
                     (SCHEMA_VERSION,),
@@ -265,6 +273,19 @@ class SidecarStore:
         # Table/column names are sidecar-schema-owned; values are bound.
         sql = f"DELETE FROM {table} WHERE {clause}"  # noqa: S608
         self.connection().execute(sql, tuple(where.values()))
+
+    def carried_columns(self, table: str) -> frozenset[str]:
+        """
+        Return the columns the file itself carried for ``table``.
+
+        A backup older than a column gets it on open, holding its default:
+        a restore must leave the setting it stands for alone.
+        """
+        conn = self.connection()
+        # PRAGMA takes no bind parameters; the table names come from the
+        # schema file, not from user input.
+        columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
+        return frozenset(columns - self._added_columns.get(table, frozenset()))
 
     def fetchall(
         self,

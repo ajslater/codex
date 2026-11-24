@@ -9,20 +9,26 @@ pass needs the same shape after it clears a stamp, so it lives here
 rather than on the importer class.
 """
 
+from django.db.models import Prefetch
+
 from codex.librarian.scribe.importer.const import (
     ALL_COMIC_COLLECTION_FIELD_NAMES,
     DIRECT_M2M_COLLECTION_FIELD_NAMES,
 )
-from codex.models import Comic, StoryArc
+from codex.models import Comic, ReadingList, ReadingListEntry
 from codex.settings import IMPORTER_DELETE_MAX_CHUNK_SIZE
+
+# Story arcs browse as reading lists: a comic's arcs are the lists that
+# hold it, story arc lists and every other list alike.
+_ARCS_FIELD_NAME = "story_arc_numbers"
 
 
 def init_comic_collection_map() -> dict:
     """Empty collection map, used later even when nothing changed."""
     collection_map = {}
     for field_name in ALL_COMIC_COLLECTION_FIELD_NAMES:
-        if field_name == "story_arc_numbers":
-            related_model = StoryArc
+        if field_name == _ARCS_FIELD_NAME:
+            related_model = ReadingList
         else:
             related_model = Comic._meta.get_field(field_name).related_model
         collection_map[related_model] = set()
@@ -31,11 +37,9 @@ def init_comic_collection_map() -> dict:
 
 def _populate_one(collection_map, comic) -> None:
     for field_name in ALL_COMIC_COLLECTION_FIELD_NAMES:
-        if field_name == "story_arc_numbers":
-            for san in comic.story_arc_numbers.select_related("story_arc").only(
-                "story_arc"
-            ):
-                collection_map[StoryArc].add(san.story_arc.pk)
+        if field_name == _ARCS_FIELD_NAME:
+            for entry in comic.reading_list_entries.all():
+                collection_map[ReadingList].add(entry.reading_list_id)
         elif field_name in DIRECT_M2M_COLLECTION_FIELD_NAMES:
             related_model = comic._meta.get_field(field_name).related_model
             for obj in getattr(comic, field_name).only("pk"):
@@ -48,8 +52,12 @@ def _populate_one(collection_map, comic) -> None:
 
 def populate_comic_collection_map(comic_qs, collection_map) -> None:
     """Add every collection the queryset's comics belong to."""
+    entries = Prefetch(
+        "reading_list_entries",
+        queryset=ReadingListEntry.objects.only("comic_id", "reading_list_id"),
+    )
     qs = comic_qs.only(*ALL_COMIC_COLLECTION_FIELD_NAMES).prefetch_related(
-        "story_arc_numbers__story_arc", *DIRECT_M2M_COLLECTION_FIELD_NAMES
+        entries, *DIRECT_M2M_COLLECTION_FIELD_NAMES
     )
     for comic in qs.iterator(chunk_size=IMPORTER_DELETE_MAX_CHUNK_SIZE):
         _populate_one(collection_map, comic)

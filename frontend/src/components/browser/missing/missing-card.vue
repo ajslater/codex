@@ -110,6 +110,8 @@ export default {
 </script>
 
 <style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
 @use "@/components/book-cover" as bookcover;
 
 @layer codex-components {
@@ -165,6 +167,18 @@ export default {
   .missingType {
     margin-left: 4px;
     text-transform: capitalize;
+  }
+
+  /* The grid's columns are small covers here, as the cards' are. */
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    .missingCard,
+    .missingCover {
+      width: bookcover.$small-cover-width;
+    }
+
+    .missingCover {
+      height: bookcover.$small-cover-height;
+    }
   }
 }
 </style>

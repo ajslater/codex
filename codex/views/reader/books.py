@@ -14,7 +14,7 @@ from codex.models.settings import SettingsReader
 from codex.serializers.redirect import ReaderRedirectSerializer
 from codex.views.bookmark import BookmarkAuthMixin
 from codex.views.browser.filters.field import ComicFieldFilterView
-from codex.views.browser.filters.reading_lists import READING_LIST_KIND_FILTER
+from codex.views.browser.filters.reading_lists import filters_within_a_list
 from codex.views.const import (
     COLLECTION_RELATION,
     FOLDER_COLLECTION,
@@ -127,11 +127,7 @@ class ReaderBooksView(ReaderArcsView, SharedAnnotationsMixin, BookmarkAuthMixin)
         """
         filters = self.get_from_settings("filters", browser=True) or {}
         if self._selected_arc_collection == STORY_ARC_COLLECTION:
-            filters = {
-                key: value
-                for key, value in filters.items()
-                if key != READING_LIST_KIND_FILTER
-            }
+            filters = filters_within_a_list(filters)
         return filters
 
     def _get_comics_annotation_and_ordering(

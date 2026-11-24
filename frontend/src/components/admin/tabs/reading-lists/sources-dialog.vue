@@ -46,19 +46,17 @@
               title="Rank lower"
               @click="rank(index, 1)"
             />
+            <!-- Uploads and tags have nothing to fetch: no Refresh. -->
             <v-btn
+              v-if="source.refreshable"
               :icon="mdiRefresh"
               size="small"
               density="compact"
               variant="text"
-              :disabled="!source.refreshable"
-              :title="
-                source.refreshable
-                  ? 'Fetch again'
-                  : 'Uploads and tags have nothing to fetch.'
-              "
+              title="Fetch again"
               @click="refresh(source)"
             />
+            <span v-else class="refreshSpacer" aria-hidden="true" />
             <ConfirmDialog
               :icon="mdiTrashCanOutline"
               size="small"
@@ -195,6 +193,12 @@ export default {
 
   .ref {
     word-break: break-all;
+  }
+
+  // Keeps the row's other buttons where a Refresh button would put them.
+  .refreshSpacer {
+    display: inline-block;
+    width: 28px;
   }
 
   .dialogTitle {

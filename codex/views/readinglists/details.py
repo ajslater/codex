@@ -6,7 +6,7 @@ count reads the entries the viewer sees (:func:`.access.shown_entries_q`):
 a missing issue counts for everyone, a comic only for those who may see it.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 from uuid import UUID
 
@@ -22,8 +22,10 @@ from django.db.models import Q
 
 from codex.choices.readinglists import SOURCE_LABELS, ReadingListSourceKind
 from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS
-from codex.models import Bookmark
+from codex.models import Bookmark, Comic
 from codex.models.readinglist import ReadingList, ReadingListEntry, ReadingListSource
+from codex.views.browser.filters.field import ComicFieldFilterView
+from codex.views.browser.filters.reading_lists import filters_within_a_list
 from codex.views.readinglists.access import can_edit, shown_entries_q, visible_lists
 
 _CODEX_KINDS = {comicbox: codex for codex, comicbox in COMICBOX_KINDS.items()}
@@ -55,12 +57,27 @@ def _shown_comics(acl, request, reading_list: ReadingList) -> list[int | None]:
     )
 
 
+def _readable(
+    request, comic_pks: Sequence[int], filters: Mapping[str, Any]
+) -> Collection[int]:
+    """Return the comics the reader reads in a list under the browser's filters."""
+    within = filters_within_a_list(filters)
+    if not within:
+        return comic_pks
+    query = ComicFieldFilterView.get_all_comic_field_filters("", within, request.user)
+    return set(
+        Comic.objects.filter(query, pk__in=comic_pks).values_list("pk", flat=True)
+    )
+
+
 def _continue_from(
-    comics: Sequence[int | None], bookmarks: Mapping[int, tuple[int, bool]]
+    comics: Sequence[int | None],
+    bookmarks: Mapping[int, tuple[int, bool]],
+    readable: Collection[int],
 ) -> dict[str, int] | None:
     """Return the first comic in list order the viewer has not finished."""
     for comic_pk in comics:
-        if comic_pk is None:
+        if comic_pk is None or comic_pk not in readable:
             continue
         page, finished = bookmarks.get(comic_pk, (0, False))
         if not finished:
@@ -68,10 +85,38 @@ def _continue_from(
     return None
 
 
-def continue_comic(acl, request, reading_list: ReadingList) -> dict[str, int] | None:
-    """Return where the viewer continues the list: comic and page, or None."""
+def continue_blocked(
+    present: Sequence[int],
+    bookmarks: Mapping[int, tuple[int, bool]],
+    continued: Mapping[str, int] | None,
+) -> str:
+    """
+    Say why a viewer has nowhere to continue a list, or ``""`` if they have.
+
+    ``none_in_library``: no issue of it is a comic the viewer can see.
+    ``filtered``: the browser's filters hide every unread one.
+    ``all_read``: every one the library has is read.
+    """
+    if continued:
+        return ""
+    if not present:
+        return "none_in_library"
+    unread = any(not bookmarks.get(pk, (0, False))[1] for pk in present)
+    return "filtered" if unread else "all_read"
+
+
+def continue_comic(
+    acl, request, reading_list: ReadingList, filters: Mapping[str, Any]
+) -> dict[str, int] | None:
+    """
+    Return where the viewer continues the list: comic and page, or None.
+
+    ``filters`` are the browser's, which the reader applies inside a list.
+    """
     comics = _shown_comics(acl, request, reading_list)
-    return _continue_from(comics, _bookmarks(request, [c for c in comics if c]))
+    present = [comic_pk for comic_pk in comics if comic_pk is not None]
+    readable = _readable(request, present, filters)
+    return _continue_from(comics, _bookmarks(request, present), readable)
 
 
 def _by_source(lists, ref: Mapping[str, Any]) -> ReadingList | None:
@@ -130,11 +175,18 @@ def _sources(reading_list: ReadingList) -> list[dict[str, str]]:
     ]
 
 
-def list_details(acl, request, reading_list: ReadingList) -> dict[str, Any]:
-    """Describe a list for the metadata dialog, as this viewer sees it."""
+def list_details(
+    acl, request, reading_list: ReadingList, filters: Mapping[str, Any]
+) -> dict[str, Any]:
+    """
+    Describe a list for the metadata dialog, as this viewer sees it.
+
+    ``filters`` are the browser's, which Continue Reading follows.
+    """
     comics = _shown_comics(acl, request, reading_list)
     present = [comic_pk for comic_pk in comics if comic_pk is not None]
     bookmarks = _bookmarks(request, present)
+    continued = _continue_from(comics, bookmarks, _readable(request, present, filters))
     extra = reading_list.extra or {}
     return {
         "pk": reading_list.pk,
@@ -153,7 +205,8 @@ def list_details(acl, request, reading_list: ReadingList) -> dict[str, Any]:
         "read": sum(1 for pk in present if bookmarks.get(pk, (0, False))[1]),
         "previous": _neighbour(request.user, extra.get(PREVIOUS_KEY)),
         "next": _neighbour(request.user, extra.get(NEXT_KEY)),
-        "continue": _continue_from(comics, bookmarks),
+        "continue": continued,
+        "continue_blocked": continue_blocked(present, bookmarks, continued),
         "editable": can_edit(request.user, reading_list),
         "personal": reading_list.user_id is not None,  # pyright: ignore[reportAttributeAccessIssue]
     }

@@ -26,6 +26,9 @@ from comicbox.readinglists import (
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import HttpResponse
+from django.utils.http import (
+    content_disposition_header,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-module-member]
+)
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -42,14 +45,17 @@ from codex.models.readinglist import (
     ReadingListSource,
     ReadingListSourceKind,
 )
+from codex.models.settings import ClientChoices, SettingsBrowser
 from codex.views.readinglists.access import (
     ReadingListAccessView,
     can_edit,
+    get_visible_list,
     menu_lists_q,
 )
 from codex.views.readinglists.details import continue_comic
 from codex.views.readinglists.entries import add_comics, entry_count, entry_counts
 from codex.views.readinglists.items import COMICS, ITEM_TARGETS, visible_items_q
+from codex.views.settings import SettingsBaseView
 
 _KEYLESS_KINDS: Final = frozenset(
     {ReadingListSourceKind.TAGS, ReadingListSourceKind.UPLOAD}
@@ -317,13 +323,21 @@ class ReadingListDuplicateView(ReadingListAccessView):
         return Response(list_repr(copy, user, count), status=201)
 
 
-class ReadingListContinueView(ReadingListAccessView):
+class ReadingListContinueView(SettingsBaseView):
     """GET where a viewer continues a list: its first unfinished comic."""
+
+    # Only the browser settings are read: the filters the reader applies.
+    MODEL = SettingsBrowser
+    CLIENT = ClientChoices.API
 
     def get(self, *_args, **_kwargs) -> Response:
         """Return ``{continue: {pk, page} | null}``."""
-        reading_list = self.get_reading_list(edit=False)
-        return Response({"continue": continue_comic(self, self.request, reading_list)})
+        user = self.request.user
+        reading_list = get_visible_list(user, self.kwargs["pk"], edit=False)
+        filters = self.get_from_settings("filters", browser=True) or {}
+        return Response(
+            {"continue": continue_comic(self, self.request, reading_list, filters)}
+        )
 
 
 class ReadingListExportView(ReadingListAccessView):
@@ -358,5 +372,9 @@ class ReadingListExportView(ReadingListAccessView):
         filename = export_filename(
             reading_list, f" (missing){suffix}" if missing else suffix
         )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        # ``filename*`` for a name outside Latin-1, which Django would
+        # otherwise MIME-encode into a header no browser reads.
+        response["Content-Disposition"] = content_disposition_header(
+            as_attachment=True, filename=filename
+        )
         return response

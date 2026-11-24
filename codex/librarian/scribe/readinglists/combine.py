@@ -13,7 +13,8 @@ what people did by hand:
   entry and an accepted guess survive any recompute. They are saved in
   Codex only.
 - Entries added by hand go back after the entry they followed. One whose
-  comic is gone is matched again by its reference.
+  comic is gone is matched again by its reference. One whose comic a
+  source row holds folds into that row, which stays hand-added.
 - A hand reorder locks the order: the current entries go first, so nothing
   moves, and entries new to the list are flagged for review.
 - Every other entry goes through the matcher.
@@ -26,7 +27,7 @@ from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import groupby
-from operator import itemgetter
+from operator import attrgetter, itemgetter
 from typing import Any, Final
 
 from comicbox.readinglists import combine
@@ -84,12 +85,11 @@ def _current_document(
     reading_list: ReadingList, entries: Sequence[ReadingListEntry], source_pks: set[int]
 ) -> dict[str, Any]:
     """Return the list as it stands, less what no source supplies any more."""
+    # A folded hand-added entry is a source row too, so it keeps its place.
     kept = [
         entry.reference
         for entry in entries
-        if not entry.manual
-        and entry.reference
-        and source_pks.intersection(entry.source_ids or ())
+        if entry.reference and source_pks.intersection(entry.source_ids or ())
     ]
     return {"name": reading_list.name, ENTRIES_KEY: kept}
 
@@ -125,6 +125,8 @@ class _Row:
     needs_review: bool = False
     ignored: bool = False
     entry_type: str = ""
+    # A hand-added entry folded into this row.
+    manual: bool = False
 
 
 def _row(
@@ -262,16 +264,27 @@ def _source_rows_by_comic(rows: Sequence[_Row]) -> dict[int, deque[int]]:
     return held
 
 
+def _fold(row: _Row, entry: ReadingListEntry) -> None:
+    """
+    Make a source row the hand-added entry whose comic it holds.
+
+    The row stays hand-added, so the comic outlives the source, and it
+    keeps the entry's hidden flag and a review a person cleared.
+    """
+    row.manual = True
+    row.ignored = entry.ignored
+    row.needs_review = row.needs_review and entry.needs_review
+
+
 def _with_manual(
     rows: Sequence[_Row], overlay: Overlay, assigned: Sequence[int | None]
 ) -> list[_Row | ReadingListEntry]:
     """
     Put each hand-added entry back after the entry it followed.
 
-    A shown hand-added entry whose comic a shown source row now holds folds
-    into that row, which takes its place for the hand-added entries after
-    it. A list written into its comics' files then reads back once, not
-    twice.
+    A hand-added entry whose comic a shown source row now holds folds into
+    that row, which takes its place for the hand-added entries after it. A
+    list written into its comics' files then reads back once, not twice.
     """
     if not overlay.manual:
         return list(rows)
@@ -282,8 +295,9 @@ def _with_manual(
         target = None if previous is None else row_of.get(previous)
         for _, entry in run:
             comic_pk = entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
-            if not entry.ignored and (positions := held.get(comic_pk)):
+            if positions := held.get(comic_pk):
                 target = positions.popleft()
+                _fold(rows[target], entry)
                 continue
             after.setdefault(target, []).append(entry)
     ordered: list[_Row | ReadingListEntry] = list(after.pop(None, []))
@@ -313,6 +327,7 @@ def _entry(reading_list: ReadingList, position: int, row: _Row) -> ReadingListEn
         match_tier=row.tier,
         needs_review=row.needs_review and row.comic_pk is not None,
         ignored=row.ignored,
+        manual=row.manual,
         entry_type=row.entry_type[:32],
         source_ids=sorted(set(row.source_ids)),
     )
@@ -321,7 +336,12 @@ def _entry(reading_list: ReadingList, position: int, row: _Row) -> ReadingListEn
 def _copy_manual(
     reading_list: ReadingList, entry: ReadingListEntry, position: int
 ) -> ReadingListEntry:
-    """Return a hand-added entry again, at its new position."""
+    """
+    Return a hand-added entry again, at its new position.
+
+    No source row took it, so no source supplies it, even one folded
+    before.
+    """
     return ReadingListEntry(
         reading_list=reading_list,
         position=position,
@@ -335,7 +355,6 @@ def _copy_manual(
         ignored=entry.ignored,
         manual=True,
         entry_type=entry.entry_type,
-        source_ids=entry.source_ids,
     )
 
 
@@ -390,18 +409,67 @@ def _recombine_hand_made(
     """
     Recompute a list no source feeds: a copy, or a list made by hand.
 
-    There is nothing to combine, so the entries, their order and the
-    header stay as they are. Only a hand-added entry whose comic went is
-    matched again, in place.
+    There is nothing to combine, so only what was added by hand stays. The
+    rows a last source supplied go with it, and a hand-added entry folded
+    into one of them is supplied by none now. The order and the header
+    stay as they are, and a hand-added entry whose comic went is matched
+    again, in place.
     """
+    own = ReadingListEntry.objects.filter(
+        reading_list=reading_list, live_source__isnull=True
+    )
+    kept = [entry for entry in entries if entry.manual]
     with transaction.atomic():
-        if healed := _heal_manual(entries, matcher):
-            ReadingListEntry.objects.bulk_update(
-                healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
-            )
+        dropped, _ = own.filter(manual=False).delete()
+        own.filter(manual=True).exclude(source_ids=[]).update(source_ids=[])
+        healed = _heal_manual(kept, matcher)
+        ReadingListEntry.objects.bulk_update(
+            healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
+        )
+        if dropped or healed:
             reading_list.save(update_fields=("updated_at",))
         reconcile_list(reading_list)
-    return len(entries)
+    return len(kept)
+
+
+def _carried(overlay: Overlay) -> list[ReadingListEntry]:
+    """
+    Return the combined lists' hand-added entries, list by list, in order.
+
+    A comic an earlier list holds comes once; a list's own repeat stays.
+    """
+    held: set[int] = set()
+    carried: list[ReadingListEntry] = []
+    entries = (entry for _, entry in overlay.manual)
+    for _, run in groupby(entries, key=attrgetter("reading_list_id")):
+        own = list(run)
+        carried.extend(entry for entry in own if entry.comic_id not in held)  # pyright: ignore[reportAttributeAccessIssue]
+        held.update(entry.comic_id for entry in own if entry.comic_id is not None)  # pyright: ignore[reportAttributeAccessIssue]
+    return carried
+
+
+def _combine_hand_made(
+    reading_list: ReadingList, overlay: Overlay, matcher: ListMatcher
+) -> int:
+    """
+    Combine lists no source feeds, such as two copies.
+
+    The primary's hand-added entries come first, then each other list's;
+    the rows of a source none of them has any more go, as for one list.
+    """
+    new_entries = [
+        _copy_manual(reading_list, entry, position)
+        for position, entry in enumerate(_carried(overlay))
+    ]
+    _heal_manual(new_entries, matcher)
+    with transaction.atomic():
+        ReadingListEntry.objects.filter(
+            reading_list=reading_list, live_source__isnull=True
+        ).delete()
+        ReadingListEntry.objects.bulk_create(new_entries, batch_size=_BATCH)
+        reading_list.save()
+        reconcile_list(reading_list)
+    return len(new_entries)
 
 
 def recombine(
@@ -429,7 +497,12 @@ def recombine(
         ).order_by("position", "pk")
     )
     if not sources:
-        size = _recombine_hand_made(reading_list, entries, matcher)
+        # Combining lists passes their edits; one list's are its entries.
+        size = (
+            _recombine_hand_made(reading_list, entries, matcher)
+            if overlay is None
+            else _combine_hand_made(reading_list, overlay, matcher)
+        )
         reconcile_includers(reading_list)
         return size
     if overlay is None:

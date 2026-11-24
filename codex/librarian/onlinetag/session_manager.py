@@ -38,7 +38,7 @@ from comicbox.events import (
     Skipped,
     SourceStarted,
 )
-from comicbox.exceptions import ComicboxError
+from comicbox.exceptions import ComicboxError, OnlineLookupAbortedError
 from comicbox.formats.base.online import outcome_stats
 from comicbox.online_session import (
     Effort,
@@ -142,6 +142,22 @@ def _task_params(task: BulkOnlineTagTask) -> dict[str, Any]:
     }
 
 
+def _pause_aware_sleep(state: SessionState) -> Callable[[float], None]:
+    """
+    Return a rate-limit wait that a Pause ends at once.
+
+    The search pass's session waits on its own cancel event. The stored-id
+    prepass fetches outside that session, so it waits on the scan's.
+    """
+
+    def wait(delay: float) -> None:
+        if state.pause_event.wait(delay):
+            reason = "online: scan paused during retry wait"
+            raise OnlineLookupAbortedError(reason)
+
+    return wait
+
+
 def _mergeable(state: SessionState, task: BulkOnlineTagTask) -> bool:
     """
     Whether a task arriving mid-scan may join the running session.
@@ -194,6 +210,7 @@ def _release_online_connections() -> None:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from multiprocessing import Queue
 
     from comicbox.config.settings import ComicboxSettings
@@ -712,6 +729,7 @@ class OnlineTagSessionManager:
         credentials: OnlineCredentials,
         *,
         merge_all_sources: bool,
+        retry_sleep: Callable[[float], None] | None = None,
     ) -> tuple[tuple[str, ...], dict] | None:
         """
         Fetch one already-identified comic by its stored ids.
@@ -735,7 +753,12 @@ class OnlineTagSessionManager:
         )
         try:
             tags = fetch_tags_by_explicit_id(
-                path, primary_source, primary_id, credentials, extra_ids=extra_ids
+                path,
+                primary_source,
+                primary_id,
+                credentials,
+                extra_ids=extra_ids,
+                retry_sleep=retry_sleep,
             )
         except (ComicboxError, OSError) as exc:
             self.log.warning(f"Online tag stored-id prefetch failed for {path}: {exc}")
@@ -807,7 +830,12 @@ class OnlineTagSessionManager:
         # the id map, so the count doesn't jump when the search pass adopts it.
         status = self._pass_runner.begin_status(len(comic_paths))
         batch: dict[int, dict] = {}
+        retry_sleep = _pause_aware_sleep(state)
         for pk, source_ids in id_map.items():
+            # A Pause arrives out of band (see ``cancel_session``); what the
+            # prepass never reached stays in ``comic_paths`` for Resume.
+            if state.cancelled:
+                break
             path = comic_paths[pk]
             # The prepass fetches outside the event-emitting session, so codex
             # is the only thing that knows a lookup is happening at all —
@@ -816,7 +844,11 @@ class OnlineTagSessionManager:
             state.live.begin(path, next(iter(source_ids)))
             self._publish_live(state)
             result = self._fetch_stored_id(
-                path, source_ids, credentials, merge_all_sources=task.merge_all_sources
+                path,
+                source_ids,
+                credentials,
+                merge_all_sources=task.merge_all_sources,
+                retry_sleep=retry_sleep,
             )
             state.live.end(path)
             if result is None:
@@ -1009,6 +1041,7 @@ class OnlineTagSessionManager:
             if not state:
                 return
             state.cancelled = True
+            state.pause_event.set()
             # A pause taken during a rate-limit sleep aborts the retry with no
             # FileFinished behind it, so nothing else would clear the marker.
             state.live.clear()

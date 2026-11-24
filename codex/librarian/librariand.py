@@ -25,7 +25,7 @@ from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
 from codex.librarian.onlinetag.readinglists import ReadingListFetchAbortTask
-from codex.librarian.onlinetag.tasks import OnlineTagTask
+from codex.librarian.onlinetag.tasks import OnlineTagAbortTask, OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
 from codex.librarian.scribe.scribed import ScribeThread
@@ -91,13 +91,24 @@ class LibrarianDaemon(Process):
         restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
         restarter.handle_task(task)
 
-    def _process_task(self, task) -> None:
-        """Process an individual task popped off the queue."""
-        # Simply requeue tasks to the handler thread.
+    def _requeue(self, task) -> bool:
+        """Hand a task to the thread that runs it; return whether one did."""
+        if isinstance(task, OnlineTagAbortTask):
+            # The online tag thread is busy with the very scan a Pause
+            # stops, so tell the scan now. The task is queued as well, for
+            # a scan that starts after it.
+            self._threads.online_tag_thread.cancel_session(task.session_id)
         for task_type, thread_attr in _THREAD_QUEUE_TASK_MAP.items():
             if isinstance(task, task_type):
                 getattr(self._threads, thread_attr).queue.put(task)
-                return
+                return True
+        return False
+
+    def _process_task(self, task) -> None:
+        """Process an individual task popped off the queue."""
+        # Simply requeue tasks to the handler thread.
+        if self._requeue(task):
+            return
         match task:
             case ScribeTask():
                 # Special put method does queue put preprocessing.

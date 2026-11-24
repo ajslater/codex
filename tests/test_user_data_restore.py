@@ -94,28 +94,6 @@ class _SidecarRestoreCase(TestCase):
         reset_store_for_tests(None)
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
 
-    def _snapshot_sidecar(self) -> Path:
-        """
-        Dump the main-DB state to the sidecar; return a frozen copy.
-
-        Subsequent main-DB deletes won't touch the sidecar (we no longer
-        mirror via signals); the snapshot file is the artifact we restore
-        from to simulate "main DB lost, sidecar intact."
-        """
-        dump_user_data()
-        # Force any pending WAL writes to flush.
-        self.store.connection().execute("PRAGMA wal_checkpoint(FULL)")
-        snapshot = _TMP_DIR / "config" / "snapshot.sqlite"
-        snapshot.unlink(missing_ok=True)
-        # ``sqlite3.backup`` produces a consistent copy under load.
-        with sqlite3.connect(snapshot) as dst:
-            self.store.connection().backup(dst)
-        return snapshot
-
-
-class RestoreRoundTripTests(_SidecarRestoreCase):
-    """Write → wipe → restore → compare."""
-
     def _seed_main_db(self) -> dict:
         """Create a representative set of user-data rows in the main DB."""
         user = User.objects.create_user(
@@ -165,6 +143,28 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
             "editors": editors,
             "comic_path": str(comic_path),
         }
+
+    def _snapshot_sidecar(self) -> Path:
+        """
+        Dump the main-DB state to the sidecar; return a frozen copy.
+
+        Subsequent main-DB deletes won't touch the sidecar (we no longer
+        mirror via signals); the snapshot file is the artifact we restore
+        from to simulate "main DB lost, sidecar intact."
+        """
+        dump_user_data()
+        # Force any pending WAL writes to flush.
+        self.store.connection().execute("PRAGMA wal_checkpoint(FULL)")
+        snapshot = _TMP_DIR / "config" / "snapshot.sqlite"
+        snapshot.unlink(missing_ok=True)
+        # ``sqlite3.backup`` produces a consistent copy under load.
+        with sqlite3.connect(snapshot) as dst:
+            self.store.connection().backup(dst)
+        return snapshot
+
+
+class RestoreRoundTripTests(_SidecarRestoreCase):
+    """Write → wipe → restore → compare."""
 
     def test_round_trip_restores_users_and_groups(self) -> None:
         self._seed_main_db()

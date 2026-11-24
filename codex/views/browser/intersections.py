@@ -37,6 +37,7 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.named import Reprint
+from codex.models.readinglist import ReadingList
 from codex.views.browser.columns import (
     READING_LIST_NAME_PATH,
     fk_name_columns,
@@ -210,6 +211,21 @@ _SCALAR_FIELD_PATHS: MappingProxyType[str, str] = MappingProxyType(
         "volume_name": "volume__name",
     }
 )
+
+
+def _collection_q(
+    comic_to_collection: str, collection_pks: list[int], prefix: str = ""
+) -> Q:
+    """
+    Select the comics of the page's collections, ``prefix`` from the queried model.
+
+    A hidden entry is no part of its list, so it gives the list's row no
+    cells. One Q, so both tests ride the same join.
+    """
+    q = Q(**{f"{prefix}{comic_to_collection}__in": collection_pks})
+    if comic_to_collection == MODEL_REL_MAP[ReadingList]:
+        q &= Q(**{f"{prefix}reading_list_entries__ignored": False})
+    return q
 
 
 def intersection_relation(
@@ -474,7 +490,9 @@ def _compute_batched_scalars(
     # applied here narrows numerator and denominator in one move.
     rows = (
         Comic.objects.filter(
-            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC,
+            acl.q(Comic),
+            _collection_q(comic_to_collection, collection_pks),
         )
         .values(comic_to_collection)
         .annotate(**annotations)
@@ -548,7 +566,7 @@ def _build_simple_m2m_intersection_query(
         through.objects.filter(
             _LIVE_COMIC_REL,
             acl.q(through),
-            **{f"comic__{comic_to_collection}__in": collection_pks},
+            _collection_q(comic_to_collection, collection_pks, "comic__"),
             **{f"{rel_name}__name__isnull": False},
         )
         .exclude(**{f"{rel_name}__name": ""})
@@ -668,7 +686,9 @@ def _compute_m2m_intersection(
         return
     rows = (
         Comic.objects.filter(
-            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC,
+            acl.q(Comic),
+            _collection_q(comic_to_collection, collection_pks),
         )
         .filter(_name_relation_filter(col, rel, acl))
         .values(comic_to_collection, rel)
@@ -1251,7 +1271,9 @@ def _compute_credits_intersection(
     """Credit intersection — by (person.name, role.name) tuple, formatted as "Person (Role)"."""
     rows = (
         Comic.objects.filter(
-            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC,
+            acl.q(Comic),
+            _collection_q(comic_to_collection, collection_pks),
         )
         .filter(credits__person__name__gt="")
         .values(
@@ -1293,7 +1315,9 @@ def _compute_identifiers_intersection(
     """Render identifier intersection as ``[source:]type:key`` per shared row."""
     rows = (
         Comic.objects.filter(
-            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC,
+            acl.q(Comic),
+            _collection_q(comic_to_collection, collection_pks),
         )
         .filter(Q(identifiers__id_type__gt="") | Q(identifiers__key__gt=""))
         .values(
@@ -1339,7 +1363,9 @@ def _compute_reprints_intersection(
     """Reprints have no ``name`` column; compose the label from their four."""
     rows = (
         Comic.objects.filter(
-            LIVE_COMIC, acl.q(Comic), **{f"{comic_to_collection}__in": collection_pks}
+            LIVE_COMIC,
+            acl.q(Comic),
+            _collection_q(comic_to_collection, collection_pks),
         )
         .filter(reprints__series_name__gt="")
         .values(comic_to_collection, *_REPRINT_VALUE_RELS)

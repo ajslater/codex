@@ -297,13 +297,17 @@ def refresh_source(
         source.save(update_fields=("fetched_at", "updated_at"))
         return False
     source.document = dict(document)  # pyright: ignore[reportAttributeAccessIssue]
-    source.revision = spec.revision
     source.ref = spec.ref
     source.attribution_source = spec.attribution_source or source.attribution_source
     source.attribution_url = spec.attribution_url or source.attribution_url
     source.ordered = document.get(ORDERED_KEY) is not False
     source.save()
     recombine(source.reading_list, matcher)
+    # The revision goes last: a recombine that fails leaves the old one, so
+    # the next refresh recombines again. One transaction around both would
+    # hold the write lock through the whole recombine.
+    source.revision = spec.revision
+    source.save(update_fields=("revision", "updated_at"))
     return True
 
 
@@ -328,11 +332,21 @@ def rank_sources(reading_list: ReadingList, source_pks: Iterable[int]) -> None:
             kind=COLLECTION_KIND
         )
     )
+    old_ranks = {source.pk: source.rank for source in sources}
     tail = len(order)
     for source in sources:
         source.rank = order.get(source.pk, tail)
     ReadingListSource.objects.bulk_update(sources, ("rank",))
-    recombine(reading_list)
+    try:
+        recombine(reading_list)
+    except Exception:
+        # The entries still read the old order, so the sources go back to
+        # it. One transaction around both would hold the write lock through
+        # the whole recombine.
+        for source in sources:
+            source.rank = old_ranks[source.pk]
+        ReadingListSource.objects.bulk_update(sources, ("rank",))
+        raise
 
 
 def _overlay_of(reading_list: ReadingList) -> Overlay:

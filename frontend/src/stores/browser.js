@@ -21,6 +21,7 @@ import {
   collectionForRoute,
   normalizeParentIds,
   routeForCollection,
+  routeReadingListPk,
 } from "@/route";
 import { useAuthStore } from "@/stores/auth";
 
@@ -1085,6 +1086,37 @@ export const useBrowserStore = defineStore("browser", {
       return this.settings.viewMode === "table"
         ? { ...this.settings, columns: this._resolveTableColumns().join(",") }
         : this.settings;
+    },
+    async refreshIfShowingLists() {
+      /*
+       * After a list's membership changed: refresh a page that shows lists,
+       * a list's own or one under a ticked Reading Lists filter, in place.
+       * Cover view had nothing watching; the table refreshes for its own
+       * Reading Lists column. Only the browser has a page to refresh: the
+       * reader's route has no collection to browse.
+       */
+      const route = router.currentRoute.value;
+      if (route.name !== "browser") return;
+      const ownList = routeReadingListPk(route.params);
+      const ticked = this.settings.filters?.readingLists?.length;
+      if (ownList || ticked) await this.refreshBrowserPage();
+    },
+    async syncReadingListsFilter() {
+      /*
+       * A list deleted elsewhere is dropped from the server's stored
+       * filters, not from this copy, which would go on naming it. Reload
+       * the settings when a ticked list is gone there, and only then.
+       */
+      const ticked = this.settings.filters?.readingLists || [];
+      if (ticked.length === 0 || !this.isAuthorized) return;
+      try {
+        const { collection } = liveBrowseParams();
+        const response = await API.getSettings({ collection });
+        const stored = new Set(response.data?.filters?.readingLists || []);
+        if (ticked.some((pk) => !stored.has(pk))) await this.loadSettings();
+      } catch (error) {
+        console.error(error);
+      }
     },
     async refreshBrowserPage() {
       /*

@@ -113,6 +113,27 @@ class ReadingListApiTests(ReadingListFixture):
             )
         assert again.status_code == _BAD_REQUEST, again.content
 
+    def test_a_metron_card_keeps_its_type(self) -> None:
+        """
+        A Metron list's card shows the type its search row had.
+
+        The preview is a multipart upload, so ``sources`` is a JSON string the
+        camel-case parser never sees: ``listType`` reached the card as is.
+        """
+        source = {
+            "kind": "metron_list",
+            "ref": "42",
+            "name": "Civil War",
+            "curator": "cbro",
+            "listType": "event",
+        }
+        response = self.client.post(
+            f"{_ADMIN}/preview", {"sources": json.dumps([source])}
+        )
+        assert response.status_code == _OK, response.content
+        (card,) = _data(response)["cards"]
+        assert card["listType"] == "event"
+
     def test_bad_file_gets_an_error_card(self) -> None:
         """A file that is not a list explains itself and stops nothing."""
         good = SimpleUploadedFile("good.cbl", _CBL.encode())
@@ -189,6 +210,22 @@ class ReadingListApiTests(ReadingListFixture):
             "position"
         )[0]
         assert first.pk == missing
+
+    def test_export_names_a_non_latin_file(self) -> None:
+        """
+        A name outside Latin-1 is sent as an RFC 6266 ``filename*``.
+
+        Django MIME-encodes a header value it cannot send as Latin-1, so the
+        whole Content-Disposition became ``=?utf-8?b?...?=``, which no
+        browser reads as an attachment.
+        """
+        reading_list = ReadingList.objects.create(
+            name="Guerra Civil \u2014 \u65e5\u672c"
+        )
+        response = self.client.get(f"{_LISTS}/{reading_list.pk}/export", {"fmt": "cbl"})
+        assert response.status_code == _OK
+        disposition = response["Content-Disposition"]
+        assert disposition.startswith("attachment; filename*=utf-8''"), disposition
 
     def test_export_carries_matched_ids_and_uuid(self) -> None:
         """Export writes the list; json-cbl keeps the list's UUID."""
