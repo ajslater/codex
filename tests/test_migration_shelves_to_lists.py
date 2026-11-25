@@ -8,7 +8,7 @@ must find nothing to change in what the migration wrote. Then back to
 0060 and forward again.
 """
 
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Any, Final, override
 
 from django.contrib.auth.models import User
@@ -21,6 +21,7 @@ from codex.librarian.scribe.readinglists.live import (
     load_target,
     reconcile_list,
 )
+from codex.librarian.scribe.readinglists.references import comic_references
 from codex.models import ReadingList, ReadingListSource
 
 _BEFORE: Final = [("codex", "0060_post_v2_6_0_schema")]
@@ -221,6 +222,47 @@ class ShelvesToListsTests(_Fixture):
         )
         assert hand.reference["series"] == {"name": "X-Men"}
         _assert_in_sync(every)
+
+    def test_a_shelf_keeps_its_times(self) -> None:
+        """The list was made and last changed when the shelf was."""
+        seed = _Library(_migrate(_BEFORE))
+        shelf = seed.shelf(self.reader, "Old")
+        made = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)
+        changed = datetime(2025, 6, 7, 8, 9, 10, tzinfo=UTC)
+        _objects(seed.apps, "Shelf").filter(pk=shelf.pk).update(
+            created_at=made, updated_at=changed
+        )
+        apps = _migrate(_AFTER)
+
+        old = _personal(apps, self.reader, "Old")
+        assert (old.created_at, old.updated_at) == (made, changed)
+
+    def test_a_hand_entry_carries_its_ids(self) -> None:
+        """Its reference is the one a hand-added comic gets now, ids and all."""
+        seed = _Library(_migrate(_BEFORE))
+        identifiers = _objects(seed.apps, "Identifier")
+        metron = _objects(seed.apps, "IdentifierSource").create(name="metron")
+        comicvine = _objects(seed.apps, "IdentifierSource").create(name="comicvine")
+        seed.x1.identifiers.add(
+            identifiers.create(source=metron, id_type="comic", key="1001"),
+            identifiers.create(source=comicvine, id_type="comic", key="4000-2002"),
+        )
+        seed.xmen.identifier = identifiers.create(
+            source=comicvine, id_type="series", key="4050-303"
+        )
+        seed.xmen.save()
+        seed.shelf(self.reader, "Ids", (("comics", seed.x1.pk),))
+        apps = _migrate(_AFTER)
+
+        hand: Any = _personal(apps, self.reader, "Ids").entries.get()
+        assert hand.reference == comic_references((seed.x1.pk,))[seed.x1.pk]
+        assert hand.reference["identifiers"] == {
+            "comicvine": {"key": "4000-2002"},
+            "metron": {"key": "1001"},
+        }
+        assert hand.reference["series"]["identifiers"] == {
+            "comicvine": {"key": "4050-303"}
+        }
 
     def test_a_comic_shelved_directly_and_through_its_series(self) -> None:
         """It appears once, as the entry added by hand."""
