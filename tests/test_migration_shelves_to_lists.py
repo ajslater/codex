@@ -29,6 +29,11 @@ _AFTER: Final = [("codex", "0061_reading_lists_and_versedb_key")]
 _GONE: Final = 9999
 
 
+def _latest() -> list[tuple[str, str]]:
+    """Return the codex migration the rest of the suite expects."""
+    return MigrationExecutor(connection).loader.graph.leaf_nodes("codex")
+
+
 def _migrate(target):
     """Migrate to ``target`` and return the app registry at that state."""
     executor = MigrationExecutor(connection)
@@ -152,6 +157,8 @@ def _items(reading_list) -> list[tuple]:
 
 def _assert_in_sync(reading_list) -> None:
     """Check the live sync agrees with every row the migration wrote."""
+    # The live code reads the latest schema; later migrations exist.
+    _migrate(_latest())
     real = ReadingList.objects.get(pk=reading_list.pk)
     for item in ReadingListSource.objects.filter(reading_list=real):
         target = load_target(item.collection, item.target_id)
@@ -161,11 +168,12 @@ def _assert_in_sync(reading_list) -> None:
 
 
 class _Fixture(TransactionTestCase):
-    """Two users; the schema back at 0061 after each test."""
+    """Two users; the schema back at the latest migration after each test."""
 
     @override
     def setUp(self) -> None:
-        self.addCleanup(_migrate, _AFTER)
+        # Back to the latest migration, not _AFTER: later ones exist.
+        self.addCleanup(_migrate, _latest())
         self.reader = User.objects.create(username="reader")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.other = User.objects.create(username="other")  # pyright: ignore[reportUninitializedInstanceVariable]
 
@@ -255,7 +263,11 @@ class ShelvesToListsTests(_Fixture):
         apps = _migrate(_AFTER)
 
         hand: Any = _personal(apps, self.reader, "Ids").entries.get()
-        assert hand.reference == comic_references((seed.x1.pk,))[seed.x1.pk]
+        # The live references read the latest schema; X-Men has one volume,
+        # so 0062 leaves the reference as it was.
+        reference = hand.reference
+        _migrate(_latest())
+        assert reference == comic_references((seed.x1.pk,))[seed.x1.pk]
         assert hand.reference["identifiers"] == {
             "comicvine": {"key": "4000-2002"},
             "metron": {"key": "1001"},

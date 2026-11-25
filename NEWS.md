@@ -6,6 +6,12 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.8.1
+
+### 🐛 Fixed
+
+- Reading lists find every volume of a series name, not only the first.
+
 ## v2.8.0 - Reading Lists
 
 ### ✨ Added

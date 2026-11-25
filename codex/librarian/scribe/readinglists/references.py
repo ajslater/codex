@@ -7,10 +7,15 @@ comics, so an entry that came from a comic's tags can find that comic
 again after it is removed and re-added, and so lists from tags combine
 and compare with fetched lists. The references are JSON-safe: issues are
 strings, dates are their parts.
+
+A codex series is a name, but comicbox's is one volume run: Batman (1940)
+and Batman (2011) are two. So the start year a reference carries is its
+volume's, and series ids, which codex keeps one of per series name, are
+given only for a series with one volume.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from contextlib import suppress
 from datetime import date
 from decimal import Decimal
@@ -18,8 +23,9 @@ from itertools import batched
 from typing import Any, Final
 
 from comicbox.readinglists import parse_issue
+from django.db.models import Count
 
-from codex.models import Comic
+from codex.models import Comic, Volume
 from codex.models.identifier import IdentifierType
 
 # Below SQLite's bound-parameter limit with room for the rest of a query.
@@ -28,7 +34,8 @@ PK_BATCH: Final = 10000
 _COMIC_FIELDS: Final = (
     "pk",
     "series__name",
-    "series__start_year",
+    "volume__start_year",
+    "series_id",
     "series__identifier__source__name",
     "series__identifier__key",
     "volume__name",
@@ -65,11 +72,14 @@ def _date(year, month, day) -> dict[str, int]:
     }
 
 
-def _reference(row: tuple, identifiers: dict[str, dict]) -> dict[str, Any]:
+def _reference(
+    row: tuple, identifiers: dict[str, dict], multi_volume: Collection[int]
+) -> dict[str, Any]:
     (
         _pk,
         series_name,
         start_year,
+        series_pk,
         id_source,
         id_key,
         volume,
@@ -79,6 +89,9 @@ def _reference(row: tuple, identifiers: dict[str, dict]) -> dict[str, Any]:
         month,
         day,
     ) = row
+    if series_pk in multi_volume:
+        # One id per name: it is at most one of the volumes'.
+        id_source = id_key = None
     reference: dict[str, Any] = {}
     if series := _series(series_name, start_year, id_source, id_key):
         reference["series"] = series
@@ -111,15 +124,28 @@ def _issue_identifiers(pks: tuple[int, ...]) -> dict[int, dict[str, dict]]:
     return identifiers
 
 
+def _multi_volume_series(pks: tuple[int, ...]) -> frozenset[int]:
+    """Return the series of these comics that have more than one volume."""
+    series_pks = Comic.objects.filter(pk__in=pks).values("series_id")
+    return frozenset(
+        Volume.objects.filter(series_id__in=series_pks)
+        .values("series_id")
+        .annotate(volumes=Count("pk"))
+        .filter(volumes__gt=1)
+        .values_list("series_id", flat=True)
+    )
+
+
 def comic_references(comic_pks: Iterable[int]) -> dict[int, dict[str, Any]]:
     """Return a comicbox reading-list entry for each comic, by pk."""
     references: dict[int, dict[str, Any]] = {}
     for batch in batched(sorted(set(comic_pks)), PK_BATCH):
         identifiers = _issue_identifiers(batch)
+        multi_volume = _multi_volume_series(batch)
         rows = Comic.objects.filter(pk__in=batch).values_list(*_COMIC_FIELDS)
         for row in rows:
             pk = row[0]
-            references[pk] = _reference(row, identifiers.get(pk, {}))
+            references[pk] = _reference(row, identifiers.get(pk, {}), multi_volume)
     return references
 
 

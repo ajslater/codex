@@ -75,7 +75,11 @@ class ReadingListFixture(TestCase):
             name="Civil War", imprint=imprint, publisher=publisher, start_year=2006
         )
         volume = Volume.objects.create(
-            name=2006, series=series, imprint=imprint, publisher=publisher
+            name=2006,
+            start_year=2006,
+            series=series,
+            imprint=imprint,
+            publisher=publisher,
         )
         folder = Folder.objects.create(
             library=self.library, path=str(TMP_DIR), name=TMP_DIR.name

@@ -27,7 +27,7 @@ _QUEUE: Final = "codex.views.readinglists.items.LIBRARIAN_QUEUE"
 
 _PW: Final = "test-pw-hush-S106"
 _OK: Final = 200
-_ADD: Final = 54
+_ADD: Final = 55  # 1053: one query for the series with several volumes
 _REMOVE: Final = 42
 
 

@@ -9,6 +9,7 @@ from comicbox.formats.comicbox.schema import (
     NAME_KEY,
     NUMBER_KEY,
     PROTAGONIST_KEY,
+    SERIES_KEY,
     VOLUME_NUMBER_TO_KEY,
 )
 from comicbox.identifiers import ID_KEY_KEY, ID_TYPE_KEY
@@ -215,6 +216,9 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
         clears a lookup the file no longer holds.
         """
         collection_list = []
+        # comicbox's series is one volume run, so its start year is the
+        # volume's. The series is popped before the volume is reached.
+        start_year = (md.get(SERIES_KEY) or {}).get(START_YEAR_FIELD_NAME)
         for field_name in TAG_FK_FIELD_NAMES:
             related_field = COMIC_FK_FIELD_NAMES_FIELD_MAP[field_name]
             # No identifiers on many2one fks yet
@@ -223,6 +227,8 @@ class AggregateForeignKeyMetadataImporter(QueryForeignKeysImporter):
             md_key = field_name
             value = md.pop(md_key, None)
 
+            if model == Volume:
+                value = {**(value or {}), START_YEAR_FIELD_NAME: start_year}
             if issubclass(model, BrowserCollectionModel):
                 key_values, extra_values = self._set_collection_tree_node(
                     model, related_field, value, collection_list

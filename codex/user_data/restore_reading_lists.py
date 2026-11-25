@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from sqlite3 import Row
 
+    from codex.librarian.scribe.readinglists.volume_years import FoldedSeries
     from codex.models.readinglist import ReadingList
     from codex.user_data.store import SidecarStore
 
@@ -163,7 +164,9 @@ def _entry(
     row: Row,
     source_pks: dict[tuple[str, str], int],
     comic_pks: dict[str, int | None],
+    folded: FoldedSeries,
 ):
+    from codex.librarian.scribe.readinglists.volume_years import unfold_reference
     from codex.models.readinglist import ReadingListEntry, ReadingListMatchTier
 
     comic_pk = _comic_pk(row["comic_path"], comic_pks)
@@ -177,6 +180,10 @@ def _entry(
         # Its comic is gone: a rematch looks for it by its reference.
         tier = ReadingListMatchTier.NONE.value
         needs_review = False
+    # A dump made before migration 0062 holds codex's folded start years.
+    manual = bool(row["manual"])
+    built = manual or tier == ReadingListMatchTier.TAGGED.value
+    reference = unfold_reference(_loads(row["reference"], {}), folded, built=built)
     sources = [
         source_pks[(kind, ref)]
         for kind, ref in _loads(row["sources"], [])
@@ -186,14 +193,14 @@ def _entry(
         reading_list=reading_list,
         position=row["position"],
         comic_id=comic_pk,
-        reference=_loads(row["reference"], {}),
+        reference=reference,
         series_name=row["series_name"] or "",
         issue=row["issue"] or "",
         year=row["year"],
         match_tier=tier,
         needs_review=needs_review,
         ignored=bool(row["ignored"]),
-        manual=bool(row["manual"]),
+        manual=manual,
         entry_type=row["entry_type"] or "",
         source_ids=sorted(sources),
     )
@@ -205,12 +212,14 @@ def _replace_entries(
     source_pks: dict[tuple[str, str], int],
     report: RestoreReport,
 ) -> None:
+    from codex.librarian.scribe.readinglists.volume_years import FoldedSeries
     from codex.models.readinglist import ReadingListEntry
 
     ReadingListEntry.objects.filter(reading_list=reading_list).delete()
     comic_pks: dict[str, int | None] = {}
+    folded = FoldedSeries()
     entries = [
-        _entry(reading_list, row, source_pks, comic_pks)
+        _entry(reading_list, row, source_pks, comic_pks, folded)
         for row in sorted(rows, key=lambda row: row["position"])
     ]
     ReadingListEntry.objects.bulk_create(entries)

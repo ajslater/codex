@@ -50,8 +50,12 @@ class ReadingListsImporter(MovedImporter):
         return any(getattr(self.counts, name) for name in _ARC_LINK_COUNTERS)
 
     def _queue_rematch(self) -> None:
-        """Match lists again: a comic this import added may be one they miss."""
-        if self.counts.comic:
+        """
+        Match lists again: a comic this import added may be one they miss.
+
+        So may one whose volume this import learned the start year of.
+        """
+        if self.counts.comic or self.counts.volume_years:
             self.librarian_queue.put(ReadingListRematchTask())
 
     def _sync_live(self) -> None:
