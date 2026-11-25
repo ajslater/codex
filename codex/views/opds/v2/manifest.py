@@ -467,7 +467,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         """
         Find the manifest's comic by the ACL and its pk alone.
 
-        The saved OPDS browser filters (read state, shelves, search) are
+        The saved OPDS browser filters (read state, reading lists, search) are
         the last feed's; they say nothing about which book a manifest is
         for, and a book they hide would get a manifest with no reading
         order.
