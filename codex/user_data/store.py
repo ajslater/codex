@@ -40,6 +40,10 @@ if TYPE_CHECKING:
 # settings_filters.reading_list_kind is a JSON list of kinds, like the
 # other filter columns (a development build wrote one bare kind);
 # settings_filters.match_all is a JSON list of filter names.
+#
+# A record only: each layout a sidecar is written with stamps a row, and
+# nothing reads them. A restore decides what a backup holds from its own
+# tables and columns, so a backup of any version restores what it has.
 SCHEMA_VERSION: Final[int] = 6
 _SCHEMA_PATH: Final[Path] = Path(__file__).with_name("schema.sql")
 

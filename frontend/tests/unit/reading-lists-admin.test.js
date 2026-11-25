@@ -477,8 +477,7 @@ describe("add lists dialog — opening", () => {
 
   test("Metron and Comic Vine say why they are off and where to turn them on", () => {
     const wrapper = mountDialog({
-      hasMetronCredentials: false,
-      hasComicvineCredentials: true,
+      configuredSources: ["comicvine"],
     });
     expect(wrapper.vm.hasMetron).toBe(false);
     expect(wrapper.vm.hasComicvine).toBe(true);

@@ -11,7 +11,7 @@ from typing import Any, Final
 
 from comicbox.readinglists import parse_issue
 from django.db import transaction
-from django.db.models import Count, Max, Min, Q
+from django.db.models import Count, Min, Q
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
@@ -39,7 +39,6 @@ from codex.models.readinglist import (
 )
 from codex.views.readinglists.access import (
     ReadingListAccessView,
-    can_edit,
     entries_acl_q,
     to_pk,
 )
@@ -265,7 +264,7 @@ class ReadingListEntriesView(ReadingListAccessView):
             for entry in _entries(reading_list).filter(acl_q & filter_q)
         ]
         items = _items_repr(reading_list, acl_q)
-        return Response({"entries": entries, "items": items, "editable": True})
+        return Response({"entries": entries, "items": items})
 
     def post(self, *_args, **_kwargs) -> Response:
         """
@@ -606,14 +605,6 @@ class ReadingListCandidatesView(ReadingListAccessView):
         return Response({"candidates": [_comic_repr(comic) for comic in comics]})
 
 
-def next_position(reading_list: ReadingList) -> int:
-    """Return the position after the list's last entry."""
-    top = ReadingListEntry.objects.filter(reading_list=reading_list).aggregate(
-        top=Max("position")
-    )["top"]
-    return 0 if top is None else top + 1
-
-
 __all__ = (
     "ReadingListAcceptView",
     "ReadingListCandidatesView",
@@ -621,9 +612,7 @@ __all__ = (
     "ReadingListEntryView",
     "ReadingListReorderView",
     "add_comics",
-    "can_edit",
     "entry_repr",
     "item_repr",
-    "next_position",
     "remove_comics",
 )

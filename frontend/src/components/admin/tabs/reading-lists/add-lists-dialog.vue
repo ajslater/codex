@@ -314,9 +314,11 @@ export default {
   computed: {
     ...mapState(useAdminStore, {
       hasMetron: (state) =>
-        Boolean(state.taggingDefaults?.hasMetronCredentials),
+        Boolean(state.taggingDefaults?.configuredSources?.includes("metron")),
       hasComicvine: (state) =>
-        Boolean(state.taggingDefaults?.hasComicvineCredentials),
+        Boolean(
+          state.taggingDefaults?.configuredSources?.includes("comicvine"),
+        ),
     }),
     pickSummary() {
       // What is picked on every tab, not only the one showing.

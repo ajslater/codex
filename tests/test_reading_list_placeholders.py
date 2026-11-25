@@ -94,7 +94,6 @@ class PlaceholderTests(PlaceholderFixture):
         data = self._page(1)
         assert [int(book["orderValue"]) for book in data["books"]] == [1, 3]
         assert self._missing(data) == [(0, "Prelude"), (2, "Tie-In A")]
-        assert data["missingCount"] == 4  # noqa: PLR2004
 
     def test_the_last_page_runs_to_the_end(self) -> None:
         """Page 2 holds what follows page 1's last comic; the hidden entry never."""

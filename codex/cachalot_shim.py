@@ -6,7 +6,8 @@ cachalot reads the tables of a ``WHERE x__in=<subquery>`` through
 by identity: ``is Query``, ``is QuerySet``. Every codex model's manager is a
 ``GroupByManager`` whose queries are ``GroupByQuery(Query)``, so the
 subquery's table was skipped: the query was cached with no dependency on it
-and served stale after a write to it (the shelves browser filter, for one).
+and served stale after a write to it (the reading lists browser filter, for
+one).
 
 ``CACHALOT_FINAL_SQL_CHECK`` catches these too, but measured +27% on the
 median warm browse request. Replacing this one function with an

@@ -145,14 +145,47 @@ def _in_batches(queryset, pks):
         yield from queryset.filter(pk__in=batch)
 
 
+def _issue_identifiers(comic_model, pks) -> dict:
+    """
+    Map each comic to its issue ids, ``{source: {"key": key}}``.
+
+    ``references._issue_identifiers``, frozen: ``"comic"`` is the issue
+    ``IdentifierType``.
+    """
+    through = comic_model._meta.get_field("identifiers").remote_field.through
+    identifiers: dict = {}
+    for batch in batched(pks, _PK_BATCH):
+        rows = (
+            through.objects.filter(
+                comic_id__in=batch,
+                identifier__id_type="comic",
+                identifier__source__isnull=False,
+            )
+            .order_by("comic_id", "identifier__source__name", "identifier__key")
+            .values_list("comic_id", "identifier__source__name", "identifier__key")
+        )
+        for comic_pk, source, key in rows:
+            identifiers.setdefault(comic_pk, {}).setdefault(source, {"key": key})
+    return identifiers
+
+
 def _comic_references(comic_model, pks) -> dict:
-    """Return a comicbox entry per comic, so a hand entry can be found again."""
+    """
+    Return a comicbox entry per comic, so a hand entry can be found again.
+
+    ``references.comic_references``, frozen, ids included: a hand entry whose
+    comic is removed and imported again is matched by them before its name.
+    """
+    pks = sorted(pks)
+    identifiers = _issue_identifiers(comic_model, pks)
     references = {}
     rows = _in_batches(
         comic_model.objects.values_list(
             "pk",
             "series__name",
             "series__start_year",
+            "series__identifier__source__name",
+            "series__identifier__key",
             "volume__name",
             "issue_number",
             "issue_suffix",
@@ -160,27 +193,45 @@ def _comic_references(comic_model, pks) -> dict:
             "month",
             "day",
         ),
-        sorted(pks),
+        pks,
     )
-    for pk, series, start, volume, number, suffix, year, month, day in rows:
-        reference: dict = {}
-        if series:
-            reference["series"] = {"name": series}
-            if start:
-                reference["series"]["start_year"] = start
-        if volume is not None:
-            reference["volume"] = {"number": volume}
-        if issue := _issue_name(number, suffix):
-            reference["issue"] = {"name": issue}
-        date = {
-            key: value
-            for key, value in (("year", year), ("month", month), ("day", day))
-            if value
-        }
-        if date:
-            reference["date"] = date
-        references[pk] = reference
+    for row in rows:
+        references[row[0]] = _comic_reference(row, identifiers.get(row[0]))
     return references
+
+
+def _reference_series(name, start_year, id_source, id_key) -> dict:
+    series: dict = {}
+    if name:
+        series["name"] = name
+        if start_year:
+            series["start_year"] = start_year
+    if id_source and id_key:
+        series["identifiers"] = {id_source: {"key": id_key}}
+    return series
+
+
+def _comic_reference(row, identifiers) -> dict:
+    """Return one comic's entry from its ``_comic_references`` row."""
+    _pk, series_name, start, id_source, id_key, volume, number, suffix = row[:8]
+    year, month, day = row[8:]
+    reference: dict = {}
+    if series := _reference_series(series_name, start, id_source, id_key):
+        reference["series"] = series
+    if volume is not None:
+        reference["volume"] = {"number": volume}
+    if issue := _issue_name(number, suffix):
+        reference["issue"] = {"name": issue}
+    date = {
+        key: value
+        for key, value in (("year", year), ("month", month), ("day", day))
+        if value
+    }
+    if date:
+        reference["date"] = date
+    if identifiers:
+        reference["identifiers"] = identifiers
+    return reference
 
 
 def _item_members(apps, collection, target_id) -> list:
@@ -414,6 +465,11 @@ def shelves_to_lists(apps, _schema_editor) -> None:
         shelf_list = _ShelfList(apps, reading_list, items.get(shelf.pk, []))
         shelf_list.build()
         dropped += shelf_list.dropped
+        # Made and last changed when the shelf was, not at the upgrade. An
+        # update, after the build, so neither stamp is taken again.
+        reading_list_model.objects.filter(pk=reading_list.pk).update(
+            created_at=shelf.created_at, updated_at=shelf.updated_at
+        )
     _fold_shelf_filters(apps, shelf_to_list)
     _rename_sort_key(apps, _SHELVED_KEY, _READING_LISTS_KEY)
     if orphaned or dropped:

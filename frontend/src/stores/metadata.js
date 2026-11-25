@@ -20,9 +20,6 @@ const TAGS = Object.freeze([
   "universes",
 ]);
 
-// Rows whose display name isn't the capital-cased key.
-const TAG_NAMES = Object.freeze({});
-
 /*
  * Tag editor name suggestions.
  *
@@ -248,7 +245,7 @@ export const useMetadataStore = defineStore("metadata", {
       this.tagNamesLoading = {};
     },
     getTagName(key) {
-      return TAG_NAMES[key] || capitalCase(key);
+      return capitalCase(key);
     },
     mapTag(tagSource, keys, filter) {
       const tagMap = {};

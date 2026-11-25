@@ -21,6 +21,7 @@ from django.db.models import Q
 from django.utils.timezone import now
 
 from codex.librarian.onlinetag.session_state import CLIENT_NAME
+from codex.librarian.onlinetag.sources import build_credentials
 from codex.librarian.onlinetag.tasks import OnlineTagTask
 from codex.librarian.scribe.readinglists.documents import (
     ENTRIES_KEY,
@@ -87,15 +88,13 @@ class ReadingListFetchAbortTask(LibrarianTask):
 
 
 def reading_list_credentials() -> OnlineCredentials | None:
-    """Return the admin's Metron and Comic Vine keys for list fetches."""
-    defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
-    if defaults is None:
-        return None
-    return OnlineCredentials(
-        metron_key=defaults.metron_key or None,
-        comicvine_key=defaults.comicvine_key or None,
-        comicvine_url=defaults.comicvine_url or None,
-    )
+    """
+    Return the admin's keys for list fetches, or None when none is set.
+
+    The source registry's, as tagging uses. With no key comicbox falls back
+    to its config, as it does for a key the credentials leave unset.
+    """
+    return build_credentials(ComicboxTaggingDefaults.objects.filter(pk=1).first())
 
 
 def refresh_request(source: ReadingListSource) -> FetchRequest:

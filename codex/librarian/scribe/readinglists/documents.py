@@ -42,7 +42,6 @@ __all__ = (
     "SOURCES_KEY",
     "STORY_LIST_TYPE",
     "TagsDocument",
-    "arc_pointer",
     "check_format",
     "from_json",
     "tags_document",
@@ -147,11 +146,3 @@ def tags_document(source: ReadingListSource) -> TagsDocument:
     if not source.ordered:
         document[ORDERED_KEY] = False
     return TagsDocument(document=document, comics=pks)
-
-
-def arc_pointer(source: ReadingListSource, kind: str) -> str | None:
-    """Return the key of a database's copy of a tags source's arc."""
-    for pointer in _arc_pointers(source.ref):
-        if pointer[SOURCE_KIND_KEY] == kind:
-            return pointer[SOURCE_KEY_KEY]
-    return None

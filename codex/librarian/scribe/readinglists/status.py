@@ -32,6 +32,7 @@ class ReadingListImportStatus(ReadingListStatus):
 
     CODE = "RLI"
     VERB = "Import"
+    _verbed = "Imported"
     ITEM_NAME = "reading lists"
 
 
