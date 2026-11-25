@@ -14,6 +14,7 @@ from django.test import Client
 
 from codex.librarian.scribe.readinglists.service import import_document
 from codex.models import ReadingListEntry
+from codex.views.readinglists.entries import add_comics
 from tests.test_reading_list_combine import _document, _upload
 from tests.test_reading_list_live import LiveFixture
 
@@ -53,6 +54,16 @@ class LiveEntriesFixture(LiveFixture):
         return self.client.post(
             f"{self.url}{path}", data=json.dumps(data), content_type="application/json"
         )
+
+    def add(self, *comics) -> int:
+        """Add comics as the web UI does, through the items PATCH."""
+        response = self.client.patch(
+            f"{self.url}/items",
+            data=json.dumps({"add": {"comics": [comic.pk for comic in comics]}}),
+            content_type="application/json",
+        )
+        assert response.status_code == _OK, response.content
+        return _data(response)["added"]
 
 
 class EditorTests(LiveEntriesFixture):
@@ -116,14 +127,13 @@ class AddTests(LiveEntriesFixture):
 
     def test_a_held_comic_is_not_added_twice(self) -> None:
         """Civil War #1 is already in by hand."""
-        response = self.post("/entries", {"comics": [self.comics[0].pk]})
-        assert _data(response)["added"] == 0
+        assert self.add(self.comics[0]) == 0
         assert self.order(self.mine).count(self.comics[0].pk) == 1
 
     def test_a_series_comic_added_by_hand_leaves_the_block(self) -> None:
         """Held by hand now, the series no longer delivers it."""
         dd1 = self.more[0]
-        assert _data(self.post("/entries", {"comics": [dd1.pk]}))["added"] == 1
+        assert self.add(dd1) == 1
         assert self.order(self.mine).count(dd1.pk) == 1
         entry = ReadingListEntry.objects.get(reading_list=self.mine, comic=dd1)
         assert entry.manual
@@ -132,7 +142,7 @@ class AddTests(LiveEntriesFixture):
     def test_an_insert_inside_a_block_goes_before_it(self) -> None:
         """Position 2 is inside Daredevil, so the issue goes in at 1."""
         c1, _, c3, _ = self.comics
-        self.post("/entries", {"comics": [c3.pk], "position": 2})
+        add_comics(self.mine, [c3.pk], 2)
         assert self.order(self.mine) == [c1.pk, c3.pk, *self.pks(self.more)]
 
 
@@ -198,7 +208,7 @@ class OneStepTests(LiveEntriesFixture):
     def test_one_step_up_past_a_block(self) -> None:
         """An issue after the block, one step up: before the block."""
         c1, _, c3, _ = self.comics
-        self.post("/entries", {"comics": [c3.pk]})
+        self.add(c3)
         assert self.order(self.mine) == [c1.pk, *self.pks(self.more), c3.pk]
         before = len(self.more)
         response = self.post(

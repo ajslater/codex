@@ -240,7 +240,7 @@ def _order(reading_list: ReadingList) -> list[ReadingListEntry]:
 
 
 class ReadingListEntriesView(ReadingListAccessView):
-    """GET a list's entries; POST comics onto it by hand."""
+    """GET a list's entries."""
 
     def get(self, *_args, **_kwargs) -> Response:
         """
@@ -254,21 +254,6 @@ class ReadingListEntriesView(ReadingListAccessView):
         entries = [entry_repr(entry) for entry in _entries(reading_list).filter(acl_q)]
         items = _items_repr(reading_list, acl_q)
         return Response({"entries": entries, "items": items})
-
-    def post(self, *_args, **_kwargs) -> Response:
-        """
-        Add comics by hand, after ``position`` or at the end.
-
-        Each is a manual entry: it survives any recombine, and its
-        reference is built from the comic so it can be found again.
-        """
-        reading_list = self.get_reading_list()
-        pks = self.visible_comic_pks(self.data_value("comics"))
-        position = self.data_value("position")
-        if position is not None:
-            position = to_pk(position, "position")
-        added = add_comics(reading_list, pks, position)
-        return Response({"added": added})
 
 
 def _hand_entries(
