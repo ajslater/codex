@@ -447,9 +447,7 @@ export default {
       const seq = ++this.loadSeq;
       this.loading = true;
       try {
-        const data = await this.call(
-          API.getEntries(this.readingList.pk, "all"),
-        );
+        const data = await this.call(API.getEntries(this.readingList.pk));
         // A later load, for another list or after an edit, wins.
         if (seq === this.loadSeq) {
           this.allEntries = data?.entries || [];

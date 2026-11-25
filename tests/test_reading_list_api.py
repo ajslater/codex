@@ -46,6 +46,11 @@ def _data(response):
     return body.get("data", body) if isinstance(body, dict) else body
 
 
+def _missing(entries: list[dict]) -> list[dict]:
+    """Pick the missing issues, as Edit Issues' Missing filter does."""
+    return [entry for entry in entries if not entry["comic"] and not entry["ignored"]]
+
+
 class ReadingListApiTests(ReadingListFixture):
     """Import a CBL, review it, export it."""
 
@@ -174,7 +179,7 @@ class ReadingListApiTests(ReadingListFixture):
         """Pick, hide, reorder and accept, as the review screen does."""
         reading_list = self._import_cbl()
         url = f"{_LISTS}/{reading_list.pk}/entries"
-        entries = _data(self.client.get(url, {"filter": "missing"}))["entries"]
+        entries = _missing(_data(self.client.get(url))["entries"])
         assert [entry["seriesName"] for entry in entries] == ["The Amazing Spider-Man"]
         missing = entries[0]["pk"]
 
@@ -262,7 +267,7 @@ class ReadingListApiTests(ReadingListFixture):
         """The picker builds the series index again only when series change."""
         reading_list = self._import_cbl()
         url = f"{_LISTS}/{reading_list.pk}/entries"
-        missing = _data(self.client.get(url, {"filter": "missing"}))["entries"][0]
+        missing = _missing(_data(self.client.get(url))["entries"])[0]
         candidates_url = f"{url}/{missing['pk']}/candidates"
         built = []
         real = matcher_module.SeriesNameIndex
@@ -292,23 +297,17 @@ class ReadingListApiTests(ReadingListFixture):
         assert amazing.pk in index.series_for(reference)
 
     def _personal_list(self) -> int:
-        """Make a personal list holding #2, then put #1 before it."""
+        """Make a personal list holding #1, then #2."""
         self.client.force_login(self.user)
+        comics = [self.comics[0].pk, self.comics[1].pk]
         response = self.client.post(
             f"{_LISTS}/",
-            data=json.dumps({"name": "Mine", "comics": [self.comics[1].pk]}),
+            data=json.dumps({"name": "Mine", "comics": comics}),
             content_type="application/json",
         )
         assert response.status_code == _CREATED, response.content
-        assert _data(response)["count"] == 1
-        pk = _data(response)["pk"]
-        response = self.client.post(
-            f"{_LISTS}/{pk}/entries",
-            data=json.dumps({"comics": [self.comics[0].pk], "position": 0}),
-            content_type="application/json",
-        )
-        assert _data(response)["added"] == 1
-        return pk
+        assert _data(response)["count"] == 2  # noqa: PLR2004
+        return _data(response)["pk"]
 
     def test_personal_list_order_and_rename(self) -> None:
         """Comics go where they are put; a rename sticks."""

@@ -8,6 +8,7 @@ query per row, so a query count guards it, and the rows are compared with
 those of fully loaded entries.
 """
 
+import json
 from typing import Final, override
 
 from django.contrib.auth.models import User
@@ -21,6 +22,7 @@ from tests.test_reading_lists import ReadingListFixture
 
 _PW: Final = "test-pw-hush-S106"
 _OK: Final = 200
+_NOT_ALLOWED: Final = 405
 _GET: Final = 12
 
 
@@ -63,3 +65,24 @@ class EntriesGetTests(ReadingListFixture):
             .order_by("position", "pk")
         ]
         assert response.json()["data"]["entries"] == full
+
+    def test_a_filter_parameter_changes_nothing(self) -> None:
+        """Every entry comes back, hidden ones too, whatever ``filter`` says."""
+        url = f"/api/v4/reading-lists/{self.mine.pk}/entries"
+        plain = self.client.get(url).json()["data"]
+        assert [entry["ignored"] for entry in plain["entries"]].count(True) == 1
+        for value in ("review", "missing", "hidden", "all", "bogus"):
+            with self.subTest(filter=value):
+                body = self.client.get(url, {"filter": value}).json()["data"]
+                assert body == plain
+
+    def test_comics_are_not_posted_here(self) -> None:
+        """Comics go into a list through its items: a POST is refused."""
+        url = f"/api/v4/reading-lists/{self.mine.pk}/entries"
+        before = ReadingListEntry.objects.filter(reading_list=self.mine).count()
+        _, _, c3, _ = self.comics
+        response = self.client.post(
+            url, data=json.dumps({"comics": [c3.pk]}), content_type="application/json"
+        )
+        assert response.status_code == _NOT_ALLOWED, response.content
+        assert ReadingListEntry.objects.filter(reading_list=self.mine).count() == before
