@@ -651,8 +651,8 @@ class BrowserTablePageResponseTestCase(TestCase):
         assert comic is not None
         comic.genres.add(Genre.objects.create(name="Sci-Fi"))
         comic.tags.add(Tag.objects.create(name="HiRes"))
-        comic.characters.add(Character.objects.create(name="Spider-Man"))
-        comic.teams.add(Team.objects.create(name="Avengers"))
+        comic.characters.add(Character.objects.create(name="Spindle-Man"))
+        comic.teams.add(Team.objects.create(name="Avengards"))
 
         self._set_view_mode_table()
         url = (

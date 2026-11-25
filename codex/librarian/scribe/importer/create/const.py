@@ -16,7 +16,6 @@ from codex.librarian.scribe.importer.const import (
     IDENTIFIER_TYPE_FIELD_NAME,
     IDENTIFIER_URL_FIELD_NAME,
     IMPRINT_FIELD_NAME,
-    ISSUE_COUNT_FIELD_NAME,
     NAME_FIELD_NAME,
     NAMED_MODELS,
     NUMBER_FIELD_NAME,
@@ -118,7 +117,7 @@ MODEL_CREATE_ARGS_MAP: MappingProxyType[
                 NAME_FIELD_NAME: None,
                 NUMBER_TO_FIELD_NAME: None,
             },
-            {ISSUE_COUNT_FIELD_NAME: None},
+            dict.fromkeys(COLLECTION_MODEL_ATTR_FIELDS[Volume]),
         ),
         **dict.fromkeys(IDENTIFIED_MODELS, _IDENTIFIED_CREATE_ARGS),
         Credit: (

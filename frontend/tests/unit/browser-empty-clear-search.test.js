@@ -105,7 +105,7 @@ afterEach(() => {
 test("clearing a search from the series root it redirected into goes to the top", async () => {
   // Searched from the Publishers top; the search sent us to /series.
   setRoute("series");
-  const { wrapper, store } = mountEmpty("batman");
+  const { wrapper, store } = mountEmpty("burrowman");
 
   await clickClear(wrapper);
 
@@ -122,7 +122,7 @@ test("clearing a search from the series root it redirected into goes to the top"
 test("clearing a search inside a series stays put and reloads", async () => {
   // Navigated into a series during the search: it has breadcrumbs.
   setRoute("series", "5");
-  const { wrapper, store } = mountEmpty("batman");
+  const { wrapper, store } = mountEmpty("burrowman");
 
   await clickClear(wrapper);
 

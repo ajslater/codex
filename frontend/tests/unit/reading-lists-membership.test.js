@@ -296,7 +296,7 @@ describe("removeFromList", () => {
     pk: 5,
     collection: "series",
     targetId: 7,
-    label: "Daredevil",
+    label: "Dashdemon",
   });
 
   it("says what went", async () => {
@@ -324,8 +324,8 @@ describe("removeFromList", () => {
     expect(await store.removeFromList(1, [101])).toBe(false);
 
     const { notice } = useCommonStore();
-    expect(notice.text).toBe("That issue is in this list through Daredevil.");
-    expect(notice.action.label).toBe("Remove Daredevil");
+    expect(notice.text).toBe("That issue is in this list through Dashdemon.");
+    expect(notice.action.label).toBe("Remove Dashdemon");
 
     API.updateItems.mockResolvedValueOnce({ data: { removed: 1, count: 0 } });
     await notice.action.run();
@@ -334,13 +334,13 @@ describe("removeFromList", () => {
     });
     expect(has(store, "series", 7)).toBe(false);
     expect(useCommonStore().notice.text).toBe(
-      "Removed Daredevil from the list.",
+      "Removed Dashdemon from the list.",
     );
     expect(browserStore.refreshBrowserPage).toHaveBeenCalledOnce();
   });
 
   it("names every item when issues come through several", async () => {
-    const other = { ...ITEM, pk: 6, targetId: 8, label: "X-Men" };
+    const other = { ...ITEM, pk: 6, targetId: 8, label: "X-Folk" };
     API.updateItems.mockResolvedValue({
       data: {
         removed: 0,
@@ -355,7 +355,7 @@ describe("removeFromList", () => {
     await store.removeFromList(1, [101, 102]);
     const { notice } = useCommonStore();
     expect(notice.text).toBe(
-      "2 of those issues are in this list through Daredevil and X-Men. Remove those instead.",
+      "2 of those issues are in this list through Dashdemon and X-Folk. Remove those instead.",
     );
     expect(notice.action).toBeUndefined();
   });

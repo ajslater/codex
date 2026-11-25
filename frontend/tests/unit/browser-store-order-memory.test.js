@@ -125,7 +125,7 @@ describe("collection order memory — switching top collections", () => {
 
   it("does not disturb an active search", () => {
     const store = makeStore({
-      search: "batman",
+      search: "burrowman",
       orderBy: "search_score",
       orderReverse: true,
       collectionOrderMemory: { comics: ADDED_TIME },
@@ -144,7 +144,7 @@ describe("collection order memory — around a search", () => {
   it("files the sort a search displaces and hands it back on clear", () => {
     const store = makeStore({ orderBy: "created_at", orderReverse: true });
 
-    const searching = { search: "batman" };
+    const searching = { search: "burrowman" };
     store._validateSearch(searching);
     expect(searching.collectionOrderMemory.publishers).toStrictEqual(
       ADDED_TIME,
@@ -152,7 +152,7 @@ describe("collection order memory — around a search", () => {
     expect(searching.orderBy).toBe("search_score");
 
     // The store now looks like it does mid-search.
-    store.settings.search = "batman";
+    store.settings.search = "burrowman";
     store.settings.orderBy = "search_score";
     store.settings.orderReverse = true;
     store.settings.collectionOrderMemory = searching.collectionOrderMemory;
@@ -165,7 +165,7 @@ describe("collection order memory — around a search", () => {
   });
 
   it("falls back to the collection default when nothing was filed", () => {
-    const store = makeStore({ search: "batman", orderBy: "search_score" });
+    const store = makeStore({ search: "burrowman", orderBy: "search_score" });
 
     const clearing = { search: "" };
     store._validateSearch(clearing);
@@ -177,7 +177,7 @@ describe("collection order memory — around a search", () => {
   it("falls back to filename in folders", () => {
     const store = makeStore({
       topCollection: "folders",
-      search: "batman",
+      search: "burrowman",
       orderBy: "search_score",
     });
 

@@ -95,8 +95,8 @@ function findProtagonistRow(wrapper) {
 
 describe("EditPanel — protagonist select", () => {
   const md = {
-    characters: [{ name: "Spider-Man" }],
-    teams: [{ name: "Avengers" }],
+    characters: [{ name: "Spindle-Man" }],
+    teams: [{ name: "Avengards" }],
   };
 
   test("explains itself when protagonist is unsupported", async () => {
@@ -110,32 +110,32 @@ describe("EditPanel — protagonist select", () => {
     const wrapper = await mountPanel({ formats: ["COMIC_INFO"], md });
     const row = findProtagonistRow(wrapper);
     expect(row.find(`div[title="${DISABLED_TIP}"]`).exists()).toBe(false);
-    expect(wrapper.vm.protagonistItems).toEqual(["Spider-Man", "Avengers"]);
+    expect(wrapper.vm.protagonistItems).toEqual(["Spindle-Man", "Avengards"]);
   });
 
   test("seeds from mainCharacter or mainTeam and patches as protagonist", async () => {
     const wrapper = await mountPanel({
       formats: ["COMIC_INFO"],
-      md: { ...md, mainCharacter: { pk: 5, name: "Spider-Man" } },
+      md: { ...md, mainCharacter: { pk: 5, name: "Spindle-Man" } },
     });
-    expect(wrapper.vm.patch.protagonist).toBe("Spider-Man");
-    wrapper.vm.patch.protagonist = "Avengers";
+    expect(wrapper.vm.patch.protagonist).toBe("Spindle-Man");
+    wrapper.vm.patch.protagonist = "Avengards";
     expect(wrapper.vm.buildPatch()).toEqual({
-      patch: { protagonist: "Avengers" },
+      patch: { protagonist: "Avengards" },
       deleteKeys: [],
     });
   });
 
   test("newly entered tags join the menu; removing the picked one clears it", async () => {
     const wrapper = await mountPanel({ formats: ["COMIC_INFO"], md });
-    wrapper.vm.patch.characters.push("Venom");
+    wrapper.vm.patch.characters.push("Vitriol");
     await flushPromises();
-    expect(wrapper.vm.protagonistItems).toContain("Venom");
+    expect(wrapper.vm.protagonistItems).toContain("Vitriol");
 
-    wrapper.vm.patch.protagonist = "Venom";
-    wrapper.vm.patch.characters = ["Spider-Man"];
+    wrapper.vm.patch.protagonist = "Vitriol";
+    wrapper.vm.patch.characters = ["Spindle-Man"];
     await flushPromises();
-    expect(wrapper.vm.protagonistItems).not.toContain("Venom");
+    expect(wrapper.vm.protagonistItems).not.toContain("Vitriol");
     expect(wrapper.vm.patch.protagonist).toBe("");
   });
 

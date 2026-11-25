@@ -118,15 +118,15 @@ describe("EditPanel — alternative issue", () => {
 describe("EditPanel — collection title", () => {
   test("it writes as a plain string", async () => {
     const wrapper = await mountPanel();
-    await setField(wrapper, "collection_title", "The Dark Phoenix Saga");
+    await setField(wrapper, "collection_title", "The Ember Falcon Saga");
     expect(wrapper.vm.buildPatch().patch.collection_title).toBe(
-      "The Dark Phoenix Saga",
+      "The Ember Falcon Saga",
     );
   });
 
   test("clearing it emits a delete key", async () => {
     const wrapper = await mountPanel({
-      md: { collectionTitle: "The Dark Phoenix Saga" },
+      md: { collectionTitle: "The Ember Falcon Saga" },
     });
     wrapper.vm.toggleClear("collection_title");
     await flushPromises();

@@ -21,24 +21,30 @@ class AdminTagNamesTestCase(TestCase):
     @override
     def setUp(self) -> None:
         init_admin_flags()
-        dc = Publisher.objects.create(name="DC Comics")
+        dc = Publisher.objects.create(name="DX Comics")
         unlimited = Publisher.objects.create(name="Comics Unlimited")
-        marvel = Publisher.objects.create(name="Marvel")
+        marlow = Publisher.objects.create(name="Marlow")
         # The importer's default imprint has a blank name.
         Imprint.objects.create(name="", publisher=dc)
-        vertigo = Imprint.objects.create(name="Vertigo", publisher=dc)
-        Imprint.objects.create(name="Max", publisher=marvel)
-        unlimited_vertigo = Imprint.objects.create(name="Vertigo", publisher=unlimited)
-        sandman = Series.objects.create(name="Sandman", imprint=vertigo, publisher=dc)
-        Series.objects.create(
-            name="Sandman", imprint=unlimited_vertigo, publisher=unlimited
+        verdigris = Imprint.objects.create(name="Verdigris", publisher=dc)
+        Imprint.objects.create(name="Max", publisher=marlow)
+        unlimited_vertigo = Imprint.objects.create(
+            name="Verdigris", publisher=unlimited
         )
-        lucifer = Series.objects.create(name="Lucifer", imprint=vertigo, publisher=dc)
+        sandmoth = Series.objects.create(
+            name="Sandmoth", imprint=verdigris, publisher=dc
+        )
+        Series.objects.create(
+            name="Sandmoth", imprint=unlimited_vertigo, publisher=unlimited
+        )
+        lucifer = Series.objects.create(name="Lucifer", imprint=verdigris, publisher=dc)
         for name in (1989, 2014, 999, None):
             Volume.objects.create(
-                name=name, series=sandman, imprint=vertigo, publisher=dc
+                name=name, series=sandmoth, imprint=verdigris, publisher=dc
             )
-        Volume.objects.create(name=2000, series=lucifer, imprint=vertigo, publisher=dc)
+        Volume.objects.create(
+            name=2000, series=lucifer, imprint=verdigris, publisher=dc
+        )
         admin = User.objects.create_user(
             username="admin", password=_TEST_PASSWORD, is_staff=True
         )
@@ -69,7 +75,7 @@ class AdminTagNamesTestCase(TestCase):
         data = self._get("publisher")
         assert data == {
             "field": "publisher",
-            "names": ["Comics Unlimited", "DC Comics", "Marvel"],
+            "names": ["Comics Unlimited", "DX Comics", "Marlow"],
             "complete": True,
         }
 
@@ -77,7 +83,7 @@ class AdminTagNamesTestCase(TestCase):
         """A name starting with the query sorts before one only containing it."""
         assert self._names("publisher", q="comics") == [
             "Comics Unlimited",
-            "DC Comics",
+            "DX Comics",
         ]
 
     def test_like_wildcards_match_literally(self) -> None:
@@ -92,33 +98,33 @@ class AdminTagNamesTestCase(TestCase):
         assert "" not in self._names("imprint")
 
     def test_series_names_deduped_across_imprints(self) -> None:
-        assert self._names("series") == ["Lucifer", "Sandman"]
+        assert self._names("series") == ["Lucifer", "Sandmoth"]
 
     def test_imprint_scoped_by_publisher(self) -> None:
-        assert self._names("imprint", publisher="Marvel") == ["Max"]
-        assert self._names("imprint") == ["Max", "Vertigo"]
+        assert self._names("imprint", publisher="Marlow") == ["Max"]
+        assert self._names("imprint") == ["Max", "Verdigris"]
 
     def test_blank_scope_is_global(self) -> None:
-        assert self._names("imprint", publisher="") == ["Max", "Vertigo"]
+        assert self._names("imprint", publisher="") == ["Max", "Verdigris"]
 
     def test_series_scoped_by_publisher_and_imprint(self) -> None:
         imprint = Imprint.objects.select_related("publisher").get(
-            name="Vertigo", publisher__name="Comics Unlimited"
+            name="Verdigris", publisher__name="Comics Unlimited"
         )
         Series.objects.create(
             name="Hellblazer", imprint=imprint, publisher=imprint.publisher
         )
         assert self._names(
-            "series", publisher="Comics Unlimited", imprint="Vertigo"
-        ) == ["Hellblazer", "Sandman"]
-        assert self._names("series", publisher="DC Comics", imprint="Vertigo") == [
+            "series", publisher="Comics Unlimited", imprint="Verdigris"
+        ) == ["Hellblazer", "Sandmoth"]
+        assert self._names("series", publisher="DX Comics", imprint="Verdigris") == [
             "Lucifer",
-            "Sandman",
+            "Sandmoth",
         ]
 
     def test_volume_scoped_by_series(self) -> None:
         # Numeric order, not text order.
-        assert self._names("volume", series="Sandman") == [999, 1989, 2014]
+        assert self._names("volume", series="Sandmoth") == [999, 1989, 2014]
         assert self._names("volume", series="Lucifer") == [2000]
 
     def test_volume_integer_names_match_a_prefix(self) -> None:
@@ -127,14 +133,14 @@ class AdminTagNamesTestCase(TestCase):
         assert None not in self._names("volume")
 
     def test_incomplete_when_matches_exceed_the_limit(self) -> None:
-        for name in ("Batman", "Batgirl", "Robin"):
+        for name in ("Burrowman", "Burrowgirl", "Rowan"):
             Character.objects.create(name=name)
         with patch("codex.views.admin.tagnames.LIMIT", 2):
             data = self._get("characters")
-            assert data["names"] == ["Batgirl", "Batman"]
+            assert data["names"] == ["Burrowgirl", "Burrowman"]
             assert data["complete"] is False
-            data = self._get("characters", q="bat")
-            assert data["names"] == ["Batgirl", "Batman"]
+            data = self._get("characters", q="bur")
+            assert data["names"] == ["Burrowgirl", "Burrowman"]
             assert data["complete"] is True
 
     def test_credits_are_person_names(self) -> None:

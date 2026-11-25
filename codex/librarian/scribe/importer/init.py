@@ -98,6 +98,9 @@ class Counts:
     folders_moved: int = 0
     covers_moved: int = 0
     failed_imports: int = 0
+    # Volumes whose start year changed: a list may match their comics now.
+    # A re-read that learns only that changes no comic row.
+    volume_years: int = 0
 
     def _any(self, exclude_prefixes: tuple[str, ...]) -> bool:
         return any(

@@ -45,7 +45,7 @@ def test_shape_identifiers_all_rows_have_editable_fields():
         _identifier(1, "comicvine", "comic", "111"),
         _identifier(2, "metron", "series", "222"),
         _identifier(3, "grandcomicsdatabase", "publisher", "333"),
-        _identifier(4, "marvel", "character", "444"),
+        _identifier(4, "marlow", "character", "444"),
     ]
     rows = shape_identifiers(identifiers)
 
@@ -71,7 +71,7 @@ def test_shape_identifiers_empty_input():
     assert shape_identifiers([]) == []
 
 
-_VERSEDB_URL: Final = "https://versedb.com/issue/1215061/amazing-spider-man-1"
+_VERSEDB_URL: Final = "https://versedb.com/issue/1215061/amazing-spindle-man-1"
 
 
 def test_a_versedb_id_takes_its_link_from_the_comic_s_urls():

@@ -74,9 +74,9 @@ class RecombineTests(LiveFixture):
     def test_a_hand_made_list_keeps_its_series(self) -> None:
         """No source to combine: hand rows heal, live rows stay."""
         c1 = self.comics[0]
-        daredevil, more = self.make_series("Daredevil")
+        dashdemon, more = self.make_series("Dashdemon")
         add_comics(self.mine, [c1.pk])
-        self.hold(self.mine, "series", daredevil)
+        self.hold(self.mine, "series", dashdemon)
         before = _live(self.mine)
         recombine(self.mine)
         assert _live(self.mine) == before
@@ -90,8 +90,8 @@ class RecombineTests(LiveFixture):
         sync_tag_lists()
         tags_list = ReadingList.objects.get(name="Civil War", user=None)
         assert is_tags_only(tags_list)
-        daredevil, _ = self.make_series("Daredevil")
-        add_item(tags_list, "series", daredevil.pk)
+        dashdemon, _ = self.make_series("Dashdemon")
+        add_item(tags_list, "series", dashdemon.pk)
         assert not is_tags_only(tags_list)
 
     def test_a_rebuild_from_tags_leaves_live_rows(self) -> None:
@@ -103,8 +103,8 @@ class RecombineTests(LiveFixture):
         source = ReadingListSource.objects.get(
             reading_list=tags_list, kind=ReadingListSourceKind.TAGS
         )
-        daredevil, _ = self.make_series("Daredevil")
-        self.hold(tags_list, "series", daredevil)
+        dashdemon, _ = self.make_series("Dashdemon")
+        self.hold(tags_list, "series", dashdemon)
         before = _live(tags_list)
         _, members = arc_members()
         rebuild_from_tags(tags_list, source, members[source.ref])
@@ -156,11 +156,11 @@ class CopyTests(LiveFixture):
     def test_a_copy_holds_the_series_not_its_rows(self) -> None:
         """The item is copied and synced; hand rows copy as hand rows."""
         c1 = self.comics[0]
-        daredevil, more = self.make_series("Daredevil")
+        dashdemon, more = self.make_series("Dashdemon")
         add_comics(self.mine, [c1.pk])
-        self.hold(self.mine, "series", daredevil)
+        self.hold(self.mine, "series", dashdemon)
         copy = copy_list(self.mine, user=self.reader, name="Mine again")
-        assert _items(copy) == [("series", daredevil.pk)]
+        assert _items(copy) == [("series", dashdemon.pk)]
         assert [comic for _, comic in _live(copy)] == self.pks(more)
         manual = ReadingListEntry.objects.filter(reading_list=copy, manual=True)
         assert list(manual.values_list("comic_id", flat=True)) == [c1.pk]
@@ -182,10 +182,10 @@ class CombineListsTests(LiveFixture):
         """The primary holds the other list's series, synced."""
         primary = import_document(_document(), _upload())
         other = ReadingList.objects.create(name="Other")
-        daredevil, more = self.make_series("Daredevil")
-        self.hold(other, "series", daredevil)
+        dashdemon, more = self.make_series("Dashdemon")
+        self.hold(other, "series", dashdemon)
         combine_lists(primary, [other])
-        assert ("series", daredevil.pk) in _items(primary)
+        assert ("series", dashdemon.pk) in _items(primary)
         assert [comic for _, comic in _live(primary)] == self.pks(more)
 
     def test_an_item_holding_the_primary_is_dropped(self) -> None:
@@ -212,9 +212,9 @@ class RankTests(LiveFixture):
     def test_items_keep_their_ranks(self) -> None:
         """Only document and tags sources are ranked."""
         imported = import_document(_document(), _upload())
-        daredevil, _ = self.make_series("Daredevil")
+        dashdemon, _ = self.make_series("Dashdemon")
         first = add_item(imported, "series", self.series.pk)
-        second = add_item(imported, "series", daredevil.pk)
+        second = add_item(imported, "series", dashdemon.pk)
         upload = ReadingListSource.objects.get(
             reading_list=imported, kind=ReadingListSourceKind.UPLOAD
         )

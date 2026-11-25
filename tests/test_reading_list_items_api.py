@@ -186,7 +186,7 @@ class RemoveTests(ItemsFixture):
 
     def test_removing_the_last_item_closes_the_gap(self) -> None:
         """A hand entry after the series moves up to the top."""
-        _, more = self.make_series("Daredevil")
+        _, more = self.make_series("Dashdemon")
         self.patch_items(self.mine, {"add": {"series": [self.series.pk]}})
         self.patch_items(self.mine, {"add": {"comics": [more[0].pk]}})
         self.patch_items(self.mine, {"remove": {"series": [self.series.pk]}})
@@ -224,14 +224,14 @@ class MenuTests(ItemsFixture):
     def test_lists_report_their_direct_items(self) -> None:
         """Hand-held issues and item targets, by collection."""
         c1 = self.comics[0]
-        daredevil, _ = self.make_series("Daredevil")
+        dashdemon, _ = self.make_series("Dashdemon")
         self.patch_items(
-            self.mine, {"add": {"comics": [c1.pk], "series": [daredevil.pk]}}
+            self.mine, {"add": {"comics": [c1.pk], "series": [dashdemon.pk]}}
         )
         lists = _data(self.client.get(f"{_LISTS}/"))["lists"]
         (mine,) = [row for row in lists if row["pk"] == self.mine.pk]
         assert mine["items"]["comics"] == [c1.pk]
-        assert mine["items"]["series"] == [daredevil.pk]
+        assert mine["items"]["series"] == [dashdemon.pk]
         assert mine["items"]["publishers"] == []
 
     def test_the_filter_offers_your_own_lists_first(self) -> None:

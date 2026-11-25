@@ -40,10 +40,10 @@ describe("metadata reading lists row", () => {
   test("names a comic's place in each list", () => {
     const { wrapper } = mountRow([
       { pk: 3, name: "Civil War", position: 12, count: 98 },
-      { pk: 4, name: "Marvel 2006", position: null, count: 40 },
+      { pk: 4, name: "Marlow 2006", position: null, count: 40 },
     ]);
     const labels = wrapper.findAll(".v-chip").map((chip) => chip.text());
-    expect(labels).toEqual(["Civil War · 12 of 98", "Marvel 2006 · 40"]);
+    expect(labels).toEqual(["Civil War · 12 of 98", "Marlow 2006 · 40"]);
   });
 
   test("a chip opens its list in the reading lists view", async () => {

@@ -33,7 +33,7 @@ from codex.models.readinglist import (
 from tests.test_reading_list_combine import _CBL
 
 _SESSION = "codex.librarian.onlinetag.readinglists.ReadingListSession"
-_PATH: Final = "Marvel/Events/Civil War.cbl"
+_PATH: Final = "Marlow/Events/Civil War.cbl"
 _SHA: Final = "a" * 40
 
 

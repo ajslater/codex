@@ -69,13 +69,17 @@ class ReadingListFixture(TestCase):
         init_admin_flags()
         TMP_DIR.mkdir(parents=True, exist_ok=True)
         self.library = Library.objects.create(path=str(TMP_DIR))  # pyright: ignore[reportUninitializedInstanceVariable]
-        publisher = Publisher.objects.create(name="Marvel")
-        imprint = Imprint.objects.create(name="Marvel", publisher=publisher)
+        publisher = Publisher.objects.create(name="Marlow")
+        imprint = Imprint.objects.create(name="Marlow", publisher=publisher)
         series = Series.objects.create(
             name="Civil War", imprint=imprint, publisher=publisher, start_year=2006
         )
         volume = Volume.objects.create(
-            name=2006, series=series, imprint=imprint, publisher=publisher
+            name=2006,
+            start_year=2006,
+            series=series,
+            imprint=imprint,
+            publisher=publisher,
         )
         folder = Folder.objects.create(
             library=self.library, path=str(TMP_DIR), name=TMP_DIR.name

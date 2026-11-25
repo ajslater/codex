@@ -48,7 +48,7 @@ beforeEach(() => {
 describe("browser store _validateSearch — clearing search", () => {
   it("redirects to the top collection when clearing from the search-redirected root", () => {
     const store = makeStore();
-    store.settings.search = "batman"; // a search is active
+    store.settings.search = "burrowman"; // a search is active
     setRoute("series"); // ...which sent us down to the series root
     expect(store.lowestShownCollection).toBe("series");
 
@@ -61,7 +61,7 @@ describe("browser store _validateSearch — clearing search", () => {
 
   it("redirects to the top collection when the show flags moved lowestShownCollection during the search", () => {
     const store = makeStore();
-    store.settings.search = "batman";
+    store.settings.search = "burrowman";
     setRoute("series"); // the search sent us here with volumes hidden...
     store.settings.show.volumes = true; // ...then volumes were shown
     expect(store.lowestShownCollection).toBe("volumes");
@@ -78,7 +78,7 @@ describe("browser store _validateSearch — clearing search", () => {
     (collection) => {
       const store = makeStore();
       store.settings.topCollection = collection;
-      store.settings.search = "batman";
+      store.settings.search = "burrowman";
       setRoute(collection); // searching here never redirected
 
       const redirect = store._validateSearch({ search: "" });
@@ -89,7 +89,7 @@ describe("browser store _validateSearch — clearing search", () => {
 
   it("does not redirect when clearing from a deep (non-root) collection", () => {
     const store = makeStore();
-    store.settings.search = "batman";
+    store.settings.search = "burrowman";
     setRoute("series", "5"); // navigated into a container; has breadcrumbs
 
     const redirect = store._validateSearch({ search: "" });
@@ -99,7 +99,7 @@ describe("browser store _validateSearch — clearing search", () => {
 
   it("does not redirect for a non-search settings change while search is active", () => {
     const store = makeStore();
-    store.settings.search = "batman";
+    store.settings.search = "burrowman";
     setRoute("series");
 
     // ``data`` has no ``search`` key -> still in search mode, stay put.
@@ -113,7 +113,7 @@ describe("browser store _validateSearch — clearing search", () => {
     store.settings.search = ""; // no active search yet
     setRoute("publishers"); // at the top (resolves to "root")
 
-    const redirect = store._validateSearch({ search: "batman" });
+    const redirect = store._validateSearch({ search: "burrowman" });
 
     expect(redirect).toStrictEqual({
       params: { collection: "series", pks: "", page: "1" },

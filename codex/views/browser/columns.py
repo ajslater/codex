@@ -183,7 +183,7 @@ def reprints_sort_annotations(reprint_pks: tuple | list = ()) -> dict:
     own series and issue so mixed listings interleave. The fallback
     series segment is ``Lower(name)`` rather than ``sort_name`` —
     reprint series names sort by their raw name, so the article-moved
-    ``sort_name`` would put "The Batman" and its untagged siblings at
+    ``sort_name`` would put "The Burrowman" and its untagged siblings at
     opposite ends of the listing.
 
     Comic querysets only; collection rows sort by the raw-SQL mirror in

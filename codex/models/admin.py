@@ -453,6 +453,9 @@ class Timestamp(BaseModel):
         JANITOR = "JA", _("Janitor")
         TELEMETER_SENT = "TS", _("Telemeter Sent")
         FAILED_IMPORTS_SEEN = "FI", _("Failed Imports Seen")
+        # Migration 0062 sets it; the librarian re-reads one comic of each
+        # volume once, to learn the volumes' start years, then clears it.
+        VOLUME_START_YEARS = "VY", _("Volume Start Years")
 
     key = CharField(
         db_index=True,

@@ -44,10 +44,10 @@ class FrozenIdentityTests(TestCase):
         folder_path = _TMP_DIR / "Ünïcode" / "dd"
         folder_path.mkdir(parents=True, exist_ok=True)
         library = Library.objects.create(path=str(_TMP_DIR))
-        publisher = Publisher.objects.create(name="Marvel")
+        publisher = Publisher.objects.create(name="Marlow")
         imprint = Imprint.objects.create(name="Max", publisher=publisher)
         series = Series.objects.create(
-            name='Daredevil "Born Again"', publisher=publisher, imprint=imprint
+            name='Dashdemon "Born Again"', publisher=publisher, imprint=imprint
         )
         self.targets = {  # pyright: ignore[reportUninitializedInstanceVariable]
             "publishers": [publisher],

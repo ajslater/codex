@@ -240,7 +240,7 @@ AGGREGATED_UPDATE_ALL = MappingProxyType(
                     1950,
                     None,
                 ): {
-                    (1,),
+                    (1, None),  # issue_count, start_year
                 }
             },
             Folder: deepcopy(PATH_PARENTS_QUERY),
@@ -527,6 +527,7 @@ QUERIED_UPDATE_ALL = MappingProxyType(
                     1950,
                     None,
                     1,
+                    None,
                 )
             },
             TOTAL: 13,

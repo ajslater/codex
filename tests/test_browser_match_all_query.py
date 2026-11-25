@@ -24,7 +24,7 @@ _ALL_LISTS: Final = {"matchAll": ["readingLists"]}
 
 
 class MatchAllFixture(TickedFixture):
-    """The ticked-choices fixture: Spider-Man on c1; Iron Man on c1 and c2."""
+    """The ticked-choices fixture: Spindle-Man on c1; Iron Marshal on c1 and c2."""
 
     def characters(self, *characters, every: bool) -> dict:
         filters: dict = {"characters": [c.pk for c in characters]}
@@ -52,7 +52,7 @@ class MatchAllTagTests(MatchAllFixture):
         assert self.listed(filters) == {c1.pk, c2.pk}
 
     def test_all_is_both(self) -> None:
-        """Only the comic with Spider-Man and Iron Man."""
+        """Only the comic with Spindle-Man and Iron Marshal."""
         filters = self.characters(self.spidey, self.iron, every=True)
         assert self.listed(filters) == {self.comics[0].pk}
 
@@ -86,7 +86,7 @@ class MatchAllTagTests(MatchAllFixture):
         assert (data["childCount"], data["pageCount"]) == (1, 10), data
 
     def test_a_cached_browse_follows_a_tag_change(self) -> None:
-        """Iron Man joins Spider-Man on c2: it shows without a cache clear."""
+        """Iron Marshal joins Spindle-Man on c2: it shows without a cache clear."""
         c1, c2, _, _ = self.comics
         filters = self.characters(self.spidey, self.iron, every=True)
         assert self.listed(filters) == {c1.pk}
@@ -181,18 +181,18 @@ class MatchAllChoicesTests(MatchAllFixture):
         """The Phase 1 rule, unchanged under Any."""
         filters = self.characters(self.spidey, every=False)
         assert self.names("characters", filters) == {
-            "Spider-Man",
-            "Iron Man",
-            "Wolverine",
+            "Spindle-Man",
+            "Iron Marshal",
+            "Woodvole",
             "_none_",
         }
 
     def test_all_offers_what_occurs_with_the_ticked(self) -> None:
-        """Spider-Man ticked under All: only his co-star is left to add."""
+        """Spindle-Man ticked under All: only his co-star is left to add."""
         filters = self.characters(self.spidey, every=True)
-        assert self.names("characters", filters) == {"Spider-Man", "Iron Man"}
+        assert self.names("characters", filters) == {"Spindle-Man", "Iron Marshal"}
 
     def test_a_ticked_value_is_still_listed_under_all(self) -> None:
         """Ticked values that no comic holds together still show."""
-        filters = self.characters(self.spidey, self.wolverine, every=True)
-        assert self.names("characters", filters) == {"Spider-Man", "Wolverine"}
+        filters = self.characters(self.spidey, self.woodvole, every=True)
+        assert self.names("characters", filters) == {"Spindle-Man", "Woodvole"}

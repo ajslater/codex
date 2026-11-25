@@ -67,7 +67,7 @@ class ParseIdentifierInputTests(SimpleTestCase):
 
     def test_metron_slug_url_rejected(self) -> None:
         with pytest.raises(ValueError, match="numeric"):
-            parse_identifier_input("https://metron.cloud/issue/superman-1/")
+            parse_identifier_input("https://metron.cloud/issue/sunderman-1/")
 
     def test_bare_int_uses_hint(self) -> None:
         assert parse_identifier_input("12345", source_hint="comicvine") == (
@@ -104,7 +104,7 @@ class ParseIdentifierInputTests(SimpleTestCase):
 
     def test_versedb_issue_url(self) -> None:
         # VerseDB issue pages carry a slug after the id.
-        url = "https://versedb.com/issue/1215061/amazing-spider-man-1"
+        url = "https://versedb.com/issue/1215061/amazing-spindle-man-1"
         assert parse_identifier_input(url) == ("versedb", 1215061)
 
     def test_versedb_series_url_rejected(self) -> None:

@@ -29,7 +29,7 @@ _SHARED_YEAR: Final = 2024
 
 
 class MergedRowIntersectionsTestCase(TestCase):
-    """Two "Batman" series under one publisher browse as one merged row."""
+    """Two "Burrowman" series under one publisher browse as one merged row."""
 
     @override
     def setUp(self) -> None:
@@ -97,8 +97,8 @@ class MergedRowIntersectionsTestCase(TestCase):
 
     def test_merged_row_covers_every_pk(self):
         """Shared genres, the shared year and summed pages span both series."""
-        main = self._series("Main", "Batman")
-        black_label = self._series("Black Label", "Batman")
+        main = self._series("Main", "Burrowman")
+        black_label = self._series("Black Label", "Burrowman")
         self._comic(
             main, 1, year=_SHARED_YEAR, page_count=10, genres=("Action", "Drama")
         )
@@ -107,7 +107,7 @@ class MergedRowIntersectionsTestCase(TestCase):
             black_label, 1, year=_SHARED_YEAR, page_count=30, genres=("Comedy", "Drama")
         )
 
-        row = self._rows("name,genres,year,page_count")["Batman"]
+        row = self._rows("name,genres,year,page_count")["Burrowman"]
 
         assert sorted(row["ids"]) == sorted((main.pk, black_label.pk))
         assert row["genres"] == ["Drama"]
@@ -116,25 +116,25 @@ class MergedRowIntersectionsTestCase(TestCase):
 
     def test_merged_row_drops_what_one_pk_lacks(self):
         """A value only one merged series has is not the row's."""
-        main = self._series("Main", "Batman")
-        black_label = self._series("Black Label", "Batman")
+        main = self._series("Main", "Burrowman")
+        black_label = self._series("Black Label", "Burrowman")
         self._comic(main, 1, year=_SHARED_YEAR, genres=("Action", "Drama"))
         self._comic(black_label, 1, year=_SHARED_YEAR - 1, genres=("Drama",))
 
-        row = self._rows("name,genres,year")["Batman"]
+        row = self._rows("name,genres,year")["Burrowman"]
 
         assert row["genres"] == ["Drama"]
         assert row["year"] is None
 
     def test_single_pk_row_is_unchanged(self):
         """A row that stands for one series reads only that series."""
-        superman = self._series("Main", "Superman")
-        self._comic(superman, 1, year=_SHARED_YEAR, genres=("Horror",))
-        self._comic(self._series("Main", "Batman"), 1, genres=("Drama",))
+        sunderman = self._series("Main", "Sunderman")
+        self._comic(sunderman, 1, year=_SHARED_YEAR, genres=("Horror",))
+        self._comic(self._series("Main", "Burrowman"), 1, genres=("Drama",))
 
-        row = self._rows("name,genres,year")["Superman"]
+        row = self._rows("name,genres,year")["Sunderman"]
 
-        assert row["ids"] == [superman.pk]
+        assert row["ids"] == [sunderman.pk]
         assert row["genres"] == ["Horror"]
         assert row["year"] == _SHARED_YEAR
 

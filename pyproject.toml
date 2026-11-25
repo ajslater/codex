@@ -20,7 +20,7 @@ dependencies = [
   "asgiref~=3.12",
   "bidict~=0.23",
   "channels~=4.2",
-  "comicbox[pdf]~=5.7.0",
+  "comicbox[pdf]~=5.7.1",
   "cryptography>=48.0.0",
   "dateparser~=1.2",
   "django-allauth[socialaccount]~=65.13",
@@ -55,7 +55,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
 name = "codex"
-version = "2.8.0"
+version = "2.8.1"
 
 [[project.authors]]
 name = "AJ Slater"

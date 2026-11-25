@@ -50,10 +50,10 @@ const SHAPED_IDENTIFIERS = Object.freeze([
   },
   {
     pk: 4,
-    source: "marvel",
+    source: "marlow",
     type: "character",
     code: "444",
-    displayName: "Marvel",
+    displayName: "Marlow",
     url: "",
   },
 ]);
@@ -79,7 +79,7 @@ describe("EditPanel identifiers", () => {
       { source: "comicvine", id_type: "issue", key: "111" },
       { source: "metron", id_type: "series", key: "222" },
       { source: "grandcomicsdatabase", id_type: "publisher", key: "333" },
-      { source: "marvel", id_type: "character", key: "444" },
+      { source: "marlow", id_type: "character", key: "444" },
     ]);
   });
 
@@ -121,7 +121,7 @@ describe("EditPanel identifiers", () => {
       comicvine: { key: "111", id_type: "issue" },
       metron: { key: "222", id_type: "series" },
       grandcomicsdatabase: { key: "333", id_type: "publisher" },
-      marvel: { key: "444", id_type: "character" },
+      marlow: { key: "444", id_type: "character" },
     });
   });
 });

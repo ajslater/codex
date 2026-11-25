@@ -76,7 +76,7 @@ describe("EditPanel — cleared fields become deleteKeys", () => {
 
   test("clearing a tag array deletes its comicbox key", async () => {
     const wrapper = await mountPanel({
-      md: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      md: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     wrapper.vm.clearField("characters");
     await flushPromises();
@@ -131,7 +131,7 @@ describe("EditPanel — cleared fields become deleteKeys", () => {
 
   test("clearing the publisher deletes the whole group key", async () => {
     const wrapper = await mountPanel({
-      md: { publisherList: [{ ids: [1], name: "Marvel" }] },
+      md: { publisherList: [{ ids: [1], name: "Marlow" }] },
     });
     wrapper.vm.clearField("publisher");
     await flushPromises();

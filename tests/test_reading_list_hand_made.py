@@ -32,8 +32,8 @@ _HEADER: Final = {
     "start_year": 2006,
     "end_year": 2007,
 }
-_OTHER_CBL: Final = _CBL.replace("[Marvel] Civil War (CBRO)", "Front Line").replace(
-    'Series="The Amazing Spider-Man" Number="532"',
+_OTHER_CBL: Final = _CBL.replace("[Marlow] Civil War (CBRO)", "Front Line").replace(
+    'Series="The Amazing Spindle-Man" Number="532"',
     'Series="Civil War: Front Line" Number="1"',
 )
 

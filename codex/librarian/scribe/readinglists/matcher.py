@@ -13,11 +13,19 @@ The first rule to find a comic wins, and the rule is stored on the entry:
 3. The series id with the issue number. A series stores only its best
    ranked identifier, so this works only when list and library share it.
 
+A codex series is a name and holds every volume of it, so the mapping
+and series-id rules look for the issue in each volume, keep the volumes
+that agree with the entry's start year or volume, then those of its
+cover year, and flag review when volumes that differ are left.
+
 Candidates are found in the database first, so the matcher sees only the
 comics of series whose name could match and the comics an id names. A
 deterministic best is taken among several and the entry is flagged for
-review when they span more than one series or comicbox calls the match
-ambiguous. Matching ignores per-user visibility; reading a list applies it.
+review when they span more than one series or volume, or comicbox calls
+the match ambiguous. An entry left missing whose issue comicbox refused
+as another volume's, or for its cover year, keeps that comic as a
+suggestion and is flagged for review instead of looking absent from the
+library. Matching ignores per-user visibility; reading a list applies it.
 """
 
 from collections import defaultdict
@@ -29,8 +37,15 @@ from itertools import batched
 from types import MappingProxyType
 from typing import Any, Final
 
-from comicbox.readinglists import name_variants, normalize_series, parse_issue
-from comicbox.readinglists.match import FoundBy, match_comics
+from comicbox.readinglists import (
+    Discriminators,
+    discriminators,
+    name_variants,
+    normalize_series,
+    parse_issue,
+)
+from comicbox.readinglists.identity import any_conflict
+from comicbox.readinglists.match import FoundBy, Refused, RefusedReason, match_comics
 from django.db.models import Count, Max
 
 from codex.librarian.scribe.readinglists.references import (
@@ -42,7 +57,6 @@ from codex.models import Comic, Series
 from codex.models.identifier import IdentifierType
 from codex.models.readinglist import ReadingListMatchTier, ReadingListSeriesMapping
 
-YEAR_LIKE_VOLUME: Final = 1900
 _BATCH: Final = 500
 _FOUND_BY_TIER: Final = MappingProxyType(
     {
@@ -54,13 +68,24 @@ _FOUND_BY_TIER: Final = MappingProxyType(
 )
 
 
+# A refused comic's preference as a suggestion: another volume's issue of
+# the same cover year before a cover year more than one off.
+_REFUSED_ORDER: Final = (RefusedReason.OTHER_VOLUME, RefusedReason.COVER_YEAR)
+
+
 @dataclass(frozen=True, slots=True)
 class EntryMatch:
-    """The comic an entry matched, how, and whether a person should look."""
+    """
+    The comic an entry matched, how, and whether a person should look.
+
+    A missing entry may carry ``suggested_pk``, a comic the matcher refused
+    that a person may know is the one; it is then flagged for review.
+    """
 
     comic_pk: int | None = None
     tier: str = ReadingListMatchTier.NONE
     needs_review: bool = False
+    suggested_pk: int | None = None
 
 
 NO_MATCH: Final = EntryMatch()
@@ -75,11 +100,7 @@ def series_key(reference: Mapping[str, Any]) -> tuple[str, int] | None:
     series = reference.get("series") or {}
     if not (name := series.get("name")):
         return None
-    year = series.get("start_year") or 0
-    volume = (reference.get("volume") or {}).get("number") or 0
-    if not year and volume >= YEAR_LIKE_VOLUME:
-        year = volume
-    return normalize_series(name), int(year)
+    return normalize_series(name), int(discriminators(reference).year or 0)
 
 
 IssueKey = tuple[Decimal | None, str]
@@ -99,38 +120,113 @@ def _issue_key(reference: Mapping[str, Any]) -> IssueKey | None:
 _Rank = tuple[bool, int]
 
 
+@dataclass(frozen=True, slots=True)
+class _Copy:
+    """The best comic of one issue in one volume."""
+
+    rank: _Rank
+    cover_year: int | None
+    volume: Discriminators
+
+
+# A series' issue, by volume pk.
+_Volumes = dict[int | None, _Copy]
+
+
+def _volume_discriminators(name: int | None, start_year: int | None) -> Discriminators:
+    """Tell a volume as comicbox tells a reference's, by name and start year."""
+    reference: dict[str, Any] = {}
+    if start_year:
+        reference["series"] = {"start_year": start_year}
+    if name is not None:
+        reference["volume"] = {"number": name}
+    return discriminators(reference)
+
+
 def _comics_by_issue(
     series_pks: Iterable[int],
-) -> dict[tuple[int, IssueKey], _Rank]:
+) -> dict[tuple[int, IssueKey], _Volumes]:
     """
-    Map each comic of the series to ``(series, issue) -> best comic``.
+    Map ``(series, issue)`` to the best comic of that issue in each volume.
 
     The best is a live comic before one pending delete, a moved file's old
     row, then the lowest pk. One query per batch of series, so matching a
     whole list by series and issue costs no query per entry.
     """
-    found: dict[tuple[int, IssueKey], _Rank] = {}
+    found: dict[tuple[int, IssueKey], _Volumes] = defaultdict(dict)
     for batch in batched(sorted(set(series_pks)), _BATCH):
         rows = Comic.objects.filter(series_id__in=batch).values_list(
-            "pk", "series_id", "issue_number", "issue_suffix", "missing_since"
+            "pk",
+            "series_id",
+            "issue_number",
+            "issue_suffix",
+            "missing_since",
+            "year",
+            "volume_id",
+            "volume__name",
+            "volume__start_year",
         )
-        for pk, series_pk, number, suffix, missing_since in rows:
-            key = (series_pk, (number, (suffix or "").casefold()))
+        for row in rows:
+            pk, series_pk, number, suffix, missing_since, year, volume_pk = row[:7]
+            volumes = found[(series_pk, (number, (suffix or "").casefold()))]
             rank = (missing_since is not None, pk)
-            if key not in found or rank < found[key]:
-                found[key] = rank
+            if (copy := volumes.get(volume_pk)) is None or rank < copy.rank:
+                volumes[volume_pk] = _Copy(rank, year, _volume_discriminators(*row[7:]))
     return found
 
 
+def _of_cover_year(copies: list[_Copy], year: int | None) -> list[_Copy]:
+    """Keep the copies of the cover year, else within a year of it, else all."""
+    if year is None:
+        return copies
+    for slack in (0, 1):
+        if near := [
+            copy
+            for copy in copies
+            if copy.cover_year is not None and abs(copy.cover_year - year) <= slack
+        ]:
+            return near
+    return copies
+
+
 def _best_of(
-    found: Mapping[tuple[int, IssueKey], _Rank],
+    found: Mapping[tuple[int, IssueKey], _Volumes],
     series_pks: Iterable[int],
-    issue: IssueKey,
-) -> int | None:
-    """Return the best of the series' comics of that issue."""
-    ranks = (found.get((series_pk, issue)) for series_pk in series_pks)
-    best = min((rank for rank in ranks if rank is not None), default=None)
-    return None if best is None else best[1]
+    reference: Mapping[str, Any],
+    tier: str,
+) -> EntryMatch | None:
+    """
+    Return the best of the series' comics of the reference's issue.
+
+    The volumes that agree with the reference's start year or volume are
+    kept, or every one when none does: a mapping or a series id already
+    says which series it is. Then the ones of its cover year. Volumes that
+    differ among those left are a guess, so the match is flagged.
+    """
+    if (issue := _issue_key(reference)) is None:
+        return None
+    copies = [
+        copy
+        for series_pk in series_pks
+        for copy in found.get((series_pk, issue), {}).values()
+    ]
+    if not copies:
+        return None
+    wanted = discriminators(reference)
+    copies = [copy for copy in copies if not wanted.conflicts(copy.volume)] or copies
+    copies = _of_cover_year(copies, _cover_year(reference))
+    best = min(copies, key=lambda copy: copy.rank)
+    needs_review = any_conflict(copy.volume for copy in copies)
+    return EntryMatch(best.rank[1], tier, needs_review)
+
+
+def _cover_year(reference: Mapping[str, Any]) -> int | None:
+    """Return a reference's cover year, from its year or its cover date."""
+    date_ = typed_reference(reference).get("date") or {}
+    if year := date_.get("year"):
+        return int(year)
+    cover_date = date_.get("cover_date")
+    return cover_date.year if cover_date else None
 
 
 def _live_first(pool: list, pending: Collection[int]) -> list:
@@ -238,20 +334,20 @@ class ListMatcher:
     ) -> None:
         if not self.mappings:
             return
-        wanted: list[tuple[int, int, IssueKey]] = []
+        wanted: list[tuple[int, int]] = []
         for position, reference in enumerate(references):
             if results[position] is not None:
                 continue
             series_pk = self._mapped_series(reference)
-            issue = _issue_key(reference)
-            if series_pk is not None and issue is not None:
-                wanted.append((position, series_pk, issue))
+            if series_pk is not None and _issue_key(reference) is not None:
+                wanted.append((position, series_pk))
         if not wanted:
             return
-        found = _comics_by_issue(series_pk for _, series_pk, _ in wanted)
-        for position, series_pk, issue in wanted:
-            if (comic_pk := _best_of(found, (series_pk,), issue)) is not None:
-                results[position] = EntryMatch(comic_pk, ReadingListMatchTier.MAPPING)
+        found = _comics_by_issue(series_pk for _, series_pk in wanted)
+        for position, series_pk in wanted:
+            results[position] = _best_of(
+                found, (series_pk,), references[position], ReadingListMatchTier.MAPPING
+            )
 
     # 2. comicbox's matcher.
 
@@ -287,14 +383,19 @@ class ListMatcher:
 
     @staticmethod
     def _pick(
-        found, series_of: Mapping[int, int | None], pending: Collection[int]
+        found,
+        series_of: Mapping[int, int | None],
+        pending: Collection[int],
+        candidates: Mapping[int, Mapping[str, Any]],
     ) -> EntryMatch:
         """
         Choose among the comics comicbox found for one entry.
 
         The strongest rule wins, then a live copy among its finds: a comic
         a weaker rule found never beats the list's own comic while that one
-        is pending delete.
+        is pending delete. Finds of more than one series, or of volumes
+        that differ, are a guess. One run tagged both "v2" and "(2011)"
+        sits in two volumes that do not differ.
         """
         sure = [comic for comic in found.comics if not comic.ambiguous]
         pool = sure or list(found.comics)
@@ -303,11 +404,33 @@ class ListMatcher:
         best = [comic.path for comic in _live_first(tied, pending)]
         comic_pk = min(best)
         series = {series_of.get(pk) for pk in best}
-        needs_review = not sure or len(series) > 1
+        volumes = (discriminators(candidates[pk]) for pk in best)
+        needs_review = not sure or len(series) > 1 or any_conflict(volumes)
         return EntryMatch(comic_pk, _FOUND_BY_TIER[strongest.by], needs_review)
 
+    @staticmethod
+    def _suggest(
+        refused: Iterable[Refused],
+        open_positions: Sequence[int],
+        pending: Collection[int],
+        suggestions: dict[int, int],
+    ) -> None:
+        """Keep each missing entry's likeliest refused comic, live first."""
+        best: dict[int, tuple[int, bool, int]] = {}
+        for refusal in refused:
+            # The candidates are keyed by pk, so the paths are pks.
+            pk: int = refusal.path  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+            rank = (_REFUSED_ORDER.index(refusal.reason), pk in pending, pk)
+            position = open_positions[refusal.position]
+            if position not in best or rank < best[position]:
+                best[position] = rank
+        suggestions.update({position: rank[2] for position, rank in best.items()})
+
     def _match_comicbox(
-        self, references: Sequence[Mapping[str, Any]], results: list[EntryMatch | None]
+        self,
+        references: Sequence[Mapping[str, Any]],
+        results: list[EntryMatch | None],
+        suggestions: dict[int, int],
     ) -> None:
         open_positions = [i for i, result in enumerate(results) if result is None]
         if not open_positions:
@@ -326,8 +449,9 @@ class ListMatcher:
         result = match_comics({"entries": entries}, candidates)  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
         for found in result.found:
             results[open_positions[found.position]] = self._pick(
-                found, series_of, pending
+                found, series_of, pending, candidates
             )
+        self._suggest(result.refused, open_positions, pending, suggestions)
 
     # 3. Series id and issue.
 
@@ -360,16 +484,15 @@ class ListMatcher:
     @classmethod
     def _wanted_by_series_id(
         cls, references: Sequence[Mapping[str, Any]], results: list[EntryMatch | None]
-    ) -> list[tuple[int, set[tuple[str, str]], IssueKey]]:
+    ) -> list[tuple[int, set[tuple[str, str]]]]:
         """Return the open entries that carry series ids and an issue."""
-        wanted: list[tuple[int, set[tuple[str, str]], IssueKey]] = []
+        wanted: list[tuple[int, set[tuple[str, str]]]] = []
         for position, reference in enumerate(references):
             if results[position] is not None:
                 continue
             ids = cls._series_ids(reference)
-            issue = _issue_key(reference)
-            if ids and issue is not None:
-                wanted.append((position, ids, issue))
+            if ids and _issue_key(reference) is not None:
+                wanted.append((position, ids))
         return wanted
 
     @classmethod
@@ -378,17 +501,27 @@ class ListMatcher:
     ) -> None:
         if not (wanted := cls._wanted_by_series_id(references, results)):
             return
-        library = cls._library_series(set().union(*(ids for _, ids, _ in wanted)))
+        library = cls._library_series(set().union(*(ids for _, ids in wanted)))
         found = _comics_by_issue(pk for pks in library.values() for pk in pks)
-        for position, ids, issue in wanted:
+        for position, ids in wanted:
             series_pks = set().union(*(library.get(id_, set()) for id_ in ids))
-            if (comic_pk := _best_of(found, series_pks, issue)) is not None:
-                results[position] = EntryMatch(comic_pk, ReadingListMatchTier.SERIES_ID)
+            results[position] = _best_of(
+                found, series_pks, references[position], ReadingListMatchTier.SERIES_ID
+            )
 
     def match(self, references: Sequence[Mapping[str, Any]]) -> list[EntryMatch]:
         """Match a list's references, in list order, to comics."""
         results: list[EntryMatch | None] = [None] * len(references)
+        suggestions: dict[int, int] = {}
         self._match_mapped(references, results)
-        self._match_comicbox(references, results)
+        self._match_comicbox(references, results, suggestions)
         self._match_series_ids(references, results)
-        return [result or NO_MATCH for result in results]
+        return [
+            result
+            or (
+                EntryMatch(needs_review=True, suggested_pk=suggestions[position])
+                if position in suggestions
+                else NO_MATCH
+            )
+            for position, result in enumerate(results)
+        ]

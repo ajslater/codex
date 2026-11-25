@@ -162,7 +162,7 @@ class CollectionOrderMemoryHelperTestCase(TestCase):
     def test_active_search_keeps_its_sort(self):
         params = self._params(
             order_by="search_score",
-            search="batman",
+            search="burrowman",
             collection_order_memory={
                 "folders": {
                     "order_by": "filename",

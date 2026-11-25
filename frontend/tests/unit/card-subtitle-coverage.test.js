@@ -64,7 +64,7 @@ describe("a reading list's card caption", () => {
   test("another card keeps its name last", () => {
     const wrapper = subtitle({
       collection: "imprints",
-      publisherName: "Marvel",
+      publisherName: "Marlow",
     });
     const names = lines(wrapper).map(([, text]) => text);
     expect(names.at(-1)).toBe("Civil War");

@@ -26,13 +26,16 @@
           <v-btn
             size="small"
             variant="tonal"
-            :disabled="!reviewCount"
+            :disabled="!guessCount"
             @click="acceptAll"
           >
             Accept All Best Guesses
           </v-btn>
           <span v-if="!reviewCount" class="adminHint reviewHint">
             {{ noReviewHint }}
+          </span>
+          <span v-else-if="!guessCount" class="adminHint reviewHint">
+            {{ suggestionsOnlyHint }}
           </span>
         </div>
         <p class="adminProse">
@@ -162,6 +165,28 @@
                     >
                       {{ mdiHelpCircleOutline }}
                     </v-icon>
+                  </span>
+                  <span
+                    v-else-if="entry.suggestedComic"
+                    class="suggestion"
+                    :title="suggestionTitle"
+                  >
+                    <span class="missing">{{ missingLabel(entry) }}</span>
+                    · maybe {{ comicLabel(entry.suggestedComic) }}
+                    <v-icon size="small" color="primary">
+                      {{ mdiHelpCircleOutline }}
+                    </v-icon>
+                    <v-btn
+                      class="useSuggestion"
+                      size="small"
+                      density="compact"
+                      variant="text"
+                      color="primary"
+                      title="This is the issue: use this comic"
+                      @click="useSuggestion(entry)"
+                    >
+                      Use
+                    </v-btn>
                   </span>
                   <span v-else class="missing">{{ missingLabel(entry) }}</span>
                 </td>
@@ -306,6 +331,10 @@ export default {
       mdiSourceMerge,
       mdiTrashCanOutline,
       noReviewHint: "No issue needs review.",
+      suggestionsOnlyHint:
+        "Only missing issues need review: use each suggestion or mark it missing.",
+      suggestionTitle:
+        "Missing: this comic was refused as another volume's or another cover year's. Use it if it is this issue.",
       filterChoices: FILTER_CHOICES,
       filters: initialFilters(this.initialFilter),
       allEntries: [],
@@ -395,6 +424,12 @@ export default {
     reviewCount() {
       return this.allEntries.filter((entry) => ENTRY_FILTERS.review(entry))
         .length;
+    },
+    guessCount() {
+      // Accept All takes the matched guesses, never a missing suggestion.
+      return this.allEntries.filter(
+        (entry) => ENTRY_FILTERS.review(entry) && entry.comic,
+      ).length;
     },
     show: {
       get() {
@@ -553,6 +588,14 @@ export default {
       if (dragged && dragged.pk !== entry.pk) {
         await this.move(dragged, entry.position);
       }
+    },
+    async useSuggestion(entry) {
+      await this.call(
+        API.updateEntry(this.readingList.pk, entry.pk, {
+          comic: entry.suggestedComic.pk,
+        }),
+      );
+      await this.changed();
     },
     async acceptAll() {
       await this.call(API.acceptEntries(this.readingList.pk));

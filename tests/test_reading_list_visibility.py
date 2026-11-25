@@ -66,7 +66,7 @@ class EntryVisibilityFixture(ReadingListFixture):
         rows = (
             (c1, False, "Civil War", "1"),
             (self.hidden, False, "Civil War", "5"),
-            (None, False, "The Amazing Spider-Man", "532"),
+            (None, False, "The Amazing Spindle-Man", "532"),
             (c2, True, "Civil War", "2"),
         )
         for position, (comic, ignored, series, issue) in enumerate(rows):
@@ -167,7 +167,7 @@ class CopyVisibilityTests(EntryVisibilityFixture):
         )
         assert rows == [
             (self.comics[0].pk, "Civil War", "1"),
-            (None, "The Amazing Spider-Man", "532"),
+            (None, "The Amazing Spindle-Man", "532"),
         ]
 
 
@@ -246,3 +246,27 @@ class InputCheckTests(EntryVisibilityFixture):
             {"list": "x", "entry": "y", "series": "z"},
         )
         assert response.status_code == _BAD_REQUEST, response.content
+
+
+class SuggestionVisibilityTests(EntryVisibilityFixture):
+    """A missing issue is seen by all, its suggestion only by who may see it."""
+
+    def _suggested(self, comic) -> dict | None:
+        ReadingListEntry.objects.filter(
+            reading_list=self.reading_list, comic__isnull=True
+        ).update(suggested_comic=comic, needs_review=True)
+        self.client.force_login(self.admin)
+        response = self.client.get(f"{_LISTS}/{self.reading_list.pk}/entries")
+        assert response.status_code == _OK, response.content
+        (missing,) = (
+            entry for entry in _data(response)["entries"] if not entry["comic"]
+        )
+        return missing["suggestedComic"]
+
+    def test_a_hidden_comic_is_not_suggested(self) -> None:
+        assert self._suggested(self.hidden) is None
+
+    def test_a_visible_comic_is_suggested(self) -> None:
+        suggested = self._suggested(self.comics[2])
+        assert suggested
+        assert suggested["pk"] == self.comics[2].pk

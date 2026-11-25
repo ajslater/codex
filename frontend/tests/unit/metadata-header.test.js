@@ -97,7 +97,7 @@ describe("MetadataHeader — series years", () => {
 export default {};
 
 const seriesFacts = (md) => mountHeader({ md }).vm.seriesFacts;
-const ONE_SERIES = Object.freeze([{ ids: [1], name: "Amazing Spider-Man" }]);
+const ONE_SERIES = Object.freeze([{ ids: [1], name: "Amazing Spindle-Man" }]);
 
 describe("MetadataHeader — series facts", () => {
   test("joins the years and the status", () => {

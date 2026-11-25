@@ -14,6 +14,7 @@ from codex.librarian.scribe.importer.const import (
     FTS_UPDATED_M2MS,
     MODEL_REL_MAP,
     SERIES_SUMMARY_FTS_FIELD_NAME,
+    START_YEAR_FIELD_NAME,
     SUMMARY_FIELD_NAME,
     TOTAL,
     UPDATE_FKS,
@@ -36,7 +37,7 @@ from codex.librarian.scribe.importer.statii.create import (
 )
 from codex.librarian.status import Status
 from codex.models.base import BaseModel
-from codex.models.collections import Folder, Series
+from codex.models.collections import Folder, Series, Volume
 from codex.models.named import Universe
 
 
@@ -212,6 +213,14 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             and update_args.get(SUMMARY_FIELD_NAME, obj.summary) != obj.summary
         )
 
+    @staticmethod
+    def _volume_year_changed(obj: BaseModel, update_args: Mapping) -> bool:
+        """Whether a volume update changes the start year lists match by."""
+        return (
+            isinstance(obj, Volume)
+            and update_args.get(START_YEAR_FIELD_NAME, obj.start_year) != obj.start_year
+        )
+
     def _add_fts_updated_pks(self, field_name: str, pks: set[int]) -> None:
         """Queue comics to re-index, merged across the per-comic chunks."""
         if pks:
@@ -244,6 +253,8 @@ class CreateForeignKeysCreateUpdateImporter(CreateForeignKeysFolderImporter):
             # change has to re-index every comic of the series.
             if self._series_summary_changed(obj, update_args):
                 series_summary_pks.add(obj.pk)
+            if self._volume_year_changed(obj, update_args):
+                self.counts.volume_years += 1
             for key, value in update_args.items():
                 setattr(obj, key, value)
             obj.presave()

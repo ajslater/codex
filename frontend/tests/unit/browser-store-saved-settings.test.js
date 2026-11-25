@@ -93,7 +93,7 @@ beforeEach(() => {
 
 describe("loadSavedSettings — leaving a search", () => {
   it("leaves the series root the search redirected into", async () => {
-    const store = makeStore({ search: "batman", orderBy: "search_score" });
+    const store = makeStore({ search: "burrowman", orderBy: "search_score" });
     setRoute("series");
 
     await loadSavedView(store);
@@ -104,7 +104,7 @@ describe("loadSavedSettings — leaving a search", () => {
   });
 
   it("stays inside a series entered during the search", async () => {
-    const store = makeStore({ search: "batman", orderBy: "search_score" });
+    const store = makeStore({ search: "burrowman", orderBy: "search_score" });
     setRoute("series", "5");
 
     await loadSavedView(store);
@@ -124,7 +124,7 @@ describe("loadSavedSettings — leaving a search", () => {
 
     await loadSavedView(store, {
       orderBy: "search_score",
-      search: "batman",
+      search: "burrowman",
       show: { ...SHOW, volumes: true },
     });
     expect(router.push).toHaveBeenLastCalledWith({

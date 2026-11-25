@@ -70,7 +70,7 @@ def test_every_search_column_resolves(column: str) -> None:
         ("Civ*War", True),
         ("<T", True),
         ("A..T", True),
-        ("Spider", False),
+        ("Spindle", False),
         ('"A..T"', False),
     ],
 )
@@ -118,7 +118,7 @@ class SearchFieldRelationsTestCase(TestCase):
             name=2024, series=self.series, imprint=imprint, publisher=publisher
         )
         comics = []
-        for issue, name in enumerate(("spider", "wolverine"), start=1):
+        for issue, name in enumerate(("spindle", "woodvole"), start=1):
             path = TMP_DIR / f"{name}.cbz"
             path.touch()
             comics.append(
@@ -134,9 +134,9 @@ class SearchFieldRelationsTestCase(TestCase):
                     size=1,
                 )
             )
-        self.spider, wolverine = comics  # pyright: ignore[reportUninitializedInstanceVariable]
-        self._relate(self.spider, "Spider-Man", "Civil War", "Stan Lee")
-        self._relate(wolverine, "Wolverine", "Secret Wars", "Chris Claremont")
+        self.spider, woodvole = comics  # pyright: ignore[reportUninitializedInstanceVariable]
+        self._relate(self.spider, "Spindle-Man", "Civil War", "Stan Lee")
+        self._relate(woodvole, "Woodvole", "Secret Wars", "Chris Claremont")
 
         user = User.objects.create_user(
             username="search_field_relations_test", password=_TEST_PASSWORD
@@ -166,7 +166,7 @@ class SearchFieldRelationsTestCase(TestCase):
         """Suffix, comparison and range forms all reach the related names."""
         for query in (
             "characters:*man",
-            "character:*pider*",
+            "character:*pindle*",
             "characters:<T",
             "characters:A..T",
             "reading_lists:*War",

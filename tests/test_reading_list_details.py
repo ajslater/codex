@@ -51,7 +51,7 @@ class ListDetailsFixture(ReadingListFixture):
         ReadingListSource.objects.create(
             reading_list=self.reading_list,
             kind=ReadingListSourceKind.CATALOG,
-            ref="Marvel/Civil War.cbl",
+            ref="Marlow/Civil War.cbl",
             attribution_source="cbro",
             attribution_url="https://cbro.invalid/civil-war",
         )
