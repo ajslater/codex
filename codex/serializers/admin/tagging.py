@@ -230,48 +230,7 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
     comicvine_key = CharField(write_only=True, required=False, allow_blank=True)
     versedb_key = CharField(write_only=True, required=False, allow_blank=True)
 
-    metron_key_set = SerializerMethodField()
-    comicvine_key_set = SerializerMethodField()
-    versedb_key_set = SerializerMethodField()
-
-    has_metron_credentials = SerializerMethodField()
-    has_comicvine_credentials = SerializerMethodField()
-    has_versedb_credentials = SerializerMethodField()
     configured_sources = SerializerMethodField()
-
-    @staticmethod
-    def get_metron_key_set(obj) -> bool:
-        """Whether a Metron API key has been configured."""
-        return bool(obj.metron_key)
-
-    @staticmethod
-    def get_comicvine_key_set(obj) -> bool:
-        """Whether a Comic Vine API key has been configured."""
-        return bool(obj.comicvine_key)
-
-    @staticmethod
-    def get_versedb_key_set(obj) -> bool:
-        """Whether a VerseDB API key has been configured."""
-        return bool(obj.versedb_key)
-
-    @staticmethod
-    def get_has_metron_credentials(obj) -> bool:
-        """
-        Whether a Metron API key is set.
-
-        Mirrors comicbox's ``MetronOnlineSource.is_configured``.
-        """
-        return bool(obj.metron_key)
-
-    @staticmethod
-    def get_has_comicvine_credentials(obj) -> bool:
-        """Whether a Comic Vine API key is set."""
-        return bool(obj.comicvine_key)
-
-    @staticmethod
-    def get_has_versedb_credentials(obj) -> bool:
-        """Whether a VerseDB API key is set."""
-        return bool(obj.versedb_key)
 
     @staticmethod
     def get_configured_sources(obj) -> list[str]:
@@ -330,20 +289,6 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             # Not a secret, so unlike the keys this reads back: the form shows
             # the saved url as its placeholder.
             "comicvine_url",
-            "metron_key_set",
-            "comicvine_key_set",
-            "versedb_key_set",
-            "has_metron_credentials",
-            "has_comicvine_credentials",
-            "has_versedb_credentials",
             "configured_sources",
         )
-        read_only_fields = (
-            "metron_key_set",
-            "comicvine_key_set",
-            "versedb_key_set",
-            "has_metron_credentials",
-            "has_comicvine_credentials",
-            "has_versedb_credentials",
-            "configured_sources",
-        )
+        read_only_fields = ("configured_sources",)
