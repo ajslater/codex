@@ -105,6 +105,16 @@ def _drop_series_ids(series: dict, ids: set[tuple[str, str]]) -> None:
         del series["identifiers"]
 
 
+def _unfold_built_series(
+    series: dict, name: str, start_year: int | None, folded: FoldedSeries
+) -> None:
+    """Drop the start year and ids codex folded into a built series."""
+    if start_year is not None and start_year in folded.years.get(name, ()):
+        del series["start_year"]
+    if ids := folded.ids.get(name):
+        _drop_series_ids(series, ids)
+
+
 def unfold_reference(
     reference: Mapping[str, Any], folded: FoldedSeries, *, built: bool
 ) -> dict[str, Any]:
@@ -126,11 +136,6 @@ def unfold_reference(
     if volume is not None and volume >= _YEAR_LIKE_VOLUME:
         if start_year is not None and volume != start_year:
             del series["start_year"]
-        return unfolded
-    if not built or not (name := series.get("name")):
-        return unfolded
-    if start_year is not None and start_year in folded.years.get(name, ()):
-        del series["start_year"]
-    if ids := folded.ids.get(name):
-        _drop_series_ids(series, ids)
+    elif built and (name := series.get("name")):
+        _unfold_built_series(series, name, start_year, folded)
     return unfolded
