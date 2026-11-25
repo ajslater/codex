@@ -189,6 +189,11 @@ class LibrarianDaemon(Process):
         # which starts only after the web process has run the migrations,
         # not in ``__init__``, which runs in the web process.
         queue_unstamped_tags_sync(self.queue)
+        from codex.librarian.scribe.readinglists.volume_years import (
+            queue_volume_start_years,
+        )
+
+        queue_volume_start_years(self.queue)
         self.log.success(f"{self.name} ready for tasks.")
 
     def _stop_threads(self) -> None:

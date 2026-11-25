@@ -163,6 +163,9 @@ class Volume(BrowserCollectionModel):
     imprint = ForeignKey(Imprint, on_delete=CASCADE)
     series = ForeignKey(Series, on_delete=CASCADE)
     issue_count = CoercingPositiveSmallIntegerField(null=True)
+    # A comicbox series is one volume run, so its start year is the
+    # volume's. The series keeps one too, for its title and filters.
+    start_year = CoercingPositiveSmallIntegerField(null=True)
     name = CoercingPositiveSmallIntegerField(  # pyright: ignore[reportIncompatibleUnannotatedOverride]
         db_index=True, null=True, default=DEFAULT_NAME
     )

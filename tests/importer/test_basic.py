@@ -155,7 +155,7 @@ AGGREGATED = MappingProxyType(
                     "Captain Science",
                     1950,
                     None,
-                ): {(7,)},
+                ): {(7, None)},  # issue_count, start_year
             },
             Team: {("Team Scientific Method",): {(None,)}},
             IdentifierSource: {("comicvine",): set(), ("metron",): set()},
@@ -433,6 +433,7 @@ QUERIED = MappingProxyType(
                     1950,
                     None,
                     7,
+                    None,
                 )
             },
             TOTAL: 47,

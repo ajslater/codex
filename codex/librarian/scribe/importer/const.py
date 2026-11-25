@@ -176,7 +176,7 @@ COLLECTION_MODEL_ATTR_FIELDS: MappingProxyType[
             STATUS_FIELD_NAME,
             SUMMARY_FIELD_NAME,
         ),
-        Volume: (ISSUE_COUNT_FIELD_NAME,),
+        Volume: (ISSUE_COUNT_FIELD_NAME, START_YEAR_FIELD_NAME),
     }
 )
 COMIC_M2M_FIELDS: tuple[ManyToManyField, ...] = cast(
