@@ -599,7 +599,7 @@ describe("review dialog — loading", () => {
     });
     await flushPromises();
     expect(API.getEntries).toHaveBeenCalledTimes(1);
-    expect(API.getEntries).toHaveBeenCalledWith(3, "all");
+    expect(API.getEntries).toHaveBeenCalledWith(3);
     expect(wrapper.vm.entries.map((entry) => entry.pk)).toEqual([1]);
     expect(wrapper.vm.reviewCount).toBe(1);
     wrapper.vm.filters = ["missing"];

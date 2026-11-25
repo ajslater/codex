@@ -63,3 +63,13 @@ class EntriesGetTests(ReadingListFixture):
             .order_by("position", "pk")
         ]
         assert response.json()["data"]["entries"] == full
+
+    def test_a_filter_parameter_changes_nothing(self) -> None:
+        """Every entry comes back, hidden ones too, whatever ``filter`` says."""
+        url = f"/api/v4/reading-lists/{self.mine.pk}/entries"
+        plain = self.client.get(url).json()["data"]
+        assert [entry["ignored"] for entry in plain["entries"]].count(True) == 1
+        for value in ("review", "missing", "hidden", "all", "bogus"):
+            with self.subTest(filter=value):
+                body = self.client.get(url, {"filter": value}).json()["data"]
+                assert body == plain

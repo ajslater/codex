@@ -46,6 +46,11 @@ def _data(response):
     return body.get("data", body) if isinstance(body, dict) else body
 
 
+def _missing(entries: list[dict]) -> list[dict]:
+    """Pick the missing issues, as Edit Issues' Missing filter does."""
+    return [entry for entry in entries if not entry["comic"] and not entry["ignored"]]
+
+
 class ReadingListApiTests(ReadingListFixture):
     """Import a CBL, review it, export it."""
 
@@ -174,7 +179,7 @@ class ReadingListApiTests(ReadingListFixture):
         """Pick, hide, reorder and accept, as the review screen does."""
         reading_list = self._import_cbl()
         url = f"{_LISTS}/{reading_list.pk}/entries"
-        entries = _data(self.client.get(url, {"filter": "missing"}))["entries"]
+        entries = _missing(_data(self.client.get(url))["entries"])
         assert [entry["seriesName"] for entry in entries] == ["The Amazing Spider-Man"]
         missing = entries[0]["pk"]
 
@@ -262,7 +267,7 @@ class ReadingListApiTests(ReadingListFixture):
         """The picker builds the series index again only when series change."""
         reading_list = self._import_cbl()
         url = f"{_LISTS}/{reading_list.pk}/entries"
-        missing = _data(self.client.get(url, {"filter": "missing"}))["entries"][0]
+        missing = _missing(_data(self.client.get(url))["entries"])[0]
         candidates_url = f"{url}/{missing['pk']}/candidates"
         built = []
         real = matcher_module.SeriesNameIndex

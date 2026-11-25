@@ -54,7 +54,6 @@ class DanglingTests(DanglingFixture):
         entries = _data(self.client.get(url))["entries"]
         assert all(entry["comic"] for entry in entries)
         assert len(entries) == 3  # noqa: PLR2004
-        assert _data(self.client.get(url, {"filter": "missing"}))["entries"] == []
 
     def test_the_menu_count(self) -> None:
         """Your lists count three issues."""

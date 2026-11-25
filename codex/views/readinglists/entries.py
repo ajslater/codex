@@ -31,7 +31,6 @@ from codex.librarian.scribe.readinglists.references import (
 from codex.models import Comic
 from codex.models.readinglist import (
     DANGLING_Q,
-    MISSING_Q,
     ReadingList,
     ReadingListEntry,
     ReadingListMatchTier,
@@ -48,12 +47,6 @@ _TAGGED_REFUSAL: Final = (
     "This issue's comic carries the list's story arc tag, so it stays that"
     " comic. Hide it to leave it out, or take the arc tag off the comic."
 )
-_FILTERS: Final = {
-    "review": Q(needs_review=True, ignored=False),
-    "missing": MISSING_Q,
-    "hidden": Q(ignored=True),
-    "all": Q(),
-}
 
 
 def _comic_repr(comic: Comic | None) -> dict[str, Any] | None:
@@ -251,18 +244,14 @@ class ReadingListEntriesView(ReadingListAccessView):
 
     def get(self, *_args, **_kwargs) -> Response:
         """
-        Return the entries, narrowed by ``?filter=review|missing|hidden|all``.
+        Return every entry, hidden ones included; Edit Issues filters them.
 
         An entry whose comic the editor may not see is left out, as it is
         everywhere else the list is read.
         """
         reading_list = self.get_reading_list()
-        filter_q = _FILTERS.get(self.request.GET.get("filter", "all"), Q())
         acl_q = entries_acl_q(self, self.request.user)
-        entries = [
-            entry_repr(entry)
-            for entry in _entries(reading_list).filter(acl_q & filter_q)
-        ]
+        entries = [entry_repr(entry) for entry in _entries(reading_list).filter(acl_q)]
         items = _items_repr(reading_list, acl_q)
         return Response({"entries": entries, "items": items})
 

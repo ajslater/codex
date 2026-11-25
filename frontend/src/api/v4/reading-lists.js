@@ -48,8 +48,7 @@ export const renameList = (pk, name) => HTTP.patch(`${LISTS}/${pk}`, { name });
 export const deleteList = (pk) => HTTP.delete(`${LISTS}/${pk}`);
 export const duplicateList = (pk, name) =>
   HTTP.post(`${LISTS}/${pk}/duplicate`, name ? { name } : {});
-export const getEntries = (pk, filter = "all") =>
-  HTTP.get(`${LISTS}/${pk}/entries`, fresh({ filter }));
+export const getEntries = (pk) => HTTP.get(`${LISTS}/${pk}/entries`, fresh());
 /*
  * A list's items, speaking the collection vocabulary: ``add`` and
  * ``remove`` are each a ``{collection: [pks]}`` map, either one optional.
