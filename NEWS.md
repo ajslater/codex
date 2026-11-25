@@ -10,68 +10,41 @@ border-radius: 128px;
 
 ### ✨ Added
 
-- Reading lists: Admin → Reading Lists imports lists from ComicRack CBL and
-  json-cbl files, URLs, the DieselTech catalog, Metron and Comic Vine, combines
-  lists of one event, and reviews how their issues match your comics.
-- A reading list shows its missing issues as placeholders in reading order.
-- A reading list's details show how much of it you have and have read, its
-  sources, Continue Reading, and Export of the list or just its missing issues.
-- Signed-in users make their own reading lists from any Reading Lists menu,
-  remove comics in place, and copy any list to their own.
-- A series, folder, publisher or list added to a reading list keeps it current.
-- Filter any view by reading list, or by Reading List Kind: Mine, Curated or
-  From Tags.
-- A reading list downloads as a zip numbered in list order.
-- A reading list's OPDS feed starts with the next issue to read.
-- Remote reading list sources refresh weekly.
-- Admins can write a reading list into its comics' files as a story arc.
-- User data backups keep imported and hand-made reading lists.
-- VerseDB is a third online tagging source. Add its API token on the Tagging
-  tab.
-- The Tagging tab numbers its online sources by priority, labels each one's role
-  and reorders them by drag, under a First match / Merge all sources switch.
+- Reading lists: import ComicRack CBL and json-cbl files or URLs, the DieselTech
+  catalog, Metron and Comic Vine lists in Admin → Reading Lists, and review how
+  their issues match your comics.
+- A reading list shows its missing issues in order, how much you have and have
+  read, and Continue Reading, and exports, downloads as a zip and has an OPDS
+  feed.
+- Users make their own reading lists, add series, folders or publishers that
+  keep them current, and copy any list.
+- Filter by reading list, or by kind: Mine, Curated or From Tags.
+- Admins can write a reading list into its comics as a story arc.
+- VerseDB online tagging source.
+- Drag online tagging sources into priority order; with Merge all sources the
+  higher source wins.
 
 ### ♻️ Changed
 
-- Story Arcs are now Reading Lists: one list per story arc name, in arc order,
-  and the Story Arcs filter, column, sort and search field are Reading Lists.
-  Links and OPDS bookmarks into a story arc change once.
-- Shelves are now your own reading lists, with the same names and contents, in
-  saved views, filters, columns, backups and OPDS start pages.
-- Filters take several values while the menu stays open, and tag filters can
-  match all ticked values.
-- With Merge all sources on, the source higher in the Tagging tab's list wins
-  where sources disagree.
+- Story Arcs and Shelves are now Reading Lists, contents kept, in saved views,
+  filters, columns, sorts, search, backups and OPDS. Story arc links and OPDS
+  bookmarks change once.
+- Filters take several values with the menu open, and tag filters can match all
+  of them.
 
 ### 🔥 Removed
 
-- The `/api/v4/shelves/` API and OPDS shelf links.
+- The `/api/v4/shelves/` API, replaced by `/api/v4/reading-lists/`.
 
 ### 🐛 Fixed
 
-- Saving story arcs in the tag editor keeps their numbers and names.
-- The metadata dialog's story arc chips, which went nowhere, are a Reading Lists
-  row that opens each list.
-- A comic tagged twice in one story arc no longer counts its pages twice.
-- In a filter's choices, arrow keys step one row and letter keys no longer close
-  the menu.
-- Answering a tagging prompt from a Merge all sources run no longer overwrites
-  tags a higher-priority source already wrote.
-- Merge all sources also searches the sources a tagged comic has no id for.
-- Pause stops online tagging at once, also while refreshing tagged comics or
-  waiting out a rate limit, and still writes the comic it was looking up.
-- Tag Online's Effort applies, and a scan that cannot run, such as one using a
-  source with no key, is refused with its reason instead of spinning.
-- Tag Online started during a Tag by ID run no longer tags its comics with that
-  issue.
-- Answering a re-asked series prompt applies the chosen volume to each of its
-  comics, never the first comic's issue.
-- The Tagging tab keeps a typed API key when saving it fails and says why, and
-  its source panels stay open.
-- Backups keep the Merge all sources, Effort and file renaming defaults, and
-  restoring an older backup leaves settings it did not have alone.
+- The tag editor keeps story arc numbers, and metadata story arc chips open
+  their list.
+- Filter choices: arrow keys step one row, and letter keys no longer close the
+  menu.
 - The `lang:` search field works.
-- Reader settings no longer fail on a malformed reading list id.
+- Online tagging: Pause stops at once, Effort applies, Merge all sources asks
+  every source, and backups keep its defaults.
 
 ### 🧑‍💻 Developer
 
