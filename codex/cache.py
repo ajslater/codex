@@ -91,3 +91,6 @@ class ResilientFileBasedCache(FileBasedCache):
 # startup) and Django's file-based clear ignores key prefixes.
 # django-stubs omits CacheHandler's BaseConnectionHandler base.
 tagging_cache = ConnectionProxy(caches, "tagging")  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]
+# Reading-list previews waiting for Import; kept apart from the durable
+# tagging state so their cull never reaches it.
+reading_list_preview_cache = ConnectionProxy(caches, "readinglist_previews")  # pyright: ignore[reportArgumentType], # ty: ignore[invalid-argument-type]

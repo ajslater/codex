@@ -2,7 +2,7 @@
 
 from django.db.models import OuterRef, Q, Subquery
 
-from codex.models import Comic, Folder
+from codex.models import Comic, Folder, ReadingList
 from codex.models.paths import CustomCover
 from codex.views.browser.annotate.card import BrowserAnnotateCardView
 from codex.views.const import COLLECTION_RELATION, CUSTOM_COVER_COLLECTION_RELATION
@@ -30,7 +30,11 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         if collection_model is Folder:
             return Q(folders__pk=OuterRef("pk"))
         collection_rel = COLLECTION_RELATION[self.model_collection]
-        return Q(**{f"{collection_rel}__pk": OuterRef("pk")})
+        q = Q(**{f"{collection_rel}__pk": OuterRef("pk")})
+        if collection_model is ReadingList:
+            # A hidden entry is no part of its list: one Q, one join.
+            q &= Q(reading_list_entries__ignored=False)
+        return q
 
     def _cover_filter_q(self, collection_model) -> Q:
         """Build the full filter Q for the cover comic subquery."""
@@ -39,12 +43,7 @@ class BrowserAnnotateCoverView(BrowserAnnotateCardView):
         q &= self.get_comic_field_filter(Comic)
         if self.is_bookmark_filtered:
             q &= self.get_bookmark_filter(Comic)
-        # Apply the shelves filter the same way ``_get_query_filters`` does for
-        # the outer browser query. Without this the topmost collection's cover
-        # subquery happily picks a descendant that is on no shelf, while
-        # intermediate collections (whose query already runs through the main
-        # filter pipeline) honor it.
-        q &= self.get_shelf_filter(Comic)
+        q &= self.get_retired_filter()
         include_q, exclude_q, fts_q = self.get_search_filters(Comic)
         q &= include_q & ~exclude_q
         if fts_q:

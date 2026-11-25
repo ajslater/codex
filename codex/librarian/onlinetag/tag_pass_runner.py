@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from multiprocessing import Queue
     from pathlib import Path
 
+    from comicbox.online_session import OnlineResult
     from loguru._logger import Logger
 
     from codex.librarian.onlinetag.session_state import SessionState
@@ -151,9 +152,7 @@ class TagPassRunner:
         resets.
         """
         state.cancelled = True
-        reason = getattr(state.session, "abort_reason", None) or (
-            "the online source stopped the run"
-        )
+        reason = state.abort_reason or "the online source stopped the run"
         state.pause_reason = reason
         status.subtitle = f"paused: {reason}"
         self.log.warning(f"Online tag: pausing the scan — {reason}")
@@ -168,12 +167,39 @@ class TagPassRunner:
         flush_writes: bool,
     ) -> None:
         """Run one tag_many pass, updating status and draining the queue."""
-        for result in state.session.tag_many(paths):
-            if state.cancelled:
-                break
+        self._run_results(
+            state,
+            state.session.tag_many(paths),
+            status,
+            batch,
+            flush_writes=flush_writes,
+        )
+
+    def _run_results(
+        self,
+        state: SessionState,
+        results: Iterable[OnlineResult],
+        status: OnlineLookupStatus,
+        batch: dict[int, dict],
+        *,
+        flush_writes: bool,
+    ) -> None:
+        """
+        Take each lookup's result as it comes, as one pass does.
+
+        A Pause stops the pass only after the result in hand is kept. It
+        asks comicbox to stop, and a lookup already under way runs to its
+        end, outside a retry wait, and reports its comic written. Dropping
+        that result would leave the comic matched in the table and out of
+        the resume set, but never written.
+        """
+        for result in results:
             if result.cancelled:
-                # Before advancing anything: this comic was not looked at.
-                self._halt_for_comicbox(state, status)
+                # Before advancing anything: this comic was not looked at. A
+                # Pause has already set ``cancelled``; otherwise comicbox
+                # stopped the run itself.
+                if not state.cancelled:
+                    self._halt_for_comicbox(state, status)
                 break
             self._drain_queue(state)
             was_rate_limited = self._detect_rate_limit_recovery(status)
@@ -181,6 +207,8 @@ class TagPassRunner:
             self._store_result_tags(state, result, batch, flush_writes=flush_writes)
             if flush_writes and was_rate_limited and batch:
                 self._flush_batch(state, batch)
+            if state.cancelled:
+                break
 
     def begin_status(self, total: int) -> OnlineLookupStatus:
         """
@@ -217,8 +245,15 @@ class TagPassRunner:
         paths: Iterable[Path],
         *,
         flush_writes: bool = False,
+        pinned: Iterable[OnlineResult] = (),
     ) -> None:
-        """Iterate tag_many, merging new tasks that arrive mid-run."""
+        """
+        Iterate tag_many, merging new tasks that arrive mid-run.
+
+        ``pinned`` yields the results of the comics looked up one at a time
+        in sessions of their own, which run first. The caller has already
+        counted them into ``state.total_comics``: it alone knows how many.
+        """
         path_list = list(paths)
         state.total_comics += len(path_list)
         # The stored-id prepass may already have opened the scan's status
@@ -242,7 +277,11 @@ class TagPassRunner:
 
         batch: dict[int, dict] = {}
         try:
-            self._run_pass(state, path_list, status, batch, flush_writes=flush_writes)
+            self._run_results(state, pinned, status, batch, flush_writes=flush_writes)
+            if not state.cancelled:
+                self._run_pass(
+                    state, path_list, status, batch, flush_writes=flush_writes
+                )
 
             while state.pending_paths and not state.cancelled:
                 new_paths = list(state.pending_paths)
@@ -252,10 +291,12 @@ class TagPassRunner:
                 self._run_pass(
                     state, new_paths, status, batch, flush_writes=flush_writes
                 )
-
+        finally:
+            # First, and in the finally: a raise mid-pass must not lose the
+            # comics already matched. They are recorded as written, so left
+            # unflushed they would be neither written nor resumable.
             if flush_writes:
                 self._flush_batch(state, batch)
-        finally:
             # finish() in a finally so a raise mid-pass (rate-limit budget
             # exhausted, network error, cancel) can't strand the status row
             # frozen on its last "rate limited" subtitle — the librarian

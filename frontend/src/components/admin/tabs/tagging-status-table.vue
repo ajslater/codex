@@ -96,6 +96,8 @@
       <!-- Why a scan nobody paused is paused. Without it, Resume is an
          unexplained button on a run that stopped on its own. -->
       <div v-if="pauseReason" class="pauseReason">{{ pauseReason }}</div>
+      <!-- Why an Error row is still queued for Resume. -->
+      <div v-if="heldReason" class="pauseReason">{{ heldReason }}</div>
       <v-progress-linear
         :model-value="progressPct"
         :indeterminate="indeterminate"
@@ -143,7 +145,6 @@
       item-value="pk"
       :mobile="$vuetify.display.xs"
       fixed-header
-      height="420"
       density="compact"
     >
       <template #[`item.path`]="{ item }">
@@ -448,6 +449,18 @@ export default {
       if (this.snapshot?.active || !this.resumable) return "";
       return this.snapshot?.pauseReason || "";
     },
+    heldReason() {
+      // Comics not written because a stored id did not fetch: their rows
+      // read Error, and this says why and that Resume retries them, naming
+      // the sources as the columns do.
+      const held = this.snapshot?.held;
+      if (!held?.count) return "";
+      const sources = held.sources.map(sourceLabel).join(", ");
+      if (held.count === 1) {
+        return `1 comic not written: its stored issue id could not be fetched from ${sources}. Resume tries it again; if the id is gone, tag it by ID.`;
+      }
+      return `${nf(held.count)} comics not written: their stored issue ids could not be fetched from ${sources}. Resume tries them again; if an id is gone, tag that comic by ID.`;
+    },
     total() {
       return this.batch.total || 0;
     },
@@ -542,7 +555,7 @@ export default {
         await this.pauseSession();
       } catch (error) {
         this.pausing = false;
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async confirmResume() {
@@ -554,7 +567,7 @@ export default {
         // started first, or the remainder is gone) and silently dropping
         // that leaves the button looking broken.
         this.resuming = false;
-        useCommonStore().setErrors(error);
+        useCommonStore().setErrorNotice(error);
       }
     },
     async confirmDismiss() {
@@ -658,7 +671,8 @@ export default {
        * Metron's daily limit varies by donor tier and comes off its
        * X-RateLimit-* headers; Comic Vine meters hourly per endpoint
        * pool and the backend sends the tightest one, since that is what
-       * will stop the run. Empty until the source has reported.
+       * will stop the run. VerseDB reports one hourly window. Empty until
+       * the source has reported.
        */
       const window = src.budgetWindow;
       if (!window) return "";
@@ -781,6 +795,13 @@ export default {
 
   .comicsTable {
     background-color: inherit;
+  }
+
+  /* No fixed height, so a short batch's table is only as tall as its rows;
+   * a long one stops here and scrolls. The virtual scroller measures this
+   * box rather than reading a height prop, so it still virtualizes. */
+  .comicsTable :deep(.v-table__wrapper) {
+    max-height: 420px;
   }
 
   .statusCell {

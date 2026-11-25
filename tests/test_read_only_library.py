@@ -144,6 +144,9 @@ class ReadOnlyLibraryTestCase(TestCase):
 
     def test_online_tag_skips_read_only(self) -> None:
         """An online-tag scan over the publisher excludes the read-only comic."""
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "t"}
+        )
         payload = {"collection": "publishers", "pks": [str(self.publisher_pk)]}
         with patch("codex.views.admin.onlinetag.LIBRARIAN_QUEUE") as queue:
             resp = self._post(_ONLINE_TAG_URL, payload)

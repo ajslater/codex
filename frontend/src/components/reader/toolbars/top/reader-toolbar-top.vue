@@ -23,9 +23,9 @@
         <OnlineTagReviewButton class="readerReviewButton" />
         <v-toolbar-items v-if="!empty">
           <ReaderArcSelect />
-          <ShelfMenu
+          <ReadingListMenu
             v-if="currentBookPk"
-            class="readerShelfMenu"
+            class="readerListMenu"
             collection="comics"
             :pk="currentBookPk"
           />
@@ -61,7 +61,7 @@ import { mapActions, mapState } from "pinia";
 import AppBanner from "@/components/banner.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
 import OnlineTagReviewButton from "@/components/online-tag/review-button.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import ReaderArcSelect from "@/components/reader/toolbars/top/reader-arc-select.vue";
 import { useReaderKeyUp } from "@/components/reader/use-reader-keyup";
 import SettingsDrawerButton from "@/components/settings/button.vue";
@@ -76,7 +76,7 @@ export default {
     OnlineTagReviewButton,
     ReaderArcSelect,
     SettingsDrawerButton,
-    ShelfMenu,
+    ReadingListMenu,
   },
   data() {
     return {

@@ -6,6 +6,7 @@ from types import MappingProxyType
 from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import Comic
 from codex.models.collections import Volume
+from codex.models.readinglist import ReadingList
 from codex.views.browser.collection_mtime import BrowserCollectionMtimeView
 from codex.views.browser.columns import (
     m2m_alias_for,
@@ -60,8 +61,6 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
         if (order_key == "search_score" and not self.fts_mode) or (
             (order_key == "filename" and not self.admin_flags["folder_view"])
             or (order_key == "child_count" and self.TARGET == "cover")
-            # Only table view annotates ``shelved``.
-            or (order_key == "shelved" and self.params.get("view_mode") != "table")
         ):
             order_key = "sort_name"
         return order_key
@@ -74,13 +73,10 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             order_key = "sort_name"
         # The cover subquery is a correlated Comic query that doesn't
         # carry the outer view's M2M / FK alias annotations, so an
-        # M2M sort would reference a missing column. Same applies to
-        # ``shelved`` — its annotation is added by
-        # ``_add_table_view_shelved_annotation`` on the outer
-        # queryset, not on the per-cover subquery. Cover-context
-        # falls back to sort_name; picking "the first comic" by
-        # alphabetical title is what the cover subquery wants anyway.
-        if for_cover and (order_key in m2m_columns() or order_key == "shelved"):
+        # M2M sort would reference a missing column. Cover-context falls
+        # back to sort_name; picking "the first comic" by alphabetical
+        # title is what the cover subquery wants anyway.
+        if for_cover and order_key in m2m_columns():
             order_key = "sort_name"
         return order_key
 
@@ -218,6 +214,9 @@ class BrowserOrderByView(BrowserCollectionMtimeView):
             )
         elif qs.model is Volume and order_key == "sort_name":
             order_fields_head = ["name", "number_to"]
+        elif qs.model is ReadingList and self.order_key == "story_arc_number":
+            # No reading order runs across lists: the lists grid reads by name.
+            order_fields_head = ["sort_name"]
         elif self.order_key == "age_rating":
             # Collection rows annotate two columns for age_rating —
             # ``order_value`` is the metron name string (display) and

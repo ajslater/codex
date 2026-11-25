@@ -16,16 +16,20 @@ BROWSER_FILTER_KEYS = (
     "monochrome",
     "original_format",
     "reading_direction",
+    "reading_list_kind",
+    "reading_lists",
     "reprints",
     "series_end_year",
     "series_groups",
     "series_start_year",
     "series_status",
     "stories",
-    "story_arcs",
     "tagger",
     "tags",
     "teams",
     "universes",
     "year",
 )
+# The filters setting that names the filters set to match all ticked
+# values. Not a filter of comics, so not in ``BROWSER_FILTER_KEYS``.
+MATCH_ALL_KEY = "match_all"

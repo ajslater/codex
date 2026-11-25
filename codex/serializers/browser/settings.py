@@ -156,6 +156,7 @@ class BrowserSettingsSerializer(BrowserSettingsSerializerBase):
     mtime = TimestampField(read_only=True)
     twenty_four_hour_time = BooleanField(required=False)
     always_show_filename = BooleanField(required=False)
+    show_missing_issues = BooleanField(required=False)
     view_mode = ChoiceField(
         choices=tuple(BROWSER_VIEW_MODE_CHOICES.keys()), required=False
     )

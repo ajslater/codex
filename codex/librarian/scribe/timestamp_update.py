@@ -11,7 +11,7 @@ from django.utils import timezone
 from codex.librarian.notifier.tasks import LIBRARY_CHANGED_TASK
 from codex.librarian.scribe.status import UpdateCollectionTimestampsStatus
 from codex.librarian.worker import WorkerStatusBase
-from codex.models import Reprint, StoryArc, Volume
+from codex.models import ReadingList, Reprint, Volume
 from codex.models.collections import BrowserCollectionModel
 from codex.models.library import Library
 from codex.settings import IMPORTER_LINK_FK_BATCH_SIZE
@@ -55,7 +55,7 @@ class TimestampUpdater(WorkerStatusBase):
 
         # Get collections with comics updated during this import. A match
         # here implies the collection has children — no count needed.
-        rel = "storyarcnumber__" if model == StoryArc else ""
+        rel = "entries__" if model == ReadingList else ""
         updated_at_rel = rel + "comic__updated_at__gt"
         library_rel = rel + "comic__library"
         updated_filter = {library_rel: library, updated_at_rel: start_floor}

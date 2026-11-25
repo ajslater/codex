@@ -22,6 +22,11 @@ _COMIC_PK: Final = 22
 _FAVORITE_COUNT: Final = 2
 
 
+def _latest() -> list[tuple[str, str]]:
+    """Return the codex migration the rest of the suite expects."""
+    return MigrationExecutor(connection).loader.graph.leaf_nodes("codex")
+
+
 def _migrate(target):
     """Migrate to ``target`` and return the app registry at that state."""
     executor = MigrationExecutor(connection)
@@ -34,7 +39,8 @@ class ShelvesMigrationTests(TransactionTestCase):
 
     @override
     def setUp(self) -> None:
-        self.addCleanup(_migrate, _AFTER)
+        # Back to the latest migration, not _AFTER: later ones exist.
+        self.addCleanup(_migrate, _latest())
         self.fan = User.objects.create(username="fan")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.plain = User.objects.create(username="plain")  # pyright: ignore[reportUninitializedInstanceVariable]
 

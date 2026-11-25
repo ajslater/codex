@@ -30,6 +30,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any, Final, override
 
+from django.db.models import Q
 from django.http import HttpResponse
 from django.utils.cache import get_conditional_response
 from django.utils.http import http_date
@@ -56,7 +57,7 @@ _COLLECTION_COMIC_FILTER: Final = {
     "series": "series_id",
     "volume": "volume_id",
     "folder": "folders",
-    "arc": "story_arc_numbers__story_arc_id",
+    "arc": "reading_list_entries__reading_list_id",
 }
 
 _RETRY_AFTER_SECONDS: Final = 2
@@ -241,8 +242,14 @@ def _resolve_collection_comic_pk(source: str, pk: int, user) -> int | None:
     acl_q = GroupACLMixin.get_group_acl_filter(Comic, user)
     age_q = GroupACLMixin.get_age_rating_acl_filter(Comic, user)
     missing_q = GroupACLMixin.get_missing_acl_filter(Comic)
+    query = acl_q & age_q & missing_q & Q(**{field: pk})
+    if source == "arc":
+        # Another user's personal list has no cover for this one.
+        query &= GroupACLMixin.reading_list_entries_filter(
+            user, "reading_list_entries__"
+        )
     return (
-        Comic.objects.filter(acl_q & age_q & missing_q, **{field: pk})
+        Comic.objects.filter(query)
         .order_by("sort_name", "pk")
         .values_list("pk", flat=True)
         .first()

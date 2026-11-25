@@ -221,6 +221,7 @@ class OPDS1FeedView(OPDS1LinksView):
             entries += self.add_top_links(self.root_top_links())
         else:
             entries += self.add_start_link()
+            entries += self.add_top_links(self.reading_list_top_links())
 
         # The root view switcher is navigation, not a facet: a client
         # that ignores facet links would otherwise have no way into the

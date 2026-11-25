@@ -57,6 +57,7 @@ export const TABS = Object.freeze([
   "Email",
   "Libraries",
   "Tagging",
+  "Reading Lists",
   "Custom Covers",
   "Settings",
   "Defaults",
@@ -376,6 +377,7 @@ export const useAdminStore = defineStore("admin", {
       }
     },
     async updateTaggingDefaults(data) {
+      // Resolves whether the save landed; a failure is reported here.
       if (this._requireAdmin()) return false;
       const commonStore = useCommonStore();
       try {
@@ -383,8 +385,11 @@ export const useAdminStore = defineStore("admin", {
         this.taggingDefaults = response.data;
         this.timestamps.TaggingDefaults = Date.now();
         commonStore.clearErrors();
+        return true;
       } catch (error) {
-        commonStore.setErrors(error);
+        // The Tagging tab renders no form errors: say why in a notice.
+        commonStore.setErrorNotice(error);
+        return false;
       }
     },
     async validateTaggingCredentials(data) {

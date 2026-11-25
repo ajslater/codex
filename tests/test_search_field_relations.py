@@ -169,6 +169,7 @@ class SearchFieldRelationsTestCase(TestCase):
             "character:*pider*",
             "characters:<T",
             "characters:A..T",
+            "reading_lists:*War",
             "story_arcs:*War",
             "arc:Civ*War",
             "credits:*Lee",

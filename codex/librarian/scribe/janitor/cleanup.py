@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models.functions.datetime import Now
 
 from codex.librarian.onlinetag.session_cache import (
+    TAGGING_STATE_LOCK,
     get_active_scan_id,
     get_pending_prompts,
     prune_stale_prompts,
@@ -37,7 +38,6 @@ from codex.librarian.scribe.janitor.status import (
     JanitorCleanupCoversStatus,
     JanitorCleanupSessionsStatus,
     JanitorCleanupSettingsStatus,
-    JanitorCleanupShelfItemsStatus,
     JanitorCleanupTaggingStateStatus,
     JanitorCleanupTagsStatus,
 )
@@ -74,7 +74,6 @@ from codex.models.bookmark import Bookmark
 from codex.models.comic import Comic
 from codex.models.paths import CustomCover
 from codex.models.settings import SettingsBrowser, SettingsReader
-from codex.models.shelf import SHELF_MODEL_COLLECTIONS, ShelfItem
 
 if TYPE_CHECKING:
     from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
@@ -155,15 +154,6 @@ _SETTINGS_ORPHAN_FILTER = dict.fromkeys(
 )
 #: Orphan bookmark pks named in the log before they are deleted.
 _ORPHAN_PKS_LOGGED = 10
-# Backstop for the shelf target ``post_delete`` signals — the nightly sweep
-# drops shelf items whose target row is gone (e.g. wiped by raw-SQL
-# migrations or other paths that bypass Django's ORM signal
-# machinery). Iteration order is the model→code map's insertion
-# order; the per-iteration query is independent so order doesn't
-# matter functionally.
-_SHELF_TARGETS = tuple(
-    (model, code.value) for model, code in SHELF_MODEL_COLLECTIONS.items()
-)
 # Iteration cap on ``cleanup_fks``'s convergence loop. Codex's FK graph
 # depth is bounded by the hierarchy
 # Identifier -> Publisher -> Imprint -> Series -> Volume -> Comic
@@ -503,26 +493,6 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         finally:
             self.status_controller.finish(status)
 
-    def cleanup_orphan_shelf_items(self) -> None:
-        """Delete shelf items whose target row no longer exists."""
-        status = JanitorCleanupShelfItemsStatus()
-        try:
-            self.status_controller.start(status)
-            total = 0
-            with self.db_write_lock:
-                for model, collection_code in _SHELF_TARGETS:
-                    orphans = ShelfItem.objects.filter(
-                        collection=collection_code
-                    ).exclude(
-                        target_id__in=model.objects.values("pk"),
-                    )
-                    count, _ = orphans.delete()
-                    total += count
-            level = "INFO" if total else "DEBUG"
-            self.log.log(level, f"Deleted {total} orphan shelf items.")
-        finally:
-            self.status_controller.finish(status)
-
     def cleanup_tagging_state(self) -> None:
         """
         Prune online tagging state that no longer has a referent.
@@ -532,15 +502,21 @@ class JanitorCleanup(JanitorUpdateFailedImports):
         state, not something to clear. This nightly sweep only drops prompts
         whose comic has since been deleted, and clears an active-scan marker
         left behind by a crash mid-scan.
+
+        Each step reads, prunes and writes back state the online tag thread
+        also writes, so the sweep holds the state lock throughout: a write
+        landing between a step's read and its write-back would be dropped.
+        The queries it runs under the lock only read.
         """
         status = JanitorCleanupTaggingStateStatus()
         try:
             self.status_controller.start(status)
-            self._prune_stale_scheme_prompts()
-            self._prune_dead_prompts()
-            self._prune_dead_resolutions()
-            self._prune_dead_resume_state()
-            self._clear_stale_scan_marker()
+            with TAGGING_STATE_LOCK:
+                self._prune_stale_scheme_prompts()
+                self._prune_dead_prompts()
+                self._prune_dead_resolutions()
+                self._prune_dead_resume_state()
+                self._clear_stale_scan_marker()
         finally:
             self.status_controller.finish(status)
 

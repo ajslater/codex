@@ -249,21 +249,28 @@ class BrowserTablePageResponseTestCase(TestCase):
         row = body["rows"][0]
         assert row["country"] == "zz"
 
-    def test_table_view_story_arcs_aggregation(self) -> None:
-        """``story_arcs`` resolves through StoryArcNumber to story_arc.name."""
-        from codex.models.named import StoryArc, StoryArcNumber
+    def test_table_view_reading_lists_aggregation(self) -> None:
+        """``reading_lists`` names the lists the viewer sees the comic shown in."""
+        from codex.models import ReadingList, ReadingListEntry
 
         comic = Comic.objects.first()
         assert comic is not None
-        arc = StoryArc.objects.create(name="The Big One")
-        san = StoryArcNumber.objects.create(story_arc=arc, number=1)
-        comic.story_arc_numbers.add(san)
+        other = User.objects.create_user(username="other", password=_TEST_PASSWORD)
+        for name, user, ignored in (
+            ("The Big One", None, False),
+            ("Theirs", other, False),
+            ("Hidden Here", None, True),
+        ):
+            reading_list = ReadingList.objects.create(name=name, user=user)
+            ReadingListEntry.objects.create(
+                reading_list=reading_list, comic=comic, ignored=ignored
+            )
 
         self._set_view_mode_table()
-        body = self._browse_series(columns="cover,name,story_arcs")
+        body = self._browse_series(columns="cover,name,reading_lists")
         rows = body["rows"]
         row = rows[0]
-        assert row.get("storyArcs") == ["The Big One"]
+        assert row.get("readingLists") == ["The Big One"]
 
     def test_table_view_credits_aggregation_with_role(self) -> None:
         """Credits suffix the role: ``Person Name (Role)``."""

@@ -3,8 +3,8 @@
     <AdminSection title="User Data Sidecar">
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
-          Codex can snapshot every user-bound row — accounts, bookmarks,
-          shelves, browser settings, library definitions, admin flags — into a
+          Codex can snapshot every user-bound row — accounts, bookmarks, reading
+          lists, browser settings, library definitions, admin flags — into a
           separate SQLite file alongside your config. If the main database is
           ever lost or rebuilt from a filesystem scan, you can restore
           everything users care about from this snapshot.
@@ -26,8 +26,8 @@
       <div class="adminCard">
         <p class="adminCardDesc paragraph">
           Replace the sidecar with a fresh snapshot of every user, bookmark,
-          shelf, and setting in the main database. Fast: usually completes in a
-          few seconds.
+          reading list and setting in the main database. Fast: usually completes
+          in a few seconds.
         </p>
         <div class="restoreActions">
           <v-btn
@@ -188,7 +188,7 @@ export default {
     confirmText() {
       return this.dryRun
         ? "Preview only — no changes will be written."
-        : "Overwrite current user data with the sidecar contents. Existing users, bookmarks, shelves, and settings will be replaced. Continue?";
+        : "Overwrite current user data with the sidecar contents. Existing users, bookmarks, reading lists and settings will be replaced. Continue?";
     },
     resultTitle() {
       return this.dryRunReport ? "Dry-Run Report" : "Restore Result";

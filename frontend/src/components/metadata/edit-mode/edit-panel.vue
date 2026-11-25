@@ -1129,7 +1129,8 @@
               multiple
               chips
               closable-chips
-              hide-details
+              hint="Each one makes or joins the reading list of that name."
+              persistent-hint
               density="compact"
               :disabled="isFieldDisabled('story_arcs')"
               :class="{
@@ -1716,6 +1717,8 @@ export default {
       selectedNewRole: null,
       creditsByRole: {},
       storyArcNames: [],
+      // An arc's number as the comic carries it, so a save keeps it.
+      storyArcNumberByName: {},
       universes: [],
       reprints: [],
       identifiers: [],
@@ -2324,9 +2327,21 @@ export default {
         }
       }
 
-      // Story arcs
+      // Story arcs. ``name`` is the display form ``Arc:3``; edit the arc by
+      // its own name and keep its number, or a save would rename the arc
+      // and drop its number, which is its place in the reading list.
       if (this.md.storyArcNumbers?.length) {
-        this.storyArcNames = this.md.storyArcNumbers.map((a) => a.name);
+        const numbers = {};
+        const names = [];
+        for (const arc of this.md.storyArcNumbers) {
+          const name = arc.arcName ?? arc.name;
+          if (!names.includes(name)) names.push(name);
+          if (arc.number != null && !(name in numbers)) {
+            numbers[name] = arc.number;
+          }
+        }
+        this.storyArcNames = names;
+        this.storyArcNumberByName = numbers;
       }
 
       // Credits — group by role
@@ -2561,8 +2576,13 @@ export default {
         if (cleared.has("story_arcs") || this.storyArcNames.length === 0) {
           deleteKeys.push("arcs");
         } else {
+          // comicbox replaces the whole arcs map on an update, so every
+          // arc is sent with the number it already has.
           const arcs = {};
-          for (const name of this.storyArcNames) arcs[name] = {};
+          for (const name of this.storyArcNames) {
+            const number = this.storyArcNumberByName[name];
+            arcs[name] = number == null ? {} : { number };
+          }
           cbPatch.arcs = arcs;
         }
       }

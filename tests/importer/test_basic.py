@@ -939,6 +939,7 @@ def run_full_import(importer) -> None:
     importer.link()
     importer.fail_imports()
     importer.delete()
+    importer.sync_reading_lists()
     importer.full_text_search()
 
 

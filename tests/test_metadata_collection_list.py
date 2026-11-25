@@ -22,7 +22,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
-from codex.models.named import StoryArc
+from codex.models.readinglist import ReadingList
 from codex.startup import init_admin_flags
 from codex.views.browser.metadata.collection_list import collection_list_field_name
 from tests.tmp_dirs import tmp_dir
@@ -191,12 +191,12 @@ class GroupListFieldNameTestCase(TestCase):
         """Volume → ``volume_list``."""
         assert collection_list_field_name(Volume) == "volume_list"
 
-    def test_story_arc_field_name_is_overridden(self) -> None:
+    def test_reading_list_field_name_is_overridden(self) -> None:
         """
-        StoryArc → ``story_arc_list`` (not the default ``storyarc_list``).
+        ReadingList → ``reading_list_list`` (not the default ``readinglist_list``).
 
         Without the override the metadata response silently dropped
-        ``storyArcList`` because the serializer only reads
-        ``story_arc_list``.
+        ``readingListList`` because the serializer only reads
+        ``reading_list_list``.
         """
-        assert collection_list_field_name(StoryArc) == "story_arc_list"
+        assert collection_list_field_name(ReadingList) == "reading_list_list"

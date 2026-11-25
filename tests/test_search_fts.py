@@ -187,7 +187,7 @@ class FTSForceInnerJoinsTestCase(TestCase):
         view = _FTSCallableView(fts_mode=True)
         qs = Comic.objects.values("comicfts__pk")
         assert self._comicfts_join_type(qs) == "LEFT OUTER JOIN"
-        out = view.force_inner_joins(qs)
+        out = view.force_inner_joins(qs)  # ty: ignore[invalid-argument-type]
         assert self._comicfts_join_type(out) == "INNER JOIN"
 
     def test_force_inner_joins_skips_comicfts_when_fts_mode_false(self) -> None:
@@ -201,7 +201,7 @@ class FTSForceInnerJoinsTestCase(TestCase):
         view = _FTSCallableView(fts_mode=False)
         qs = Comic.objects.values("comicfts__pk")
         assert self._comicfts_join_type(qs) == "LEFT OUTER JOIN"
-        out = view.force_inner_joins(qs)
+        out = view.force_inner_joins(qs)  # ty: ignore[invalid-argument-type]
         assert self._comicfts_join_type(out) == "LEFT OUTER JOIN"
 
     def test_force_inner_joins_unblocks_match_on_left_joined_query(self) -> None:
@@ -216,7 +216,7 @@ class FTSForceInnerJoinsTestCase(TestCase):
         """
         view = _FTSCallableView(fts_mode=True)
         qs = self._left_outer_match_qs()
-        out = view.force_inner_joins(qs)
+        out = view.force_inner_joins(qs)  # ty: ignore[invalid-argument-type]
         assert self._comicfts_join_type(out) == "INNER JOIN"
         ids = list(out.values_list("id", flat=True))
         assert ids == [self.comic_wonder.pk], ids

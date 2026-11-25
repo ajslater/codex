@@ -5,7 +5,7 @@ from typing import Any, override
 
 from rest_framework.throttling import BaseThrottle
 
-from codex.models.shelf import Shelf
+from codex.models.readinglist import ReadingList
 from codex.throttling import ScopedRateThrottle
 from codex.views.browser.browser import BrowserView
 from codex.views.mixins import UserActiveMixin
@@ -18,7 +18,7 @@ class OPDSBrowserView(OPDSBrowserSettingsMixin, UserActiveMixin, BrowserView):
 
     An OPDS feed is a function of its URL. Its params are the factory
     defaults plus this request's validated query, never the saved settings
-    row: a link must not inherit the filters, search or shelf an earlier
+    row: a link must not inherit the filters, search or list an earlier
     link set, and one device's browsing must not change another's. Only the
     route is still recorded, for the ``up`` link.
     """
@@ -44,18 +44,20 @@ class OPDSBrowserView(OPDSBrowserSettingsMixin, UserActiveMixin, BrowserView):
         """Save nothing: OPDS params are request-local."""
         del params, defer_last_route
 
-    def user_shelves(self) -> tuple[tuple[int, str], ...]:
+    def user_lists(self) -> tuple[tuple[int, str], ...]:
         """
-        Return ``(pk, name)`` for each non-empty shelf of the requesting user.
+        Return ``(pk, name)`` for each non-empty reading list of the user's own.
 
-        Ordered by name. Empty for anonymous sessions, who own no shelves.
-        The v1 and v2 start pages both build their shelf entries from this.
+        Ordered by name. Empty for anonymous sessions, who own no lists.
+        The v1 and v2 start pages both build their list entries from this.
         """
         user = self.request.user
         if not user or not user.is_authenticated:
             return ()
         return tuple(
-            Shelf.objects.filter(user=user, items__isnull=False)
+            ReadingList.objects.filter(
+                user=user, entries__comic__isnull=False, entries__ignored=False
+            )
             .distinct()
             .order_by("name", "pk")
             .values_list("pk", "name")

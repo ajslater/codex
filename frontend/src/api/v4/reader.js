@@ -1,10 +1,10 @@
 import { HTTP, V4_BASE } from "@/api/v4/base";
 import { serializeParams } from "@/api/v4/common";
 
-export const getSettings = (pk, scopes, storyArcPk) => {
+export const getSettings = (pk, scopes, readingListPk) => {
   const queryParams = { scopes: scopes.join(",") };
-  if (storyArcPk) {
-    queryParams.story_arc_pk = storyArcPk;
+  if (readingListPk) {
+    queryParams.reading_list_pk = readingListPk;
   }
   const params = serializeParams(queryParams);
   return HTTP.get(pk ? `/comics/${pk}/reader-settings` : "/reader/settings", {

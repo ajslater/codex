@@ -97,7 +97,7 @@ FIELDMAP = MappingProxyType(
         "issue_number": ("number",),
         "issue_suffix": (),
         "locations": ("location", "loc"),
-        "language": ("lang"),
+        "language": ("lang",),
         "main_character": _get_fieldmap_values("main_character"),
         "main_team": _get_fieldmap_values("main_team"),
         "month": (),
@@ -128,7 +128,12 @@ FIELDMAP = MappingProxyType(
         "size": (),
         "sources": _get_fieldmap_values("sources", "id_sources"),
         "stories": ("story",),
-        "story_arcs": _get_fieldmap_values("story_arcs", "arcs", "arc"),
+        # Story arcs and reading lists are one concept; the old names stay
+        # aliases. It searches the arc names from tags: the index is per
+        # comic and shared, so it holds no list names.
+        "reading_lists": _get_fieldmap_values(
+            "reading_lists", "story_arcs", "arcs", "arc"
+        ),
         "summary": _get_fieldmap_values("desc", "description", "comments"),
         "tags": ("tag",),
         "tagger": (),

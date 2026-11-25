@@ -38,7 +38,7 @@ from comicbox.events import (
     Skipped,
     SourceStarted,
 )
-from comicbox.exceptions import ComicboxError
+from comicbox.exceptions import ComicboxError, OnlineLookupAbortedError
 from comicbox.formats.base.online import outcome_stats
 from comicbox.online_session import (
     Effort,
@@ -64,6 +64,7 @@ from codex.librarian.onlinetag.prompt_apply import PromptApplier
 from codex.librarian.onlinetag.session_cache import (
     add_pending_prompts,
     get_pending_prompts,
+    note_tagged_ids,
     prompt_comics,
     remove_pending_prompt,
     set_active_scan_id,
@@ -84,6 +85,11 @@ from codex.librarian.onlinetag.session_state import (
     CodexPromptHandler,
     SessionState,
     serialize_prompt,
+)
+from codex.librarian.onlinetag.sources import (
+    SOURCES,
+    build_credentials,
+    configured_sources,
 )
 from codex.librarian.onlinetag.statuses import USER_MATCHED, USER_SKIPPED
 from codex.librarian.onlinetag.stored_id_prepass import build_stored_id_map
@@ -122,13 +128,99 @@ def _online_config(effort: str) -> ComicboxSettings:
     return replace(COMICBOX_ONLINE_CONFIG, online=replace(online, tuning=tuning))
 
 
+def _task_params(task: BulkOnlineTagTask) -> dict[str, Any]:
+    """Return how a task's session runs, all but its comics: its resume params."""
+    return {
+        "sources": list(task.sources),
+        "mode": task.mode,
+        "effort": task.effort,
+        "prompts_mode": task.prompts_mode,
+        "delete_original": task.delete_original,
+        "merge_all_sources": task.merge_all_sources,
+        "rename": task.rename,
+        "ids": dict(task.ids),
+    }
+
+
+def _defers_prompts(task: BulkOnlineTagTask) -> bool:
+    """Whether ``task`` defers an ambiguous match as a prompt, or skips it."""
+    return task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER.value
+
+
+def _split_partly_identified(
+    id_map: dict[int, dict[str, int]],
+    sources: tuple[str, ...],
+    *,
+    merge_all_sources: bool,
+) -> tuple[dict[int, dict[str, int]], dict[int, dict[str, int]]]:
+    """
+    Split stored ids into comics to fetch by id alone and comics to look up.
+
+    Under Merge all sources every selected source is asked, so a comic with
+    stored ids for some of ``sources`` but not all is looked up: its ids are
+    fetched and the other sources searched. A comic with ids for all of them
+    is fetched by id alone, as is every comic of a first-match run.
+    """
+    if not merge_all_sources:
+        return id_map, {}
+    whole: dict[int, dict[str, int]] = {}
+    partial: dict[int, dict[str, int]] = {}
+    for pk, source_ids in id_map.items():
+        (whole if len(source_ids) == len(sources) else partial)[pk] = source_ids
+    return whole, partial
+
+
+def _share_series_cache(source: OnlineSession, target: OnlineSession) -> None:
+    """Seed ``target`` with every series ``source`` has resolved."""
+    for (name, fingerprint), volume_id in source.series_cache_snapshot().items():
+        target.preload_series_resolution(
+            source=name, series_fingerprint=fingerprint, volume_id=volume_id
+        )
+
+
+def _preload_answer(session: OnlineSession, item: OnlineTagPromptResponseTask) -> None:
+    """Seed ``session`` with a mid-scan pick of a volume."""
+    session.preload_resolution(
+        item.prompt_fingerprint,
+        action="choose",
+        payload=item.payload,
+        chosen_volume_id=item.chosen_volume_id,
+    )
+
+
+def _pause_aware_sleep(state: SessionState) -> Callable[[float], None]:
+    """
+    Return a rate-limit wait that a Pause ends at once.
+
+    The search pass's session waits on its own cancel event. The stored-id
+    prepass fetches outside that session, so it waits on the scan's.
+    """
+
+    def wait(delay: float) -> None:
+        if state.pause_event.wait(delay):
+            reason = "online: scan paused during retry wait"
+            raise OnlineLookupAbortedError(reason)
+
+    return wait
+
+
+def _mergeable(state: SessionState, task: BulkOnlineTagTask) -> bool:
+    """
+    Whether a task arriving mid-scan may join the running session.
+
+    Only when it would run exactly alike and nothing is pinned. A session
+    applies its pinned issue ids to every comic, so a comic merged into a
+    Tag by ID run would be written with another comic's issue.
+    """
+    return not state.resume_params.get("ids") and (
+        _task_params(task) == state.resume_params
+    )
+
+
 #: The online source modules that hold process-wide clients to release
 #: at the end of a task. Named, not imported: see
 #: :func:`_release_online_connections`.
-_ONLINE_SOURCE_MODULES: Final = (
-    "comicbox.formats.metron_api.online_source",
-    "comicbox.formats.comicvine_api.online_source",
-)
+_ONLINE_SOURCE_MODULES: Final = tuple(source.module for source in SOURCES.values())
 
 
 def _release_online_connections() -> None:
@@ -164,9 +256,11 @@ def _release_online_connections() -> None:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
     from multiprocessing import Queue
 
     from comicbox.config.settings import ComicboxSettings
+    from comicbox.online_session import OnlineResult
     from loguru._logger import Logger
 
 
@@ -212,24 +306,7 @@ class OnlineTagSessionManager:
             defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         except ComicboxTaggingDefaults.DoesNotExist:
             return None
-        if not defaults.metron_key and not defaults.comicvine_key:
-            return None
-        # ``or None``: the encrypted fields store an unset value as "", and
-        # comicbox's credentials spell unset as None.
-        return OnlineCredentials(
-            metron_key=defaults.metron_key or None,
-            comicvine_key=defaults.comicvine_key or None,
-            comicvine_url=defaults.comicvine_url or None,
-        )
-
-    @staticmethod
-    def _source_has_credentials(credentials: OnlineCredentials, source: str) -> bool:
-        """Whether ``credentials`` actually carries auth for ``source``."""
-        if source == "metron":
-            return bool(credentials.metron_key)
-        if source == "comicvine":
-            return bool(credentials.comicvine_key)
-        return False
+        return build_credentials(defaults)
 
     # --- events --------------------------------------------------------
 
@@ -490,7 +567,9 @@ class OnlineTagSessionManager:
             except Exception:
                 break
             match item:
-                case BulkOnlineTagTask() if state is not None:
+                case BulkOnlineTagTask() if state is not None and _mergeable(
+                    state, item
+                ):
                     self._merge_task(state, item)
                 case OnlineTagAbortTask():
                     self.cancel_session(item.session_id)
@@ -535,12 +614,10 @@ class OnlineTagSessionManager:
         """
         if item.action != "choose" or item.chosen_volume_id is None:
             return
-        state.session.preload_resolution(
-            item.prompt_fingerprint,
-            action="choose",
-            payload=item.payload,
-            chosen_volume_id=item.chosen_volume_id,
-        )
+        # Kept for the one-comic sessions not built yet; see _comic_session.
+        state.answers.append(item)
+        for session in state.sessions():
+            _preload_answer(session, item)
 
     def _defer_prompt_response(
         self, state: SessionState, item: OnlineTagPromptResponseTask
@@ -577,19 +654,30 @@ class OnlineTagSessionManager:
         self.log.info(f"Online tag: skipped {len(prompts)} prompt(s) mid-scan.")
 
     def _apply_deferred_resolutions(self, state: SessionState) -> None:
-        """Apply mid-scan "choose"/"manual" answers once the scan is done."""
+        """
+        Apply mid-scan "choose"/"manual" answers once the scan is done.
+
+        These answers left the cache when they were given, so the ids an
+        earlier one's writes carry are noted on the later ones here: the
+        applier notes them only on the prompts still cached.
+        """
         if not state.deferred_applies:
             return
         applies = list(state.deferred_applies)
         state.deferred_applies.clear()
-        for prompt, action, payload, chosen_volume_id in applies:
+        for index, (prompt, action, payload, chosen_volume_id) in enumerate(applies):
             try:
-                self._prompt_applier.apply(prompt, action, payload, chosen_volume_id)
+                written = self._prompt_applier.apply(
+                    prompt, action, payload, chosen_volume_id
+                )
             except Exception:
                 path = prompt.get("path")
                 self.log.exception(
                     f"Online tag: applying deferred prompt resolution for {path!r}"
                 )
+                continue
+            for later, *_ in applies[index + 1 :]:
+                note_tagged_ids(later, written)
 
     def _merge_task(self, state: SessionState, task: Any) -> None:
         """Merge a new BulkOnlineTagTask's comics into the running session."""
@@ -613,6 +701,22 @@ class OnlineTagSessionManager:
 
     # --- prompt persistence --------------------------------------------
 
+    @staticmethod
+    def _prompt_comic(state: SessionState, dp: Any, pk: int) -> dict[str, Any]:
+        """Describe one comic of a deferred prompt, with who else wrote it."""
+        stats = state.stats
+        others = stats.matched_ids_by_path.get(dp.path, {})
+        return {
+            "pk": pk,
+            "path": str(dp.path),
+            "tagged_by": [
+                source
+                for source in stats.matched_source_by_path.get(dp.path, ())
+                if source != dp.source
+            ],
+            "tagged_ids": {s: i for s, i in others.items() if s != dp.source},
+        }
+
     def _group_deferred_prompts(self, state: SessionState) -> dict[str, dict[str, Any]]:
         """
         Collect the scan's deferred prompts into one entry per question.
@@ -625,10 +729,12 @@ class OnlineTagSessionManager:
 
         Each comic carries ``tagged_by``: the other sources that wrote it
         this scan. It still needs review, as their data differ, and the
-        review dialog says it was tagged.
+        review dialog says it was tagged. ``tagged_ids`` holds the issue id
+        each of them wrote, so applying the answer can fetch them again and
+        let comicbox merge in the run's order before the database has them.
         """
         grouped: dict[str, dict[str, Any]] = {}
-        for dp in state.session.deferred_prompts():
+        for dp in state.deferred_prompts():
             if dp.path is None:
                 continue
             pk = state.path_to_pk.get(dp.path)
@@ -637,15 +743,7 @@ class OnlineTagSessionManager:
             # already-answered series is a question nobody has answered yet.
             if pk is None or pk in state.answered_pks:
                 continue
-            comic = {
-                "pk": pk,
-                "path": str(dp.path),
-                "tagged_by": [
-                    source
-                    for source in state.stats.matched_source_by_path.get(dp.path, ())
-                    if source != dp.source
-                ],
-            }
+            comic = self._prompt_comic(state, dp, pk)
             prompt = grouped.get(dp.fingerprint)
             if prompt is None:
                 grouped[dp.fingerprint] = serialize_prompt(
@@ -654,6 +752,8 @@ class OnlineTagSessionManager:
                     state.formats,
                     delete_original=state.delete_original,
                     rename=state.rename,
+                    source_order=state.sources,
+                    merge_all_sources=state.merge_all_sources,
                 )
             elif all(known["pk"] != pk for known in prompt["comics"]):
                 prompt["comics"].append(comic)
@@ -674,6 +774,7 @@ class OnlineTagSessionManager:
         credentials: OnlineCredentials,
         *,
         merge_all_sources: bool,
+        retry_sleep: Callable[[float], None] | None = None,
     ) -> tuple[tuple[str, ...], dict] | None:
         """
         Fetch one already-identified comic by its stored ids.
@@ -697,7 +798,12 @@ class OnlineTagSessionManager:
         )
         try:
             tags = fetch_tags_by_explicit_id(
-                path, primary_source, primary_id, credentials, extra_ids=extra_ids
+                path,
+                primary_source,
+                primary_id,
+                credentials,
+                extra_ids=extra_ids,
+                retry_sleep=retry_sleep,
             )
         except (ComicboxError, OSError) as exc:
             self.log.warning(f"Online tag stored-id prefetch failed for {path}: {exc}")
@@ -746,7 +852,7 @@ class OnlineTagSessionManager:
         comic_paths: dict[int, Path],
         task: BulkOnlineTagTask,
         credentials: OnlineCredentials,
-    ) -> None:
+    ) -> dict[Path, dict[str, int]]:
         """
         Resolve comics with a stored issue id by explicit id before searching.
 
@@ -754,15 +860,22 @@ class OnlineTagSessionManager:
         through the same ``BulkTagWriteTask`` path the scan uses, and drops it
         from ``comic_paths`` so the search session only handles the rest.
         Skipped for sources without credentials.
+
+        Under Merge all sources a comic with stored ids for some sources but
+        not all is not fetched here. It leaves ``comic_paths`` too, returned
+        with its ids for ``_pinned_lookups``, which fetches those ids and
+        searches the other sources in one lookup.
         """
+        configured = configured_sources(credentials)
         usable_sources = tuple(
-            source
-            for source in task.sources
-            if self._source_has_credentials(credentials, source)
+            source for source in task.sources if source in configured
         )
         id_map = build_stored_id_map(comic_paths.keys(), usable_sources)
         if not id_map:
-            return
+            return {}
+        id_map, partial = _split_partly_identified(
+            id_map, usable_sources, merge_all_sources=task.merge_all_sources
+        )
 
         # Opened here rather than in the search pass: on a re-tag every comic
         # resolves in this loop, and a scan whose whole runtime is the prepass
@@ -770,7 +883,12 @@ class OnlineTagSessionManager:
         # the id map, so the count doesn't jump when the search pass adopts it.
         status = self._pass_runner.begin_status(len(comic_paths))
         batch: dict[int, dict] = {}
+        retry_sleep = _pause_aware_sleep(state)
         for pk, source_ids in id_map.items():
+            # A Pause arrives out of band (see ``cancel_session``); what the
+            # prepass never reached stays in ``comic_paths`` for Resume.
+            if state.cancelled:
+                break
             path = comic_paths[pk]
             # The prepass fetches outside the event-emitting session, so codex
             # is the only thing that knows a lookup is happening at all —
@@ -779,7 +897,11 @@ class OnlineTagSessionManager:
             state.live.begin(path, next(iter(source_ids)))
             self._publish_live(state)
             result = self._fetch_stored_id(
-                path, source_ids, credentials, merge_all_sources=task.merge_all_sources
+                path,
+                source_ids,
+                credentials,
+                merge_all_sources=task.merge_all_sources,
+                retry_sleep=retry_sleep,
             )
             state.live.end(path)
             if result is None:
@@ -794,6 +916,143 @@ class OnlineTagSessionManager:
 
         if batch:
             self._commit_prefetch(state, comic_paths, batch)
+        # Counted here, for the search pass's status row counts only what
+        # it is handed itself.
+        state.total_comics += len(partial)
+        return {comic_paths.pop(pk): source_ids for pk, source_ids in partial.items()}
+
+    def _comic_session(
+        self,
+        state: SessionState,
+        task: BulkOnlineTagTask,
+        credentials: OnlineCredentials,
+        ids: dict[str, int],
+    ) -> OnlineSession:
+        """
+        Build the session one partly-identified comic is looked up in.
+
+        It starts with what the run has learned so far: the series it has
+        resolved, so a series is searched once a run rather than once a
+        comic, and the answers given mid-scan, so a later issue of an
+        answered series takes the answer instead of asking again.
+        """
+        session = self._build_session(task, credentials, ids)
+        _share_series_cache(state.session, session)
+        for answer in state.answers:
+            _preload_answer(session, answer)
+        return session
+
+    def _pinned_lookups(
+        self,
+        state: SessionState,
+        pinned: dict[Path, dict[str, int]],
+        task: BulkOnlineTagTask,
+        credentials: OnlineCredentials,
+    ) -> Iterator[OnlineResult]:
+        """
+        Look each partly-identified comic up in a session of its own.
+
+        Each session pins that comic's stored ids and searches the other
+        sources, and comicbox merges them in the run's order, as the Tag by
+        ID & Search lookup does for one comic. A session applies its pinned
+        ids to every comic it looks up, so it looks up this one comic only:
+        no other comic's ids reach it, and a task merged mid-scan joins the
+        run's own session, which pins nothing.
+
+        The session is adopted under the lock a Pause takes, so a Pause
+        either stops this loop before the next comic or cancels the lookup
+        in flight, its rate-limit waits included. Never closed: its clients
+        are the process-wide ones the run's own session uses, and the run
+        releases them when it ends.
+        """
+        for path, ids in pinned.items():
+            with self._lock:
+                if state.cancelled:
+                    return
+                session = self._comic_session(state, task, credentials, ids)
+                state.adopt_comic_session(session)
+            result = session.tag(path)
+            _share_series_cache(session, state.session)
+            if not self._held_back(state, path, ids, result):
+                yield result
+
+    def _held_back(
+        self,
+        state: SessionState,
+        path: Path,
+        ids: dict[str, int],
+        result: OnlineResult,
+    ) -> bool:
+        """
+        Hold back a comic one of whose stored ids did not fetch.
+
+        comicbox fails a pinned fetch quietly, whatever the cause: a stale
+        id, a server error, a timeout, a spent retry budget. It never
+        searches that source instead. Writing what the other sources found
+        would let a lower-priority source overwrite what the failed one gave
+        the comic last time, and would mark the comic done, so Resume would
+        never retry it. So nothing is written, and the comic is recorded as
+        held rather than done: its row shows the failed source, and it stays
+        for Resume, both halves. A fetch lands only with an ``AutoWritten``
+        from its source.
+        """
+        if result.cancelled or result.error:
+            return False
+        landed = state.stats.matched_source_by_path.get(path, ())
+        if not (failed := [source for source in ids if source not in landed]):
+            return False
+        state.stats.hold(path, failed)
+        sources = ", ".join(failed)
+        msg = f"Online tag: {sources} could not fetch the stored id of {path}"
+        self.log.warning(f"{msg}; not written, left for Resume.")
+        return True
+
+    def _build_session(
+        self,
+        task: BulkOnlineTagTask,
+        credentials: OnlineCredentials,
+        ids: dict[str, int],
+    ) -> OnlineSession:
+        """
+        Build a comicbox session that runs as ``task`` asks, pinning ``ids``.
+
+        The run's own session pins the request's ids, which only a Tag by ID
+        request for one comic has. A one-comic session pins that comic's
+        stored ids.
+        """
+        # "never" prompts: don't defer ambiguous matches. The CodexPromptHandler
+        # returns a "skip" response by default, so with defer_prompts off comicbox
+        # skips ambiguous comics inline instead of queueing them as deferred
+        # prompts — only confidently-matched comics get written this run.
+        defer_prompts = _defers_prompts(task)
+        # Telling comicbox too makes it skip an undecided comic without first
+        # enriching candidates for a prompt nobody will see.
+        prompts = Prompts.ASK if defer_prompts else Prompts.NEVER
+        return OnlineSession(
+            sources=task.sources,
+            # Pinned sources fetch their issue id directly; the rest search.
+            ids=dict(ids),
+            credentials=credentials,
+            match=MatchMode(task.mode),
+            prompts=prompts,
+            defer_prompts=defer_prompts,
+            # first_wins=False queries every source per comic and merges,
+            # and the first of task.sources wins where they disagree.
+            first_wins=not task.merge_all_sources,
+            on_event=self._on_event,
+            prompt_handler=CodexPromptHandler(),
+            # Codex's own online settings, chiefly the cache directory
+            # under /config. Without them the session reads its own and
+            # comicbox's sqlite caches land somewhere a container
+            # recreation throws away.
+            config=_online_config(task.effort),
+            # Names codex in the outgoing User-Agent. Metron's operators
+            # read those logs, and a bare `comicbox/5.1.1` cannot tell a
+            # server tagging a library in the background from somebody's
+            # CLI thread pool — a difference that changes the diagnosis
+            # when a token trips the burst limit (comicbox#207).
+            client_name=CLIENT_NAME,
+        )
 
     def run_session(self, task: BulkOnlineTagTask) -> None:
         """Execute a non-blocking online tagging scan (Pass 1 only)."""
@@ -814,41 +1073,7 @@ class OnlineTagSessionManager:
             return
 
         defaults = ComicboxTaggingDefaults.objects.get(pk=1)
-        # "never" prompts: don't defer ambiguous matches. The CodexPromptHandler
-        # returns a "skip" response by default, so with defer_prompts off comicbox
-        # skips ambiguous comics inline instead of queueing them as deferred
-        # prompts — only confidently-matched comics get written this run.
-        defer_prompts = (
-            task.prompts_mode != ComicboxTaggingDefaults.PromptsModeChoices.NEVER.value
-        )
-        # Telling comicbox too makes it skip an undecided comic without first
-        # enriching candidates for a prompt nobody will see.
-        prompts = Prompts.ASK if defer_prompts else Prompts.NEVER
-        online_config = _online_config(task.effort)
-        session = OnlineSession(
-            sources=task.sources,
-            # Pinned sources fetch their issue id directly; the rest search.
-            ids=dict(task.ids),
-            credentials=credentials,
-            match=MatchMode(task.mode),
-            prompts=prompts,
-            defer_prompts=defer_prompts,
-            # first_wins=False queries every source per comic and merges.
-            first_wins=not task.merge_all_sources,
-            on_event=self._on_event,
-            prompt_handler=CodexPromptHandler(),
-            # Codex's own online settings, chiefly the cache directory
-            # under /config. Without them the session reads its own and
-            # comicbox's sqlite caches land somewhere a container
-            # recreation throws away.
-            config=online_config,
-            # Names codex in the outgoing User-Agent. Metron's operators
-            # read those logs, and a bare `comicbox/5.1.1` cannot tell a
-            # server tagging a library in the background from somebody's
-            # CLI thread pool — a difference that changes the diagnosis
-            # when a token trips the burst limit (comicbox#207).
-            client_name=CLIENT_NAME,
-        )
+        session = self._build_session(task, credentials, task.ids)
         state = SessionState(
             session=session,
             path_to_pk={path: pk for pk, path in comic_paths.items()},
@@ -858,7 +1083,9 @@ class OnlineTagSessionManager:
             # What the estimate is priced at: whatever the settings this
             # session was handed resolve to, so an unset effort and a
             # per-source override both reach it.
-            effort=resolve_effort(online_config.online, "comicvine").value,
+            effort=resolve_effort(
+                _online_config(task.effort).online, "comicvine"
+            ).value,
             merge_all_sources=task.merge_all_sources,
             formats=tuple(defaults.default_formats),
             delete_original=task.delete_original,
@@ -867,16 +1094,7 @@ class OnlineTagSessionManager:
             completed_comics=0,
             # Everything needed to rebuild a resume task over the comics this
             # scan never reaches (comic_pks + session_id are regenerated then).
-            resume_params={
-                "sources": list(task.sources),
-                "mode": task.mode,
-                "effort": task.effort,
-                "prompts_mode": task.prompts_mode,
-                "delete_original": task.delete_original,
-                "merge_all_sources": task.merge_all_sources,
-                "rename": task.rename,
-                "ids": dict(task.ids),
-            },
+            resume_params=_task_params(task),
         )
         self._active_session_id = task.session_id
         with self._lock:
@@ -911,16 +1129,25 @@ class OnlineTagSessionManager:
             # single comic out of the session entirely, but the pinned sources
             # must be fetched *and* the unpinned ones searched in one lookup so
             # merge_all_sources can merge both results.
-            if not task.ids:
-                self._prefetch_stored_ids(state, comic_paths, task, credentials)
+            pinned = (
+                {}
+                if task.ids
+                else self._prefetch_stored_ids(state, comic_paths, task, credentials)
+            )
             # Pass 1: auto-match and write the confident comics. When deferring,
             # ambiguous matches become deferred prompts persisted for later,
             # independent resolution; with "never" prompts they're skipped inline
             # and nothing is persisted. The scan never blocks waiting for answers.
+            # Under Merge all sources the partly-identified comics go first,
+            # each in a lookup of its own that fetches its ids and searches the
+            # other sources.
             self._pass_runner.collect_results(
-                state, comic_paths.values(), flush_writes=True
+                state,
+                comic_paths.values(),
+                flush_writes=True,
+                pinned=self._pinned_lookups(state, pinned, task, credentials),
             )
-            if defer_prompts:
+            if _defers_prompts(task):
                 self._persist_prompts(state)
             self._log_summary(state, start)
         finally:
@@ -980,10 +1207,14 @@ class OnlineTagSessionManager:
             if not state:
                 return
             state.cancelled = True
+            state.pause_event.set()
             # A pause taken during a rate-limit sleep aborts the retry with no
             # FileFinished behind it, so nothing else would clear the marker.
             state.live.clear()
-            state.session.cancel()
+            # The one-comic session too: a lookup in flight there, or its
+            # rate-limit wait, ends now rather than when it finishes.
+            for session in state.sessions():
+                session.cancel()
         self.log.info(f"Online tag scan {session_id} cancelled.")
 
     def has_session(self, session_id: str) -> bool:

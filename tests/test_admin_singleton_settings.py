@@ -98,8 +98,7 @@ class AdminSingletonSettingsTestCase(TestCase):
         )
         assert resp.status_code == HTTPStatus.OK, resp.content
         body = resp.json()["data"]
-        assert body["metronKeySet"] is True
-        assert body["hasMetronCredentials"] is True
+        assert "metron" in body["configuredSources"]
         # Write-only: the key itself never comes back out.
         assert "metronKey" not in body
         assert ComicboxTaggingDefaults.objects.get(pk=1).metron_key == "token"
@@ -114,7 +113,7 @@ class AdminSingletonSettingsTestCase(TestCase):
             {"metronKey": ""},
         )
         assert resp.status_code == HTTPStatus.OK, resp.content
-        assert resp.json()["data"]["hasMetronCredentials"] is False
+        assert "metron" not in resp.json()["data"]["configuredSources"]
         assert ComicboxTaggingDefaults.objects.get(pk=1).metron_key == ""
 
     def test_comicvine_url_saves_alone_and_reads_back(self) -> None:
@@ -132,7 +131,7 @@ class AdminSingletonSettingsTestCase(TestCase):
         # placeholder.
         assert body["comicvineUrl"] == "https://cv.example.com/api"
         # A url is not a credential, so the source stays unconfigured.
-        assert body["hasComicvineCredentials"] is False
+        assert "comicvine" not in body["configuredSources"]
         defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         assert defaults.comicvine_url == "https://cv.example.com/api"
         assert defaults.comicvine_key == ""
@@ -151,7 +150,7 @@ class AdminSingletonSettingsTestCase(TestCase):
         )
         assert resp.status_code == HTTPStatus.OK, resp.content
         body = resp.json()["data"]
-        assert body["hasComicvineCredentials"] is False
+        assert "comicvine" not in body["configuredSources"]
         assert body["comicvineUrl"] == ""
         defaults = ComicboxTaggingDefaults.objects.get(pk=1)
         assert defaults.comicvine_key == ""

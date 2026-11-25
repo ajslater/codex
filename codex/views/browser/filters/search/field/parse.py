@@ -82,9 +82,15 @@ class FieldQueryTransformer(Transformer):
 
     def _make_operand_q(self, token: Token) -> Q:
         """Construct Django ORM Query from a leaf operand value."""
-        if (q_dict := parse_expression(self._rel, self._rel_class, str(token))) and (
-            prefixed_q_dict := self._prefix_q_dict(q_dict)
-        ):
+        q_dict = parse_expression(self._rel, self._rel_class, str(token))
+        if q_dict and self._many_to_many:
+            # Joined inline, a many-to-many value repeats the comic's row
+            # once per matching tag: ``characters:*bat*`` found a comic with
+            # Batman and Batgirl twice. A membership test keeps one row per
+            # comic, as the tag filters do, and makes each operand of an
+            # AND its own test rather than one joined tag matching both.
+            q_dict = {"pk__in": Comic.objects.filter(**q_dict).values("pk")}
+        if q_dict and (prefixed_q_dict := self._prefix_q_dict(q_dict)):
             return Q(**prefixed_q_dict)
         return Q()
 

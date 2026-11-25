@@ -16,6 +16,9 @@ from codex.views.browser.metadata.const import SUM_FIELDS
 from codex.views.browser.metadata.copy_intersections import (
     MetadataCopyIntersectionsView,
 )
+from codex.views.const import STORY_ARC_COLLECTION
+from codex.views.readinglists.access import visible_lists
+from codex.views.readinglists.details import list_details
 
 
 class MetadataView(MetadataCopyIntersectionsView):
@@ -79,6 +82,17 @@ class MetadataView(MetadataCopyIntersectionsView):
                 setattr(obj, field, value)
         return obj
 
+    def _reading_list_details(self, pks) -> dict[str, Any] | None:
+        """Describe the list when the selection is one reading list."""
+        if self.kwargs["collection"] != STORY_ARC_COLLECTION or len(pks) != 1:
+            return None
+        reading_list = visible_lists(self.request.user).filter(pk=pks[0]).first()
+        if reading_list is None:
+            return None
+        return list_details(
+            self, self.request, reading_list, self.params.get("filters") or {}
+        )
+
     @override
     def get_object(self) -> Any:
         """Create a comic-like object from the current browser collection."""
@@ -113,10 +127,11 @@ class MetadataView(MetadataCopyIntersectionsView):
         obj = self._aggregate_editable(filtered_qs, obj)
 
         # Hacks to add to object after query
-        collection_lists, fk_intersections, m2m_intersections, shelves = (
+        collection_lists, fk_intersections, m2m_intersections, lists = (
             self.query_intersections(filtered_qs)
         )
-        obj.shelves = shelves
+        obj.reading_lists = lists
+        obj.reading_list_details = self._reading_list_details(pks)
         return self.copy_intersections_into_comic_fields(
             obj, collection_lists, fk_intersections, m2m_intersections
         )

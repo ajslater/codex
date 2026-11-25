@@ -74,8 +74,15 @@ _COL_REXP = rf"({_MULTI_COL_REXP}|{_SINGLE_COL_REXP}):{_EXP_REXP}"
 _TOKEN_PRE_OP_REXP = r"(?:(?P<preop>and|or|not)\s+)?"  # noqa: S105
 _TOKEN_REXP = rf"(?P<token>{_TOKEN_PRE_OP_REXP}{_COL_REXP}|\S+)"
 _TOKEN_RE = re.compile(_TOKEN_REXP, flags=re.IGNORECASE)
+# Search fields whose column has another name: Reading Lists searches the
+# story-arc names in the index.
+_FIELD_COLUMNS = MappingProxyType({"reading_lists": "story_arcs"})
 _ALIAS_FIELD_MAP = MappingProxyType(
-    {value: key for key, values in FIELDMAP.items() for value in values}
+    {
+        value: _FIELD_COLUMNS.get(key, key)
+        for key, values in FIELDMAP.items()
+        for value in (*values, key)
+    }
 )
 # Compound aliases expand into OR queries across multiple columns.
 # Individual aliases (protag, lead) are resolved to "protagonist" by

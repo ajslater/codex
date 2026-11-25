@@ -1,0 +1,201 @@
+"""
+A list's items: issues, and whole collections that stay current.
+
+``PATCH reading-lists/<pk>/items {add: {collection: [pks]}, remove:
+{collection: [pks]}}``. Comics are entries added by hand. A publisher,
+imprint, series, volume, folder or list is a collection item whose comics
+follow it (see :mod:`codex.librarian.scribe.readinglists.live`). Targets
+the user may not see are dropped silently, so the answer never reveals
+whether one exists. Saved in Codex only: no comic file changes.
+"""
+
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, Final, override
+
+from django.db import transaction
+from django.db.models import Q
+from rest_framework.exceptions import ValidationError
+from rest_framework.fields import DictField, IntegerField, ListField
+from rest_framework.response import Response
+from rest_framework.serializers import Serializer
+
+from codex.librarian.mp_queue import LIBRARIAN_QUEUE
+from codex.librarian.scribe.readinglists.live import (
+    COLLECTION_KIND,
+    ITEM_MODELS,
+    ItemRefusedError,
+    add_item,
+    is_large,
+    lock_list,
+    reconcile_includers,
+    reconcile_list,
+)
+from codex.librarian.scribe.readinglists.tasks import ReadingListLiveSyncTask
+from codex.models import Comic
+from codex.models.readinglist import ReadingList, ReadingListSource
+from codex.views.auth import GroupACLMixin
+from codex.views.readinglists.access import ReadingListAccessView, visible_lists
+from codex.views.readinglists.entries import add_comics, entry_count, remove_comics
+
+COMICS: Final = "comics"
+ITEM_TARGETS: Final = (COMICS, *ITEM_MODELS)
+
+
+class _TargetsField(DictField):
+    """``{collection: [pk, ...]}`` limited to issues and item collections."""
+
+    child = ListField(child=IntegerField(min_value=1), allow_empty=True)
+
+    @override
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if unknown := sorted(set(value) - set(ITEM_TARGETS)):
+            reason = f"Unknown collection(s): {', '.join(unknown)}."
+            raise ValidationError(reason)
+        return value
+
+
+class ReadingListItemsSerializer(Serializer):
+    """Input for adding items to and removing items from a list."""
+
+    add = _TargetsField(required=False)
+    remove = _TargetsField(required=False)
+
+
+def visible_targets(
+    acl: GroupACLMixin, user, collection: str, pks: Sequence[int]
+) -> list[int]:
+    """Keep the targets ``user`` may see, in the order asked."""
+    if collection == "arcs":
+        queryset = visible_lists(user)
+    else:
+        model = Comic if collection == COMICS else ITEM_MODELS[collection]
+        # Writes land on rows whose file is briefly missing.
+        acl_filter = acl.get_acl_filter(model, user, include_missing=True)
+        queryset = model.objects.filter(acl_filter)
+    seen = set(queryset.filter(pk__in=set(pks)).values_list("pk", flat=True))
+    return [pk for pk in dict.fromkeys(pks) if pk in seen]
+
+
+def visible_items_q(acl: GroupACLMixin, user, reading_list: ReadingList) -> Q:
+    """
+    Return a list's collection items whose targets ``user`` may see.
+
+    A copy holds only these, so it never names a collection the copier
+    could not have added.
+    """
+    targets: defaultdict[str, list[int]] = defaultdict(list)
+    for collection, target_id in ReadingListSource.objects.filter(
+        reading_list=reading_list, kind=COLLECTION_KIND, target_id__isnull=False
+    ).values_list("collection", "target_id"):
+        targets[collection].append(target_id)
+    visible = Q(pk__in=())
+    for collection, pks in targets.items():
+        visible |= Q(
+            collection=collection,
+            target_id__in=visible_targets(acl, user, collection, pks),
+        )
+    return visible
+
+
+class ReadingListItemsView(ReadingListAccessView):
+    """PATCH: add items to and remove items from one list, in bulk."""
+
+    def _visible(self, collection: str, pks: Sequence[int]) -> list[int]:
+        """Keep the targets the user may see, in the order asked."""
+        return visible_targets(self, self.request.user, collection, pks)
+
+    def _add_items(
+        self, reading_list: ReadingList, targets: Mapping[str, Sequence[int]]
+    ) -> tuple[list[ReadingListSource], list[dict[str, Any]]]:
+        added: list[ReadingListSource] = []
+        refused: list[dict[str, Any]] = []
+        for collection in ITEM_MODELS:
+            for pk in self._visible(collection, targets.get(collection, ())):
+                if ReadingListSource.objects.filter(
+                    reading_list=reading_list,
+                    kind=COLLECTION_KIND,
+                    collection=collection,
+                    target_id=pk,
+                ).exists():
+                    continue
+                try:
+                    added.append(add_item(reading_list, collection, pk))
+                except ItemRefusedError as exc:
+                    refused.append(
+                        {"collection": collection, "pk": pk, "reason": str(exc)}
+                    )
+        return added, refused
+
+    @staticmethod
+    def _remove_items(
+        reading_list: ReadingList, targets: Mapping[str, Sequence[int]]
+    ) -> int:
+        removed = 0
+        for collection in ITEM_MODELS:
+            if pks := targets.get(collection):
+                items = ReadingListSource.objects.filter(
+                    reading_list=reading_list,
+                    kind=COLLECTION_KIND,
+                    collection=collection,
+                    target_id__in=pks,
+                )
+                removed += items.count()
+                # Their live entries go with them.
+                items.delete()
+        return removed
+
+    @staticmethod
+    def _sync(reading_list: ReadingList, added: Iterable[ReadingListSource]) -> bool:
+        """
+        Sync the list and its holders, or queue the large items; return queued.
+
+        Called after the change commits: syncing is idempotent, and done
+        inside the change it held the list's write lock through every
+        holder's sync, and a holder's failure rolled back the change. When
+        an item is too large to sync inline, the rest of the change still
+        settles here, a hand-added comic an item delivered among it, and
+        the librarian job, queued once this commits so it reads the item,
+        syncs the large items and the holders.
+        """
+        large = [
+            item.pk
+            for item in added
+            if item.target_id is not None and is_large(item.collection, item.target_id)
+        ]
+        reconcile_list(reading_list, skip=large)
+        if large:
+            task = ReadingListLiveSyncTask(list_pks=(reading_list.pk,), force=True)
+            transaction.on_commit(lambda: LIBRARIAN_QUEUE.put(task))
+            return True
+        reconcile_includers(reading_list)
+        return False
+
+    def patch(self, *_args, **_kwargs) -> Response:
+        """Apply ``{add: {collection: [pks]}, remove: {collection: [pks]}}``."""
+        reading_list = self.get_reading_list()
+        serializer = ReadingListItemsSerializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        add = serializer.validated_data.get("add", {})
+        remove = serializer.validated_data.get("remove", {})
+        # One change: a failed add must not leave the removes applied. The
+        # list and its holders sync once, after the change commits.
+        with transaction.atomic():
+            lock_list(reading_list)
+            result = remove_comics(reading_list, remove.get(COMICS, ()), settle=False)
+            result["removed"] += self._remove_items(reading_list, remove)
+            added, refused = self._add_items(reading_list, add)
+            comics = add_comics(
+                reading_list, self._visible(COMICS, add.get(COMICS, ())), settle=False
+            )
+        queued = self._sync(reading_list, added)
+        result["refused"] += refused
+        return Response(
+            {
+                **result,
+                "added": comics + len(added),
+                "queued": queued,
+                "count": entry_count(reading_list, self.shown_entries_q()),
+            }
+        )

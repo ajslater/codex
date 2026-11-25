@@ -47,7 +47,11 @@ from typing import TYPE_CHECKING, Any, Final
 
 from codex.cache import tagging_cache as cache
 from codex.librarian.onlinetag.estimate import source_rate_per_minute
-from codex.librarian.onlinetag.session_cache import get_pending_prompts, prompt_comics
+from codex.librarian.onlinetag.session_cache import (
+    get_pending_prompts,
+    prompt_comics,
+    under_state_lock,
+)
 
 # Re-exported so callers can keep reading the status vocabulary off the module
 # that renders it.
@@ -84,16 +88,19 @@ def get_snapshot() -> dict[str, Any] | None:
     return cache.get(_SNAPSHOT_KEY) or None
 
 
+@under_state_lock
 def set_snapshot(snapshot: dict[str, Any]) -> None:
     """Persist the session snapshot with no TTL."""
     cache.set(_SNAPSHOT_KEY, snapshot, timeout=_NO_TIMEOUT)
 
 
+@under_state_lock
 def clear_snapshot() -> None:
     """Drop the session snapshot entirely."""
     cache.delete(_SNAPSHOT_KEY)
 
 
+@under_state_lock
 def deactivate_snapshot() -> None:
     """
     Mark a lingering snapshot inactive without dropping it.
@@ -180,6 +187,7 @@ def get_resolved_outcomes() -> dict[int, Any]:
     return cache.get(_RESOLVED_KEY, {}) or {}
 
 
+@under_state_lock
 def set_resolved_outcomes(outcomes: dict[int, Any]) -> None:
     """Replace the resolution record, or clear it when empty."""
     if outcomes:
@@ -206,6 +214,7 @@ def _normalize_resolution(value: Any) -> dict[str, Any]:
     return {"status": "", "sources": {}}
 
 
+@under_state_lock
 def record_resolution(pk: int | None, status: str, source: str | None = None) -> None:
     """Record one comic's match-review outcome by source (no-op without a pk)."""
     if pk is None:
@@ -215,14 +224,15 @@ def record_resolution(pk: int | None, status: str, source: str | None = None) ->
     if source:
         record["sources"][source] = status
     # Under merge_all_sources one comic can raise a prompt per source, so the
-    # file-level status is a reduction: a match from either source is the
-    # outcome that matters and outranks the other's skip.
+    # file-level status is a reduction: a match from any source is the
+    # outcome that matters and outranks the others' skips.
     seen = (*record["sources"].values(), record["status"], status)
     record["status"] = USER_MATCHED if USER_MATCHED in seen else status
     outcomes[pk] = record
     set_resolved_outcomes(outcomes)
 
 
+@under_state_lock
 def clear_resolved_outcomes() -> None:
     """Drop the whole resolution record (a fresh scan starts clean)."""
     cache.delete(_RESOLVED_KEY)
@@ -277,6 +287,7 @@ def get_resume_state() -> dict[str, Any] | None:
     return cache.get(_RESUME_KEY) or None
 
 
+@under_state_lock
 def set_resume_state(params: dict[str, Any], remaining: list[int]) -> None:
     """Persist the resume descriptor, or clear it when nothing remains."""
     if remaining:
@@ -289,6 +300,7 @@ def set_resume_state(params: dict[str, Any], remaining: list[int]) -> None:
         cache.delete(_RESUME_KEY)
 
 
+@under_state_lock
 def clear_resume_state() -> None:
     """Drop the resume descriptor (a fresh scan starts clean)."""
     cache.delete(_RESUME_KEY)
@@ -353,7 +365,9 @@ def _elect_in_flight_path(
 
 def _comic_status(path, pk, stats, review_pks: set, *, in_flight: bool) -> str:
     """Classify one comic from the scan's accumulated outcome stats."""
-    if path in stats.errored_paths:
+    # A held comic reads as an error, but unlike one it stays pending, so
+    # Resume tries it again (see ``_is_pending``).
+    if path in stats.errored_paths or path in stats.held_sources_by_path:
         return ERROR
     if pk in review_pks:
         return NEEDS_REVIEW
@@ -379,9 +393,10 @@ def _row_source_statuses(
         # first source reported before the scan stopped would otherwise show
         # that verdict beside a Queued row Resume is about to re-run in full.
         return {}
-    if status == ERROR:
+    if status == ERROR and path not in stats.held_sources_by_path:
         # A worker exception is usually archive-level rather than any one
         # source's doing, so every column reports it instead of mis-blaming.
+        # A held comic is one source's doing, and its cells say which.
         return dict.fromkeys(sources, ERROR)
     cells = dict(stats.source_status_by_path.get(path, {}))
     if status == IN_FLIGHT:
@@ -454,12 +469,13 @@ def _budget_window(windows: Mapping[str, Any]) -> tuple[str, Mapping[str, Any]]:
     """
     Pick the one window worth showing out of a source's budget, and name it.
 
-    The two services meter differently. Metron reports a burst and a
+    The services meter differently. Metron reports a burst and a
     sustained window; the sustained one is the interesting one, because
     its daily limit varies by donor tier while the burst cap is the
     static per-minute rate already on screen. Comic Vine meters per
     endpoint pool and reports one window per pool it has used, all of
     them hourly, so the tightest is the one that will stop the run.
+    VerseDB reports its one hourly window.
 
     Returns ``("", {})`` for a source with no data yet.
     """
@@ -515,6 +531,12 @@ def _build_sources(
     return sources
 
 
+def _held(held: Mapping[Path, tuple[str, ...]]) -> dict[str, Any]:
+    """Count the comics held back and name the sources that failed them."""
+    sources = sorted({name for names in held.values() for name in names})
+    return {"count": len(held), "sources": sources}
+
+
 def build_snapshot(
     state: SessionState,
     *,
@@ -560,12 +582,18 @@ def build_snapshot(
         "session_id": session_id,
         "active": active,
         # Has unprocessed comics left → a paused/interrupted session the UI can
-        # resume (queued already includes the in-flight one). While ``active``
-        # the frontend shows "Tagging" regardless; this matters once inactive.
-        "resumable": bool(batch["queued"]),
+        # resume (queued already includes the in-flight one; a held comic
+        # counts as an error row but is still to be processed). While
+        # ``active`` the frontend shows "Tagging" regardless; this matters once
+        # inactive.
+        "resumable": bool(batch["queued"] or state.stats.held),
         # Empty unless the run stopped itself. A Resume button with no
         # explanation is the kind of thing that gets reported as a bug.
         "pause_reason": state.pause_reason,
+        # The comics held back, and which sources could not fetch their
+        # stored ids. Their rows read Error; the table words why from this,
+        # naming the sources as its columns do.
+        "held": _held(state.stats.held_sources_by_path),
         "batch": batch,
         "sources": _build_sources(state, source_retry_at, waiting_sources),
         "comics": shown,

@@ -1,5 +1,6 @@
 <template>
   <div id="metadataBody">
+    <MetadataReadingListDetails />
     <section class="mdSection">
       <MetadataText :value="md.summary" :max-height="100" />
       <MetadataText
@@ -55,11 +56,12 @@
     <MetadataRatings class="mdSection" />
     <MetadataTagsTable :tag-map="tags" class="mdSection">
       <!--
-        Only for a signed-in user: an anonymous visitor owns no shelves, and
-        the slot alone would keep an untagged comic's empty table up.
+        Reading lists show to whoever may see them, and a signed-in user
+        gets the list menu there too. The slot alone keeps a table up, so
+        an untagged comic in no list shows an anonymous visitor none.
       -->
-      <template v-if="isLoggedIn" #before>
-        <MetadataShelvesRow :book="book" />
+      <template v-if="isLoggedIn || inReadingLists" #before>
+        <MetadataReadingListsRow :book="book" />
       </template>
     </MetadataTagsTable>
     <section class="mdSection">
@@ -83,7 +85,8 @@ import prettyBytes from "pretty-bytes";
 
 import { formattedIssue } from "@/comic-name";
 import MetadataRatings from "@/components/metadata/metadata-ratings.vue";
-import MetadataShelvesRow from "@/components/metadata/metadata-shelves-row.vue";
+import MetadataReadingListDetails from "@/components/metadata/metadata-reading-list-details.vue";
+import MetadataReadingListsRow from "@/components/metadata/metadata-reading-lists-row.vue";
 import MetadataText from "@/components/metadata/metadata-text.vue";
 import MetadataTagsTable from "@/components/metadata/tags-table.vue";
 import { getDateTime } from "@/datetime";
@@ -95,7 +98,8 @@ export default {
   name: "MetadataBody",
   components: {
     MetadataRatings,
-    MetadataShelvesRow,
+    MetadataReadingListDetails,
+    MetadataReadingListsRow,
     MetadataTagsTable,
     MetadataText,
   },
@@ -107,6 +111,9 @@ export default {
   },
   computed: {
     ...mapState(useMetadataStore, ["credits", "md", "ratings", "tags"]),
+    ...mapState(useMetadataStore, {
+      inReadingLists: (state) => Boolean(state.md?.readingLists?.length),
+    }),
     ...mapState(useAuthStore, {
       isLoggedIn: (state) => Boolean(state.user),
     }),

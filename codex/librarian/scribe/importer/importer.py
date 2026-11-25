@@ -3,8 +3,8 @@
 from itertools import batched
 
 from codex.librarian.memory import get_mem_limit
-from codex.librarian.scribe.importer.moved import MovedImporter
 from codex.librarian.scribe.importer.pragmas import importer_pragmas
+from codex.librarian.scribe.importer.readinglists import ReadingListsImporter
 from codex.settings import IMPORTER_CHUNK_MEM_FRACTION
 
 # Per-comic working set per chunk-resident path: Comic instance +
@@ -29,10 +29,10 @@ _CHUNK_CEILING = 500000
 # ``Folder.path`` out from under its source-path keying.
 _PRE_PHASES = ("init_apply", "unstamp_revived", "move_and_modify_dirs")
 _PER_COMIC_PHASES = ("read", "query", "create_and_update", "link")
-_POST_PHASES = ("fail_imports", "delete", "full_text_search")
+_POST_PHASES = ("fail_imports", "delete", "sync_reading_lists", "full_text_search")
 
 
-class ComicImporter(MovedImporter):
+class ComicImporter(ReadingListsImporter):
     """Initialize, run and finish a bulk import."""
 
     @staticmethod

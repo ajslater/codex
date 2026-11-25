@@ -30,12 +30,12 @@ from codex.models import (
     Location,
     OriginalFormat,
     Publisher,
+    ReadingList,
+    ReadingListSource,
     Reprint,
     ScanInfo,
     Series,
     SeriesGroup,
-    Shelf,
-    ShelfItem,
     Story,
     StoryArc,
     StoryArcNumber,
@@ -83,7 +83,7 @@ COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
         **COLLECTION_NAME_MAP,
         COMIC_COLLECTION: "pk",
         FOLDER_COLLECTION: "parent_folder",
-        STORY_ARC_COLLECTION: "story_arc_numbers__story_arc",
+        STORY_ARC_COLLECTION: "reading_list_entries__reading_list",
         # Reader-only: reprints are a reading order, not a browse
         # collection. Browse callers only ever index this map with a
         # URL-regex-validated collection, so the extra key is inert there.
@@ -101,14 +101,14 @@ METADATA_COLLECTION_RELATION = MappingProxyType(
         **COLLECTION_NAME_MAP,
         COMIC_COLLECTION: "comic",
         FOLDER_COLLECTION: "comic__folders",
-        STORY_ARC_COLLECTION: "comic__story_arc_numbers__story_arc",
+        STORY_ARC_COLLECTION: "comic__reading_list_entries__reading_list",
     }
 )
 CUSTOM_COVER_COLLECTION_RELATION: MappingProxyType[str, str] = MappingProxyType(
     {
         **COLLECTION_NAME_MAP,
         FOLDER_COLLECTION: "folder",
-        STORY_ARC_COLLECTION: "storyarc",
+        STORY_ARC_COLLECTION: "readinglist",
     }
 )
 # Publisher-hierarchy nav ordering (root → volume), used for the
@@ -130,7 +130,7 @@ MODEL_REL_MAP: MappingProxyType[type[BrowserCollectionModel], str] = MappingProx
         Series: "series",
         Volume: "volume",
         Folder: "parent_folder",
-        StoryArc: "story_arc_numbers__story_arc",
+        ReadingList: "reading_list_entries__reading_list",
         Comic: "pk",
     }
 )
@@ -144,7 +144,7 @@ COLLECTION_MODEL_MAP: MappingProxyType[str, type[BrowserCollectionModel] | None]
             Collection.VOLUME: Volume,
             Collection.COMIC: Comic,
             Collection.FOLDER: Folder,
-            Collection.ARC: StoryArc,
+            Collection.ARC: ReadingList,
         }
     )
 )
@@ -154,7 +154,7 @@ COLLECTION_MODELS = (
     Series,
     Volume,
     Folder,
-    StoryArc,
+    ReadingList,
 )
 STATS_COLLECTION_MODELS = (
     *COLLECTION_MODELS,
@@ -186,8 +186,8 @@ METADATA_MODELS = (
 )
 STATS_USAGE_MODELS = (
     Bookmark,
-    Shelf,
-    ShelfItem,
+    ReadingList,
+    ReadingListSource,
     UserApiKey,
 )
 CONFIG_MODELS = (
@@ -197,7 +197,7 @@ CONFIG_MODELS = (
     Session,
 )
 COLLECTION_MTIME_MODEL_MAP = MappingProxyType(
-    {Collection.ROOT: Publisher, Collection.ARC: StoryArc, Collection.FOLDER: Folder}
+    {Collection.ROOT: Publisher, Collection.ARC: ReadingList, Collection.FOLDER: Folder}
 )
 EPOCH_START = datetime.fromtimestamp(0, tz=UTC)
 ONE_INTEGERFIELD = Value(1, PositiveSmallIntegerField())

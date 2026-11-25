@@ -16,6 +16,13 @@ from codex.librarian.scribe.janitor.tasks import (
 )
 from codex.librarian.scribe.lazy_importer import LazyImporter
 from codex.librarian.scribe.priority import get_task_priority
+from codex.librarian.scribe.readinglists.tasks import (
+    ReadingListImportTask,
+    ReadingListLiveSyncTask,
+    ReadingListRecombineTask,
+    ReadingListRematchTask,
+)
+from codex.librarian.scribe.readinglists.worker import ReadingListWorker
 from codex.librarian.scribe.search.handler import SearchIndexer
 from codex.librarian.scribe.search.tasks import (
     SearchIndexClearTask,
@@ -129,6 +136,16 @@ class ScribeThread(QueuedThread):
                     online_tag_thread=self.online_tag_thread,
                 )
                 worker.handle_task(task)
+            case (
+                ReadingListImportTask()
+                | ReadingListRecombineTask()
+                | ReadingListRematchTask()
+                | ReadingListLiveSyncTask()
+            ):
+                worker = ReadingListWorker(
+                    self.log, self.librarian_queue, self.db_write_lock
+                )
+                worker.handle_task(task)
             case BulkTagWriteTask():
                 worker = TagWriter(
                     self.log,
@@ -165,5 +182,8 @@ class ScribeThread(QueuedThread):
             self.log.debug("Cleanup abort signal given.")
             return
         priority = get_task_priority(task)
+        if isinstance(task, ReadingListRematchTask):
+            # Its place in the queue, which a later full rematch covers.
+            task.seq = priority[-1]
         item = (priority, task)
         self.queue.put(item)

@@ -63,7 +63,7 @@ const COLLECTION_PREFIX_MAP = Object.freeze({
   series: "series",
   volumes: "volume",
   folders: "folder",
-  arcs: "storyArc",
+  arcs: "readingList",
 });
 
 export default {
@@ -114,7 +114,7 @@ export default {
           return [this.firstNameFromList(md.folderList)];
         }
         if (this.md.collection === "arcs") {
-          return [this.firstNameFromList(md.storyArcList)];
+          return [this.firstNameFromList(md.readingListList)];
         }
         const names = [
           this.firstNameFromList(md.publisherList),

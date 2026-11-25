@@ -23,18 +23,24 @@ border-radius: 128px;
 - Reads **CBZ, CBR, CB7, CBT and PDF** comics.
 - **Fastest bulk importer** of any comic server.
 - **Watches the filesystem** and auto-imports new or changed comics.
-- **Custom covers** for Folders, Publishers, Imprints, Series, and Story Arcs.
+- **Custom covers** for Folders, Publishers, Imprints, Series, and Reading
+  Lists.
 
 ### 🔎 Browse & Search
 
 - Browse a tree of **Publishers, Imprints, Series, Volumes**, your **folder
-  hierarchy**, or by tagged **Story Arc**.
+  hierarchy**, or **Reading Lists**: the story arcs in your comics' tags, and
+  lists you import or make.
+- **Import reading lists** from ComicRack CBL files, URLs, the DieselTech
+  catalog, Metron and Comic Vine, combine lists of one event, and make your own.
+  A list shows its missing issues in place and continues where you left off.
 - **Full-text search** across comic metadata and bookmarks.
 - **Filter and sort** on any metadata field, including per-user unread status.
 - A **multi-sortable metadata table** view for power browsing.
 - **Save and load** named views and searches.
-- **Shelves** you name yourself, such as "Want to Read", holding any Publisher,
-  Imprint, Series, Volume, Folder, Story Arc, or Issue — filterable per user.
+- **Your own reading lists**, such as "Want to Read", holding issues and whole
+  Publishers, Imprints, Series, Volumes, Folders or other lists that stay
+  current — filterable per user.
 
 ### 🏷️ Edit & Tag
 
@@ -76,8 +82,8 @@ border-radius: 128px;
 
 ### Examples
 
-- _Filter by_ Story Arc and Unread, _Order by_ Publish Date to create an event
-  reading list.
+- _Filter by_ a Reading List and Unread, _Order by_ Reading Order to read an
+  event in order.
 - _Filter by_ Unread and _Order by_ Added Time to see your latest unread comics.
 - _Search by_ your favorite character to find their appearances across different
   comics.
@@ -267,7 +273,7 @@ setting.
 
 Codex's main SQLite database (`codex.sqlite3`) holds two very different kinds of
 data: comic metadata, which can always be rebuilt by re-scanning your library,
-and _user_ data — accounts, bookmarks, shelves, browser settings, library
+and _user_ data — accounts, bookmarks, reading lists, browser settings, library
 definitions, admin flags — which cannot. To make the second kind survive a
 database loss or rebuild, Codex snapshots every user-bound row into a separate
 SQLite file: the **user data sidecar**.
@@ -285,8 +291,8 @@ SQLite file: the **user data sidecar**.
 Users (with hashed passwords), API keys (hashed too, so a restored key still
 logs in, though a key revoked since the snapshot stays revoked), groups &
 permissions, group memberships, libraries and their access lists, bookmarks,
-shelves, per-user browser settings, admin flags, timestamps, online-tagging
-defaults, and the default settings for new sessions.
+reading lists you imported or made, per-user browser settings, admin flags,
+timestamps, online-tagging defaults, and the default settings for new sessions.
 
 It deliberately does **not** mirror anything derivable from a filesystem
 re-scan: comics, publishers, series, volumes, folders, story arcs, tags,
@@ -344,7 +350,7 @@ skipped — the operation never aborts.
 5. Let the librarian finish its initial filesystem scan, then run
    `codex restore_user_data` (or click _Restore Now_ in the admin panel).
 
-Bookmarks reattach by comic path, shelf items by collection name-chain (e.g.
+Bookmarks reattach by comic path, reading list items by name-chain (e.g.
 publisher → imprint → series), and tag filters by tag name. As long as your
 library paths and tag names match, everything reattaches.
 
@@ -1067,6 +1073,7 @@ URL then returns 404.
     - [PocketBooks](https://pocketbook.ch/)
     - [KYBook 3](http://kybook-reader.com/)
     - [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
+    - [Gutter](https://apps.apple.com/us/app/gutter-comic-reader/id6831270255)
 - Android
     - [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
     - [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)

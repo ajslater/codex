@@ -1,6 +1,7 @@
 """View for marking comics read and unread."""
 
-from itertools import chain
+from collections.abc import Iterable
+from functools import cached_property
 from types import MappingProxyType
 from typing import Any, cast, override
 
@@ -10,11 +11,15 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer
 
-from codex.choices.browser import DUMMY_NULL_NAME, VUETIFY_NULL_CODE
+from codex.choices.browser import (
+    BROWSER_READING_LIST_KIND_CHOICES,
+    DUMMY_NULL_NAME,
+    VUETIFY_NULL_CODE,
+)
 from codex.models import (
     Comic,
     CreditPerson,
-    StoryArc,
+    ReadingList,
 )
 from codex.models.age_rating import AgeRating, AgeRatingMetron
 from codex.models.identifier import IdentifierSource
@@ -25,11 +30,23 @@ from codex.serializers.browser.choices import (
     BrowserFilterChoicesSerializer,
 )
 from codex.serializers.browser.settings import BrowserFilterChoicesInputSerializer
+from codex.views.browser.const import MATCH_ALL_KEY
 from codex.views.browser.filters.filter import BrowserFilterView
+from codex.views.browser.filters.reading_lists import (
+    READING_LIST_KIND_FILTER,
+    READING_LISTS_FILTER,
+    listed_comics,
+    listed_q,
+)
+from codex.views.readinglists.access import (
+    LIST_KINDS,
+    list_kind_q,
+    list_kinds_for,
+    visible_lists,
+)
 from codex.views.settings import (
     CREDIT_PERSON_UI_FIELD,
     IDENTIFIER_TYPE_UI_FIELD,
-    STORY_ARC_UI_FIELD,
 )
 
 _AGE_RATING_TAGGED_FIELD = "age_rating_tagged"
@@ -53,10 +70,6 @@ _FIELD_TO_REL_MODEL_MAP = MappingProxyType(
             "identifiers__source",
             IdentifierSource,
         ),
-        STORY_ARC_UI_FIELD: (
-            "story_arc_numbers__story_arc",
-            StoryArc,
-        ),
     }
 )
 # Reverse-query prefixes from the choice model back to Comic. Used to build
@@ -69,7 +82,6 @@ _BACK_REL_MAP = MappingProxyType(
         # AgeRatingMetron -> agerating -> comic
         AgeRatingMetron: "agerating__",
         CreditPerson: "credit__",
-        StoryArc: "storyarcnumber__",
         IdentifierSource: "identifier__",
     }
 )
@@ -90,10 +102,16 @@ _NULL_CHOICE_FIELDS = frozenset({"series_status"})
 # Plain fields whose choices are serialized as {pk, name} rows.
 _NAMED_ROW_CHOICE_FIELDS = frozenset({"community_rating", "file_type", "series_status"})
 _NULL_NAMED_ROW = MappingProxyType({"pk": VUETIFY_NULL_CODE, "name": DUMMY_NULL_NAME})
-_NULL_NAMED_ROW_ITERABLE = (_NULL_NAMED_ROW,)
 # We only need to know whether an m2m relation has two or more distinct
 # non-null values; ``[:2]`` is enough to distinguish 0/1/>=2 cases.
 _M2M_DISTINCT_PROBE_LIMIT = 2
+# The Reading List Kind is offered when it has two kinds to choose between.
+_KINDS_TO_CHOOSE = 2
+_KIND_OMITTED = frozenset({READING_LIST_KIND_FILTER})
+# The filters about lists: they need a list the user can see.
+_LIST_FIELDS = frozenset({READING_LISTS_FILTER, READING_LIST_KIND_FILTER})
+# Choice models the menu shows in rating order, by ``index``.
+_INDEX_ORDERED_MODELS = frozenset({AgeRating, AgeRatingMetron})
 
 
 class BrowserChoicesViewBase(BrowserFilterView):
@@ -150,6 +168,64 @@ class BrowserChoicesViewBase(BrowserFilterView):
             model = remote_field.model if remote_field else None
 
         return rel, model
+
+    def reading_lists_of(self, comic_qs: QuerySet) -> QuerySet:
+        """Return the visible lists holding any of the comics: own first, by name."""
+        return (
+            visible_lists(self.request.user)
+            .filter(entries__comic__in=comic_qs.values("pk"), entries__ignored=False)
+            .distinct()
+            .order_by(F("user_id").asc(nulls_last=True), "sort_name", "pk")
+        )
+
+    def picked_list_kinds(self) -> frozenset[str]:
+        """Return the Reading List Kinds the viewer has picked."""
+        filters = self.params.get("filters") or {}
+        return frozenset(filters.get(READING_LIST_KIND_FILTER) or ())
+
+    def list_kind_probes(self) -> dict[str, QuerySet]:
+        """
+        Per kind the viewer may pick, the rows that show it is offered.
+
+        On the grid of lists, the lists of that kind; elsewhere, the comics
+        here on a visible list of that kind; inside one list none, as the
+        kind does nothing there. Every other filter applies and the kind
+        itself is left out, so a picked kind leaves the others offered and
+        switching is one step.
+        """
+        if self.is_in_lists():
+            return {}
+        user = self.request.user
+        kinds = list_kinds_for(user)
+        if self.is_lists_grid(ReadingList):
+            lists = self.get_filtered_queryset(ReadingList, omit=_KIND_OMITTED)
+            return {
+                kind: self.force_inner_joins(lists.filter(list_kind_q((kind,), user)))
+                for kind in kinds
+            }
+        comics = self.get_filtered_queryset(Comic, omit=_KIND_OMITTED)
+        return {
+            kind: comics.filter(listed_q(user, kinds=(kind,)))
+            for kind in self._kinds_with_lists(kinds)
+        }
+
+    def _kinds_with_lists(self, kinds: Iterable[str]) -> tuple[str, ...]:
+        """
+        Return the kinds the viewer sees a list of: only those can be offered.
+
+        A kind with no list would otherwise probe every comic here for an
+        entry it cannot have, a scan of the whole library for a reader
+        with only lists of their own.
+        """
+        lists = visible_lists(self.request.user)
+        user = self.request.user
+        return tuple(
+            kind for kind in kinds if lists.filter(list_kind_q((kind,), user)).exists()
+        )
+
+    def unlisted(self, comic_qs: QuerySet) -> QuerySet:
+        """Return the comics in no list the user may see, the "None" choice."""
+        return comic_qs.exclude(pk__in=listed_comics(self.request.user))
 
     @override
     def get_object(self) -> QuerySet:
@@ -215,13 +291,15 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         )
         serializer = serializer_cls()
         for field_name in serializer.get_fields():
-            if field_name == "story_arcs" and qs.model is StoryArc:
-                # don't allow filtering on story arc in story arc view.
-                continue
             if bool(filters.get(field_name)):
                 # Active filter on this dimension — the user is already
                 # filtering by it, so it must be available.
                 early_data[field_name] = True
+                continue
+            if field_name in _LIST_FIELDS:
+                self._list_field_probes(
+                    field_name, qs, early_data, aggregates, m2m_specs
+                )
                 continue
             rel, m2m_model = self.get_rel_and_model(field_name)
             if m2m_model is None and field_name not in _NULL_CHOICE_FIELDS:
@@ -242,6 +320,42 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
                 )
         return early_data, aggregates, m2m_specs
 
+    def _list_field_probes(
+        self,
+        field_name: str,
+        qs: QuerySet,
+        early_data: dict[str, bool],
+        aggregates: dict[str, Exists],
+        m2m_specs: dict[str, str],
+    ) -> None:
+        """Probe the Reading Lists or the Reading List Kind filter."""
+        if not self._sees_lists:
+            # No list to be on, and no kind to pick.
+            early_data[field_name] = False
+        elif field_name == READING_LISTS_FILTER:
+            self._reading_lists_probes(qs, aggregates, m2m_specs)
+        else:
+            for kind, rows in self.list_kind_probes().items():
+                aggregates[f"_kind_{kind}"] = Exists(rows.values("pk")[:1])
+
+    @cached_property
+    def _sees_lists(self) -> bool:
+        """Whether the user sees any list: the list probes need one."""
+        return visible_lists(self.request.user).exists()
+
+    def _reading_lists_probes(
+        self, qs: QuerySet, aggregates: dict[str, Exists], m2m_specs: dict[str, str]
+    ) -> None:
+        """Probe the reading lists like an m2m field, over visible lists only."""
+        listed = listed_q(self.request.user)
+        m2m_specs[READING_LISTS_FILTER] = ""
+        aggregates[f"_has_{READING_LISTS_FILTER}"] = Exists(
+            qs.filter(listed).values("pk")[:1]
+        )
+        aggregates[f"_null_{READING_LISTS_FILTER}"] = Exists(
+            qs.filter(~listed).values("pk")[:1]
+        )
+
     def _resolve_m2m_field(
         self, qs: QuerySet, field_name: str, rel: str, row: dict[str, Any]
     ) -> bool:
@@ -251,6 +365,11 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
             return False
         if bool(row.get(f"_null_{field_name}")):
             return True
+        if field_name == READING_LISTS_FILTER:
+            lists = self.reading_lists_of(qs).values("pk")
+            return (
+                lists[:_M2M_DISTINCT_PROBE_LIMIT].count() >= _M2M_DISTINCT_PROBE_LIMIT
+            )
         return self._has_two_distinct_m2m_values(qs, rel)
 
     @override
@@ -284,20 +403,41 @@ class BrowserChoicesAvailableView(BrowserChoicesViewBase):
         # distinct-count probe only for the (has_rel, ¬has_null) corner.
         for field_name, rel in m2m_specs.items():
             data[field_name] = self._resolve_m2m_field(qs, field_name, rel, row)
+        if READING_LIST_KIND_FILTER not in data:
+            offered = sum(bool(row.get(f"_kind_{kind}")) for kind in LIST_KINDS)
+            data[READING_LIST_KIND_FILTER] = offered >= _KINDS_TO_CHOOSE
         return data
 
 
 class BrowserChoicesView(BrowserChoicesViewBase):
-    """Get choices for filter dialog."""
+    """
+    Get one filter's choices.
+
+    Several values in one filter match any of them, so the filter's own
+    value is left out when its choices are built: ticking a character
+    never shrinks the characters offered. The other filters still narrow
+    them. A ticked value is always listed so it can be unticked, named
+    only through what the viewer may see.
+    """
 
     serializer_class: type[BaseSerializer] | None = BrowserChoicesFilterSerializer
 
-    def _get_m2m_field_choices(self, model, comic_qs, rel):
-        """Get choices with nulls where there are nulls."""
-        iterables = []
+    def _ticked(self, field_name: str) -> tuple:
+        """Return the values ticked in the field's own filter."""
+        filters = self.params.get("filters") or {}
+        return tuple(filters.get(field_name) or ())
 
-        # Choices
-        qs = self.get_m2m_field_query(model, comic_qs)
+    @staticmethod
+    def _unshown(rows: list[dict], ticked: tuple) -> list:
+        """Return the ticked pks not among the rows, None aside."""
+        shown = {row["pk"] for row in rows}
+        return [
+            pk for pk in dict.fromkeys(ticked) if pk is not None and pk not in shown
+        ]
+
+    @staticmethod
+    def _project_m2m_rows(qs: QuerySet) -> Iterable[dict[str, Any]]:
+        """Project a choice model's rows to what its serializer reads."""
         values = ["pk", "name"]
         if qs.model == Reprint:
             # No ``name`` column at all — BrowserChoicesReprintPkSerializer
@@ -317,15 +457,72 @@ class BrowserChoicesView(BrowserChoicesViewBase):
             qs = qs.annotate(
                 index=F("metron__index"), metron_name=F("metron__name")
             ).order_by("index")
-        qs = qs.values(*values)
+        return qs.values(*values)
 
-        # Add null if it exists
-        if self.does_null_exist(comic_qs, rel):
-            iterables.append(_NULL_NAMED_ROW_ITERABLE)
+    def _visible_ticked_rows(self, model, pks: list) -> Iterable[dict[str, Any]]:
+        """
+        Return the ticked values found on comics the viewer may see.
 
-        iterables.append(qs)
+        Through the ACL filter alone, so a tag on hidden comics only is
+        never named. A raw pk lookup would name it.
+        """
+        back_rel = _BACK_REL_MAP.get(model, "")
+        visible = Comic.objects.filter(self.get_acl_filter(Comic, self.request.user))
+        rows = model.objects.filter(
+            pk__in=pks, **{f"{back_rel}comic__in": visible}
+        ).distinct()
+        return self._project_m2m_rows(rows)
 
-        return chain.from_iterable(iterables)
+    def _get_m2m_field_choices(self, model, comic_qs, rel, ticked: tuple):
+        """Get choices with nulls where there are nulls, and the ticked."""
+        rows = list(self._project_m2m_rows(self.get_m2m_field_query(model, comic_qs)))
+        if unshown := self._unshown(rows, ticked):
+            rows.extend(self._visible_ticked_rows(model, unshown))
+            if model in _INDEX_ORDERED_MODELS:
+                # SQLite sorts a NULL index first.
+                rows.sort(key=lambda row: (row["index"] is not None, row["index"] or 0))
+        if None in ticked or self.does_null_exist(comic_qs, rel):
+            return (_NULL_NAMED_ROW, *rows)
+        return rows
+
+    def _reading_list_choices(self, qs: QuerySet, ticked: tuple):
+        """Return the visible lists over the comics, and "None" if any is unlisted."""
+        rows = list(self.reading_lists_of(qs).values("pk", "name"))
+        if unshown := self._unshown(rows, ticked):
+            lists = visible_lists(self.request.user).filter(pk__in=unshown)
+            rows.extend(lists.order_by("sort_name", "pk").values("pk", "name"))
+        if None in ticked or self.unlisted(qs).exists():
+            return (_NULL_NAMED_ROW, *rows)
+        return rows
+
+    def _plain_field_choices(self, field_name: str, qs: QuerySet, rel: str, ticked):
+        """Return a plain column's values, the ticked ones echoed."""
+        values = list(self.get_field_choices_query(qs, rel).values_list(rel, flat=True))
+        shown = set(values)
+        values.extend(
+            value
+            for value in dict.fromkeys(ticked)
+            if value is not None and value not in shown
+        )
+        if field_name not in _NAMED_ROW_CHOICE_FIELDS:
+            # A bare value list has no "None" row; the menu drops one.
+            return values
+        rows = tuple({"pk": value, "name": value} for value in values)
+        if None in ticked or (
+            field_name in _NULL_CHOICE_FIELDS and self.does_null_exist(qs, rel)
+        ):
+            return (_NULL_NAMED_ROW, *rows)
+        return rows
+
+    def _list_kind_choices(self) -> tuple[dict[str, str], ...]:
+        """Return the kinds with lists behind them, and any picked, in order."""
+        picked = self.picked_list_kinds()
+        probes = self.list_kind_probes()
+        return tuple(
+            {"pk": kind, "name": BROWSER_READING_LIST_KIND_CHOICES[kind]}
+            for kind in LIST_KINDS
+            if kind in picked or (kind in probes and probes[kind].exists())
+        )
 
     def _get_field_name(self):
         field_name = self.kwargs.get("field_name", "")
@@ -333,24 +530,27 @@ class BrowserChoicesView(BrowserChoicesViewBase):
 
     @override
     def get_object(self) -> dict[str, Any]:  # pyright: ignore[reportIncompatibleMethodOverride], # ty: ignore[incompatible-method-override]
-        """Return choices with more than one choice."""
-        qs = super().get_object()
+        """
+        Return the field's choices, its own filter left out under Any.
+
+        Under All the filter's own ticks stay applied, so its list is what
+        still occurs with them. The Age Rating tabs are two fields; each
+        leaves out its own key only, so a tick in one still narrows the
+        other.
+        """
         field_name = self._get_field_name()
-
-        rel, m2m_model = self.get_rel_and_model(field_name)
-
-        if m2m_model:
-            choices = self._get_m2m_field_choices(m2m_model, qs, rel)
+        filters = self.params.get("filters") or {}
+        omit = () if field_name in (filters.get(MATCH_ALL_KEY) or ()) else (field_name,)
+        qs = self.get_filtered_queryset(Comic, omit=omit)
+        ticked = self._ticked(field_name)
+        if field_name == READING_LISTS_FILTER:
+            choices = self._reading_list_choices(qs, ticked)
+        elif field_name == READING_LIST_KIND_FILTER:
+            choices = self._list_kind_choices()
         else:
-            choices = self.get_field_choices_query(qs, rel)
-            choices = choices.values_list(rel, flat=True)
-
-        if field_name in _NAMED_ROW_CHOICE_FIELDS:
-            choices = tuple({"pk": choice, "name": choice} for choice in choices)
-        if field_name in _NULL_CHOICE_FIELDS and self.does_null_exist(qs, rel):
-            choices = (_NULL_NAMED_ROW, *choices)
-
-        return {
-            "field_name": field_name,
-            "choices": choices,
-        }
+            rel, m2m_model = self.get_rel_and_model(field_name)
+            if m2m_model:
+                choices = self._get_m2m_field_choices(m2m_model, qs, rel, ticked)
+            else:
+                choices = self._plain_field_choices(field_name, qs, rel, ticked)
+        return {"field_name": field_name, "choices": choices}

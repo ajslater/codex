@@ -55,7 +55,7 @@ from rest_framework.views import APIView
 
 from codex.choices.admin import AdminFlagChoices
 from codex.collection import Collection  # not django.contrib.auth Group
-from codex.models import AdminFlag, Comic, Folder, Library, StoryArc
+from codex.models import AdminFlag, Comic, Folder, Library, ReadingList, StoryArc
 from codex.models.age_rating import (
     UNRANKED_METRON_INDEX,
     UNRESTRICTED_RATING_INDEX,
@@ -216,6 +216,8 @@ class RelPrefixMixin:
             return prefix
         if model is StoryArc:
             prefix += "storyarcnumber__"
+        elif model is ReadingList:
+            prefix += "entries__"
         prefix += "comic__"
         return prefix
 
@@ -226,7 +228,7 @@ class RelPrefixMixin:
 
         Folder has its own ``library`` FK (inherited from
         :class:`~codex.models.paths.WatchedPath`), so it skips the
-        ``comic__`` hop. Everything else — Comic, StoryArc, and the
+        ``comic__`` hop. Everything else — Comic, StoryArc, ReadingList and the
         browser collection models — reaches ``library_id`` through the Comic
         FK chain built by :meth:`get_rel_prefix`.
         """
@@ -416,6 +418,13 @@ class AgeRatingACLMixin(RelPrefixMixin):
         )
 
 
+def viewer_pk_of(user) -> int | None:
+    """Return a signed-in user's pk, or None for an anonymous session."""
+    if user is None or not getattr(user, "is_authenticated", False):
+        return None
+    return user.pk
+
+
 @dataclass(frozen=True, slots=True)
 class ComicACL:
     """
@@ -447,6 +456,9 @@ class ComicACL:
     library_pks: tuple[int, ...]
     max_idx: int
     default_fits: bool
+    # Whose personal reading lists are visible beside the global ones. Not
+    # a comic predicate: only the reading lists column reads it.
+    viewer_pk: int | None = None
 
     @classmethod
     def for_user(cls, user) -> Self:
@@ -464,6 +476,7 @@ class ComicACL:
             ),
             max_idx=max_idx,
             default_fits=AgeRatingACLMixin.compute_default_fits(max_idx),
+            viewer_pk=viewer_pk_of(user),
         )
 
     @staticmethod
@@ -473,6 +486,24 @@ class ComicACL:
         # parameters, and a stable statement string is what lets SQLite
         # reuse its prepared-statement cache across requests.
         return tuple(sorted(visible_pks))
+
+    def lists_q(self, prefix: str) -> Q:
+        """
+        Return the reading lists the viewer may see, ORM spelling.
+
+        ``prefix`` is the path to the list, such as
+        ``reading_list_entries__reading_list__`` from Comic.
+        """
+        visible = Q(**{f"{prefix}user__isnull": True})
+        if self.viewer_pk is not None:
+            visible |= Q(**{f"{prefix}user_id": self.viewer_pk})
+        return visible
+
+    def lists_sql(self, alias: str) -> tuple[str, tuple[int, ...]]:
+        """Return the reading lists the viewer may see, raw SQL and parameters."""
+        if self.viewer_pk is None:
+            return f"{alias}.user_id IS NULL", ()
+        return f"({alias}.user_id IS NULL OR {alias}.user_id = %s)", (self.viewer_pk,)
 
     def q(self, model) -> Q:
         """Return the ORM spelling, relative to ``model``'s Comic relation."""
@@ -616,6 +647,7 @@ class GroupACLMixin(
             library_pks=ComicACL.order_pks(self.get_visible_library_pks(user)),
             max_idx=self.get_max_idx(user),
             default_fits=self.get_default_fits(user),
+            viewer_pk=viewer_pk_of(user),
         )
 
     def get_acl_filter(self, model, user, *, include_missing: bool = False) -> Q:
@@ -640,7 +672,44 @@ class GroupACLMixin(
         )
         if not include_missing:
             acl_filter &= self.get_missing_acl_filter(model)
+        if model is ReadingList:
+            # A hidden entry is no part of its list: its comic gives the
+            # list no cover, count or membership.
+            acl_filter &= self.reading_list_visibility_filter(user) & Q(
+                entries__ignored=False
+            )
         return acl_filter
+
+    @staticmethod
+    def reading_list_visibility_filter(user, prefix: str = "") -> Q:
+        """
+        Return the lists a user may see: global ones and their own.
+
+        ``prefix`` is the path from the queried model to the list, such as
+        ``reading_list_entries__reading_list__`` from Comic. Every read of
+        the ``arcs`` collection goes through this, so another user's
+        personal list is invisible to every endpoint.
+        """
+        owner = f"{prefix}user"
+        visible = Q(**{f"{owner}__isnull": True})
+        if user is not None and user.is_authenticated:
+            visible |= Q(**{owner: user})
+        return visible
+
+    @classmethod
+    def reading_list_entries_filter(cls, user, entries_prefix: str) -> Q:
+        """
+        Return the shown entries of the lists a user may see.
+
+        ``entries_prefix`` is the path from the queried model to the
+        entries, such as ``reading_list_entries__`` from Comic. A hidden
+        entry is no part of its list, so it never browses, covers, reads,
+        filters or downloads. One Q, so both tests ride the same join.
+        """
+        shown = Q(**{f"{entries_prefix}ignored": False})
+        return shown & cls.reading_list_visibility_filter(
+            user, f"{entries_prefix}reading_list__"
+        )
 
 
 class AuthFilterGenericAPIView(AuthGenericAPIView, GroupACLMixin):

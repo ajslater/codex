@@ -14,15 +14,19 @@ from typing import Final
 from django.contrib.auth.models import User
 from django.test import TestCase
 
+from codex.choices.browser import BROWSER_MATCH_ALL_FILTERS
 from codex.librarian.telemeter.per_user_stats import (
     BROWSER_FIELDS,
+    FILTER_BOOKKEEPING,
     READER_FIELDS,
+    filter_columns,
     get_per_user_stats,
 )
-from codex.models.named import StoryArc
+from codex.models.readinglist import ReadingList
 from codex.models.settings import (
     ClientChoices,
     SettingsBrowser,
+    SettingsBrowserFilters,
     SettingsBrowserShow,
     SettingsReader,
 )
@@ -32,7 +36,7 @@ _API: Final = ClientChoices.API
 _TWO_READERS: Final = 2
 # A global reader row is one with every scope FK null.
 _GLOBAL_SCOPE: Final[MappingProxyType[str, None]] = MappingProxyType(
-    {"comic": None, "series": None, "folder": None, "story_arc": None}
+    {"comic": None, "series": None, "folder": None, "reading_list": None}
 )
 
 
@@ -51,6 +55,11 @@ def _browser(user: User, **kwargs) -> SettingsBrowser:
         publishers=True, imprints=False, series=True, volumes=False
     )
     return SettingsBrowser.objects.create(user=user, show=show, **kwargs)
+
+
+def _filters(browser: SettingsBrowser, **kwargs) -> SettingsBrowserFilters:
+    """Create the filters row of a browser settings row."""
+    return SettingsBrowserFilters.objects.create(browser=browser, **kwargs)
 
 
 class PerUserStatsTestCase(TestCase):
@@ -137,9 +146,9 @@ class PerUserStatsTestCase(TestCase):
             user=globally, client=_API, fit_to="H", **_GLOBAL_SCOPE
         )
         scoped_only = _user("five")
-        arc = StoryArc.objects.create(name="Arc")
+        arc = ReadingList.objects.create(name="Arc")
         SettingsReader.objects.create(
-            user=scoped_only, client=_API, story_arc=arc, fit_to="S"
+            user=scoped_only, client=_API, reading_list=arc, fit_to="S"
         )
 
         stats = get_per_user_stats()
@@ -180,9 +189,9 @@ class PerUserStatsTestCase(TestCase):
             user=user, client=_API, reading_direction="ltr", **_GLOBAL_SCOPE
         )
         for index in range(3):
-            arc = StoryArc.objects.create(name=f"Arc {index}")
+            arc = ReadingList.objects.create(name=f"Arc {index}")
             SettingsReader.objects.create(
-                user=user, client=_API, story_arc=arc, reading_direction="rtl"
+                user=user, client=_API, reading_list=arc, reading_direction="rtl"
             )
 
         stats = get_per_user_stats()
@@ -204,3 +213,99 @@ class PerUserStatsTestCase(TestCase):
         stats = get_per_user_stats()
         assert stats["reader_global_two_pages_users"] == {"true": 1}
         assert stats["reader_global_cache_book_users"] == {"": 1}
+
+    def test_show_missing_issues_is_counted_in_words(self) -> None:
+        """A boolean browser setting buckets as "true" and "false"."""
+        _browser(_user("shows"), client=_API, name="")
+        _browser(_user("hides"), client=_API, name="", show_missing_issues=False)
+
+        stats = get_per_user_stats()
+        assert stats["browser_show_missing_issues_users"] == {"true": 1, "false": 1}
+        assert stats["browser_chosen_show_missing_issues_users"] == {
+            "true": 1,
+            "false": 1,
+        }
+
+
+class FilterStatsTestCase(TestCase):
+    """The browser filter buckets of the per_user section."""
+
+    def test_no_filters_reports_empty_buckets(self) -> None:
+        """The buckets are always sent, and empty when nobody filters."""
+        _filters(_browser(_user("plain"), client=_API, name=""))
+
+        stats = get_per_user_stats()
+        assert stats["browser_filter_users"] == {}
+        assert stats["browser_match_all_users"] == {}
+
+    def test_a_user_counts_once_per_filter_across_their_rows(self) -> None:
+        """A filter on in the live row and a saved view is one user."""
+        user = _user("reader")
+        reading_list = ReadingList.objects.create(name="Kept Private")
+        _filters(
+            _browser(user, client=_API, name=""),
+            reading_lists=[reading_list.pk],
+            bookmark="UNREAD",
+        )
+        _filters(
+            _browser(user, client=_API, name="saved"),
+            reading_lists=[reading_list.pk],
+            characters=[7, 8],
+        )
+        _filters(_browser(_user("other"), client=_API, name=""), characters=[9])
+
+        stats = get_per_user_stats()
+        assert stats["browser_filter_users"] == {
+            "bookmark": 1,
+            "characters": 2,
+            "reading_lists": 1,
+        }
+
+    def test_anonymous_sessions_are_not_users(self) -> None:
+        """A settings row with no user counts toward nothing."""
+        show, _ = SettingsBrowserShow.objects.get_or_create(
+            publishers=True, imprints=False, series=True, volumes=False
+        )
+        anonymous = SettingsBrowser.objects.create(user=None, show=show)
+        _filters(anonymous, characters=[1], match_all=["characters"])
+
+        stats = get_per_user_stats()
+        assert stats["browser_filter_users"] == {}
+        assert stats["browser_match_all_users"] == {}
+
+    def test_match_all_counts_users_by_filter_name(self) -> None:
+        """Each filter set to match all counts its users once."""
+        one = _user("one")
+        _filters(_browser(one, client=_API, name=""), match_all=["characters"])
+        _filters(
+            _browser(one, client=_API, name="saved"),
+            match_all=["characters", "teams"],
+        )
+        _filters(_browser(_user("two"), client=_API, name=""), match_all=["teams"])
+
+        stats = get_per_user_stats()
+        assert stats["browser_match_all_users"] == {"characters": 1, "teams": 2}
+
+    def test_an_unknown_match_all_name_folds_into_other(self) -> None:
+        """Only names from the match-all vocabulary become bucket keys."""
+        _filters(
+            _browser(_user("drifted"), client=_API, name=""),
+            match_all=["no-such-filter", ["nested"], 3],
+        )
+
+        stats = get_per_user_stats()
+        assert stats["browser_match_all_users"] == {"other": 1}
+
+    def test_filter_columns_are_the_models_filters(self) -> None:
+        """
+        Every column is a filter or named as bookkeeping.
+
+        ``filter_columns`` reads the model, so a new filter is counted by
+        default. What this pins is the other direction: a new column that is
+        not a filter has to be added to the bookkeeping set on purpose.
+        """
+        columns = filter_columns()
+        assert not FILTER_BOOKKEEPING & set(columns)
+        assert set(BROWSER_MATCH_ALL_FILTERS) <= set(columns)
+        # Every filter is off at its default: an empty list, or "".
+        assert all(off in ([], "") for off in columns.values())

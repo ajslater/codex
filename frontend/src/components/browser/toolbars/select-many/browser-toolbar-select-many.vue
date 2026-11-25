@@ -26,22 +26,35 @@
             <v-icon :icon="mdiTagOutline" />
             <span class="actionLabel">Tags</span>
           </v-btn>
-          <ShelfMenu :targets="selectedPksByCollection">
-            <template #activator="{ props: shelfMenuProps }">
+          <ReadingListMenu :targets="selectedPksByCollection">
+            <template #activator="{ props: listMenuProps }">
               <v-btn
-                v-tooltip="{ text: 'Shelves', openDelay: 500 }"
-                v-bind="shelfMenuProps"
-                class="shelvesButton"
+                v-tooltip="{ text: 'Reading Lists', openDelay: 500 }"
+                v-bind="listMenuProps"
+                class="readingListsButton"
                 :disabled="!hasSelection"
                 density="compact"
                 size="small"
                 variant="text"
               >
-                <v-icon :icon="mdiLibraryShelves" />
-                <span class="actionLabel">Shelves</span>
+                <v-icon :icon="mdiPlaylistPlus" />
+                <span class="actionLabel">Reading Lists</span>
               </v-btn>
             </template>
-          </ShelfMenu>
+          </ReadingListMenu>
+          <v-btn
+            v-if="removeListPk"
+            v-tooltip="{ text: 'Remove from List', openDelay: 500 }"
+            class="removeFromListButton"
+            :disabled="!selectedComicPks.length"
+            density="compact"
+            size="small"
+            variant="text"
+            @click="removeSelected"
+          >
+            <v-icon :icon="mdiPlaylistRemove" />
+            <span class="actionLabel">Remove</span>
+          </v-btn>
           <v-btn
             v-tooltip="{ text: 'Mark Read', openDelay: 500 }"
             :disabled="!hasSelection"
@@ -122,16 +135,20 @@ import {
   mdiBookmarkMinusOutline,
   mdiClose,
   mdiDownload,
-  mdiLibraryShelves,
+  mdiPlaylistPlus,
+  mdiPlaylistRemove,
   mdiTagOutline,
 } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
 import ForceUpdateConfirmDialog from "@/components/force-update-confirm-dialog.vue";
 import MetadataDialog from "@/components/metadata/metadata-dialog.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
+import { routeReadingListPk } from "@/route";
 import { useAuthStore } from "@/stores/auth";
+import { useBrowserStore } from "@/stores/browser";
 import { useBrowserSelectManyStore } from "@/stores/browser-select-many";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 const CHILD_WARNING_LIMIT = 99;
 
@@ -140,7 +157,7 @@ export default {
   components: {
     ForceUpdateConfirmDialog,
     MetadataDialog,
-    ShelfMenu,
+    ReadingListMenu,
   },
   data() {
     return {
@@ -149,7 +166,8 @@ export default {
       mdiBookmarkMinusOutline,
       mdiClose,
       mdiDownload,
-      mdiLibraryShelves,
+      mdiPlaylistPlus,
+      mdiPlaylistRemove,
       mdiTagOutline,
       showMetadataDialog: false,
       showForceUpdateConfirm: false,
@@ -165,6 +183,17 @@ export default {
       "compositeItem",
       "selectedPksByCollection",
     ]),
+    ...mapState(useBrowserStore, {
+      listEditable: (state) => Boolean(state.page.listEditable),
+    }),
+    removeListPk() {
+      // Inside a reading list this user may change: remove in place.
+      if (!this.listEditable) return 0;
+      return routeReadingListPk(this.$route?.params);
+    },
+    selectedComicPks() {
+      return this.selectedPksByCollection?.comics || [];
+    },
     forceUpdateSubject() {
       const itemNoun = this.selectedCount === 1 ? "item" : "items";
       return `across ${this.selectedCount} selected ${itemNoun}`;
@@ -177,6 +206,16 @@ export default {
       "download",
       "forceUpdate",
     ]),
+    ...mapActions(useBrowserStore, ["refreshBrowserPage"]),
+    ...mapActions(useReadingListsStore, ["removeFromList"]),
+    async removeSelected() {
+      const comics = this.selectedComicPks;
+      if (!comics.length) return;
+      if (await this.removeFromList(this.removeListPk, comics)) {
+        this.clearSelection();
+        await this.refreshBrowserPage();
+      }
+    },
     openTags() {
       if (this.compositeItem) {
         this.showMetadataDialog = true;

@@ -10,7 +10,7 @@ from rest_framework.serializers import BaseSerializer
 
 from codex.collection import Collection
 from codex.models import Comic, Folder, Series
-from codex.models.named import StoryArc
+from codex.models.readinglist import ReadingList
 from codex.models.settings import ClientChoices, SettingsReader
 from codex.serializers.reader import (
     ReaderScopedUpdateSerializer,
@@ -18,6 +18,7 @@ from codex.serializers.reader import (
 )
 from codex.settings.db import get_reader_defaults
 from codex.views.bookmark import BookmarkAuthMixin
+from codex.views.readinglists.access import to_pk
 from codex.views.settings import NULL_VALUES, SettingsBaseView
 
 # scope → (SettingsReader FK field, Comic FK for auto-resolve, Model for name).
@@ -39,14 +40,14 @@ _SCOPE_MAP = MappingProxyType(
         Collection.SERIES: ("series_id", "series_id", Series),
         Collection.VOLUME: ("series_id", "series_id", Series),
         Collection.FOLDER: ("folder_id", "parent_folder_id", Folder),
-        Collection.ARC: ("story_arc_id", None, StoryArc),
+        Collection.ARC: ("reading_list_id", None, ReadingList),
     }
 )
 # Map comic_fk → (related_attr_on_comic, field_to_read_for_name).
 # The reader settings GET prefetches the comic with these joined so
 # the per-scope display name comes off the prefetched comic instead
 # of firing a fresh ``Model.objects.filter(pk).values_list("name")``
-# query (sub-plan 02 #1 / Tier 2 #7). Story-arc scope's pk comes
+# query (sub-plan 02 #1 / Tier 2 #7). Reading-list scope's pk comes
 # from a query param, not from the comic, so it falls back to a
 # separate lookup when requested.
 _COMIC_FK_TO_RELATED: MappingProxyType[str, tuple[str, str]] = MappingProxyType(
@@ -67,11 +68,11 @@ class ReaderSettingsBaseView(BookmarkAuthMixin, SettingsBaseView):
             "comic__isnull": True,
             "series__isnull": True,
             "folder__isnull": True,
-            "story_arc__isnull": True,
+            "reading_list__isnull": True,
         }
     )
     CREATE_ARGS = MappingProxyType(
-        {"comic": None, "series": None, "folder": None, "story_arc": None}
+        {"comic": None, "series": None, "folder": None, "reading_list": None}
     )
 
     # ── Defaults & reset ────────────────────────────────────────────
@@ -145,7 +146,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
     GET — request one or more scopes via ``?scopes=global,series,comics``.
           When *pk* is in the URL the view can auto-resolve
           intermediate scope pks from the comic.
-          ``?story_arc_pk=<id>`` is required for the ``arcs`` scope.
+          ``?reading_list_pk=<id>`` is required for the ``arcs`` scope.
 
     PATCH — send ``scope`` (global/comics/series/folders/arcs) and, for
             every scope except ``global``, ``scope_pk`` together with the
@@ -164,11 +165,30 @@ class ReaderSettingsView(ReaderSettingsBaseView):
     ) -> int | None:
         """Return the scope pk for an intermediate scope, or None."""
         if scope == Collection.ARC:
-            raw = self.request.GET.get("story_arc_pk")
-            return int(raw) if raw else None
+            raw = self.request.GET.get("reading_list_pk")
+            return to_pk(raw, "reading_list_pk") if raw else None
         if comic and comic_fk:
             return getattr(comic, comic_fk, None)
         return None
+
+    def _check_scope_target(self, scope: str, scope_pk: int) -> None:
+        """
+        Refuse settings for anything the user may not see, or that is not there.
+
+        A list another user owns is indistinguishable from a missing one.
+        """
+        model = Comic if scope == _COMIC_SCOPE else _SCOPE_MAP[scope][2]
+        if model is None:
+            return
+        user = self.request.user
+        if model is ReadingList:
+            visible = self.reading_list_visibility_filter(user)
+        else:
+            # The reader stays open on a stamped comic (D8); so do its settings.
+            visible = self.get_acl_filter(model, user, include_missing=True)
+        if not model.objects.filter(visible, pk=scope_pk).exists():
+            reason = f"{scope} {scope_pk} not found"
+            raise NotFound(detail=reason)
 
     @staticmethod
     def _canonical_scope(scope: str) -> str:
@@ -189,7 +209,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
 
         For series / folder scopes the name comes off the prefetched
         comic's joined related row (sub-plan 02 #1 / Tier 2 #7) — no
-        extra query. For story_arc the scope_pk comes from a query
+        extra query. For a reading list the scope_pk comes from a query
         param so the comic prefetch can't help; fall back to a
         targeted lookup.
         """
@@ -202,7 +222,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
                     return getattr(related_obj, name_field, "") or ""
         if not model:
             return ""
-        # The ``?story_arc_pk=`` fallback is a third path with its own
+        # The ``?reading_list_pk=`` fallback is a third path with its own
         # caller-supplied pk, so it needs its own gate; the comic
         # prefetch cannot cover it.
         acl_filter = self.get_acl_filter(model, self.request.user, include_missing=True)
@@ -328,6 +348,7 @@ class ReaderSettingsView(ReaderSettingsBaseView):
             # FK name and the guard above proved ``scope_pk`` is set;
             # narrow both for the type checker.
             fk_field = cast("str", config[0])
+            self._check_scope_target(scope, scope_pk)
             instance = self._get_or_create_scoped_settings(fk_field, scope_pk)
 
         for key, value in data.items():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from threading import Event
 from typing import TYPE_CHECKING, Any, Final
 
 from comicbox.online_session import PromptResponse
@@ -19,7 +20,9 @@ CLIENT_NAME: Final = "codex"
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from comicbox.online_session import OnlinePrompt, OnlineSession
+    from comicbox.online_session import DeferredPrompt, OnlinePrompt, OnlineSession
+
+    from codex.librarian.onlinetag.tasks import OnlineTagPromptResponseTask
 
 
 @dataclass
@@ -78,12 +81,14 @@ class SessionState:
     pending_paths: list[Path] = field(default_factory=list)
     mode: str = "additive"
     # The comicbox match mode (auto/careful/eager) and enabled sources in
-    # priority order — the inputs the time-remaining estimate needs. Distinct
-    # from ``mode`` above, which is the tag-write mode.
+    # priority order — the inputs the time-remaining estimate needs, and the
+    # merge order each deferred prompt records. Distinct from ``mode``
+    # above, which is the tag-write mode.
     match_mode: str = "auto"
     sources: tuple[str, ...] = ()
     # How much API budget a comic may spend against a fan-out source.
-    # Only Comic Vine fans out; it is what the time estimate turns on.
+    # Only Comic Vine fans out (Metron and VerseDB ignore effort); it is
+    # what the time estimate turns on.
     effort: str = "balanced"
 
     # Whether this scan queries every source per comic and merges
@@ -94,6 +99,9 @@ class SessionState:
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False
     cancelled: bool = False
+    # Set by a Pause, from whichever thread delivers it, so a retry wait the
+    # prepass sits in wakes at once instead of waiting out the rate limit.
+    pause_event: Event = field(default_factory=Event)
     # Why the scan stopped, when it was not the operator who stopped it —
     # today, a spent daily API quota. The status row is finished the moment a
     # pass ends, so a subtitle there would only flash; this rides the frozen
@@ -126,6 +134,42 @@ class SessionState:
     # killed/paused scan can be rebuilt into a fresh BulkOnlineTagTask over just
     # the comics it never reached — see session_snapshot.set_resume_state.
     resume_params: dict[str, Any] = field(default_factory=dict)
+    # Under Merge all sources a comic with stored ids for some sources but
+    # not all is looked up in a session of its own, which pins those ids and
+    # searches the rest (``OnlineTagSessionManager._pinned_lookups``). A
+    # session pins its ids for every comic it looks up, so ``session`` pins
+    # none and never sees these comics. This is the one in flight, or the
+    # last one; ``comic_prompts`` keeps what the ones before it deferred.
+    comic_session: OnlineSession | None = None
+    comic_prompts: list[DeferredPrompt] = field(default_factory=list)
+    # Mid-scan answers that named a volume, for each later one-comic session
+    # to start with, as ``session`` already has them.
+    answers: list[OnlineTagPromptResponseTask] = field(default_factory=list)
+
+    def sessions(self) -> tuple[OnlineSession, ...]:
+        """Return the scan's own session and its one-comic session, if any."""
+        if self.comic_session is None:
+            return (self.session,)
+        return (self.session, self.comic_session)
+
+    def adopt_comic_session(self, session: OnlineSession) -> None:
+        """Make ``session`` the one-comic session, keeping its predecessor's prompts."""
+        if self.comic_session is not None:
+            self.comic_prompts.extend(self.comic_session.deferred_prompts())
+        self.comic_session = session
+
+    def deferred_prompts(self) -> tuple[DeferredPrompt, ...]:
+        """Return every prompt the scan deferred, from all of its sessions."""
+        current = self.comic_session.deferred_prompts() if self.comic_session else ()
+        return (*self.session.deferred_prompts(), *self.comic_prompts, *current)
+
+    @property
+    def abort_reason(self) -> str | None:
+        """Why comicbox stopped the scan, from whichever session it stopped."""
+        for session in reversed(self.sessions()):
+            if reason := getattr(session, "abort_reason", None):
+                return reason
+        return None
 
 
 class CodexPromptHandler:
@@ -144,6 +188,8 @@ def serialize_prompt(
     *,
     delete_original: bool,
     rename: bool,
+    source_order: tuple[str, ...] = (),
+    merge_all_sources: bool = False,
 ) -> dict[str, Any]:
     """
     Serialize a deferred prompt with everything needed to apply it later.
@@ -155,6 +201,12 @@ def serialize_prompt(
     codex still reads on a rollback to one that predates the list. The
     review dialog derives the file's own cover from ``pk`` when the
     prompt list is served, so no cover data is stored here.
+
+    ``source_order`` and ``merge_all_sources`` are the run's: its sources
+    in priority order, and whether it merged them all. Applying the answer
+    needs both to keep a higher-priority source's tags winning the merge.
+    A prompt cached before they existed reads without them and applies the
+    pick on its own, so they add no ``PROMPT_VERSION``.
     """
     representative = comics[0]
     return {
@@ -169,6 +221,8 @@ def serialize_prompt(
         "formats": list(formats),
         "delete_original": delete_original,
         "rename": rename,
+        "source_order": list(source_order),
+        "merge_all_sources": merge_all_sources,
     }
 
 
@@ -204,7 +258,7 @@ def serialize_candidate(c) -> dict[str, Any]:
             "publisher": getattr(summary, "publisher", ""),
             "cover_url": getattr(summary, "cover_url", ""),
             # The largest tier the source offers, when it offers one.
-            # Comic Vine has several; Metron sets it equal to cover_url
+            # Comic Vine and VerseDB have several; Metron sets it equal to cover_url
             # because its one image is already full size. comicbox owns
             # the "genuinely larger" guarantee, so the frontend gates
             # the hover on this being truthy and never on it differing.
@@ -212,22 +266,24 @@ def serialize_candidate(c) -> dict[str, Any]:
             # Alternative series names comicbox scored this candidate on.
             # Empty for sources whose search results don't carry them.
             "alt_series": list(getattr(summary, "alt_series", ())),
-            # The series' ordinal volume. Metron's issue rows carry one;
-            # Comic Vine's search results have no equivalent.
+            # The series' ordinal volume. Metron's and VerseDB's rows carry
+            # one; Comic Vine's search results have no equivalent.
             "volume": getattr(summary, "volume", None),
             # What tells apart candidates whose covers and titles read
             # identically: a reprint volume, a foreign or a collected
             # edition. Comic Vine fills most of these from rows it already
-            # fetched. Metron always has the start year, but gets the
-            # format, publisher and issue count only when titles collide.
+            # fetched, and VerseDB all four. Metron always has the start
+            # year, but gets the format, publisher and issue count only
+            # when titles collide.
             # Absent before comicbox 5.4, and None wherever a source has
             # nothing.
             "series_start_year": getattr(summary, "series_start_year", None),
             "series_publisher": getattr(summary, "series_publisher", None),
             "series_issue_count": getattr(summary, "series_issue_count", None),
-            # Publication format, e.g. "Trade Paperback". Metron only.
+            # Publication format, e.g. "Trade Paperback". Metron and VerseDB.
             "series_type": getattr(summary, "series_type", None),
-            # The issue's own title and one-line deck. Comic Vine only.
+            # The issue's own title and one-line deck. Comic Vine fills
+            # both, VerseDB the title.
             "issue_title": getattr(summary, "issue_title", None),
             "issue_summary": getattr(summary, "issue_summary", None),
         },

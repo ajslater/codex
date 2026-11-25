@@ -24,9 +24,11 @@ from codex.librarian.fs.watcher.watcher import LibraryWatcherThread
 from codex.librarian.notifier.notifierd import NotifierThread
 from codex.librarian.notifier.tasks import NotifierTask
 from codex.librarian.onlinetag.onlinetagd import OnlineTagThread
-from codex.librarian.onlinetag.tasks import OnlineTagTask
+from codex.librarian.onlinetag.readinglists import ReadingListFetchAbortTask
+from codex.librarian.onlinetag.tasks import OnlineTagAbortTask, OnlineTagTask
 from codex.librarian.restarter.restarter import CodexRestarter
 from codex.librarian.restarter.tasks import CodexRestarterTask
+from codex.librarian.scribe.janitor.tasks import JanitorSyncReadingListsTask
 from codex.librarian.scribe.scribed import ScribeThread
 from codex.librarian.scribe.search.tasks import SearchIndexSyncTask
 from codex.librarian.scribe.tasks import ScribeTask
@@ -57,6 +59,22 @@ _THREAD_QUEUE_TASK_MAP: Final[MappingProxyType[type, str]] = MappingProxyType(
         OnlineTagTask: "online_tag_thread",
     }
 )
+
+
+def queue_unstamped_tags_sync(queue) -> None:
+    """
+    Queue the tags sync when tags sources are still unstamped (B2).
+
+    Migration 0061 writes each tags source with a blank revision, so the
+    first tags sync rebuilds every arc list, and until it runs a hide or a
+    reorder made to one is lost. Run then, not at the nightly sync.
+    """
+    from codex.models.readinglist import ReadingListSource, ReadingListSourceKind
+
+    if ReadingListSource.objects.filter(
+        kind=ReadingListSourceKind.TAGS, revision=""
+    ).exists():
+        queue.put(JanitorSyncReadingListsTask())
 
 
 class LibrarianDaemon(Process):
@@ -90,13 +108,24 @@ class LibrarianDaemon(Process):
         restarter = CodexRestarter(self.log, self.queue, self.db_write_lock)
         restarter.handle_task(task)
 
-    def _process_task(self, task) -> None:
-        """Process an individual task popped off the queue."""
-        # Simply requeue tasks to the handler thread.
+    def _requeue(self, task) -> bool:
+        """Hand a task to the thread that runs it; return whether one did."""
+        if isinstance(task, OnlineTagAbortTask):
+            # The online tag thread is busy with the very scan a Pause
+            # stops, so tell the scan now. The task is queued as well, for
+            # a scan that starts after it.
+            self._threads.online_tag_thread.cancel_session(task.session_id)
         for task_type, thread_attr in _THREAD_QUEUE_TASK_MAP.items():
             if isinstance(task, task_type):
                 getattr(self._threads, thread_attr).queue.put(task)
-                return
+                return True
+        return False
+
+    def _process_task(self, task) -> None:
+        """Process an individual task popped off the queue."""
+        # Simply requeue tasks to the handler thread.
+        if self._requeue(task):
+            return
         match task:
             case ScribeTask():
                 # Special put method does queue put preprocessing.
@@ -109,6 +138,8 @@ class LibrarianDaemon(Process):
                 self._threads.cron_thread.end_timeout()
             case CodexRestarterTask():
                 self._restart_codex(task)
+            case ReadingListFetchAbortTask():
+                self._threads.online_tag_thread.cancel_reading_list_fetch()
             case LibrarianShutdownTask():
                 self.log.info(f"Shutting down {self.name}...")
                 self.run_loop = False
@@ -154,6 +185,10 @@ class LibrarianDaemon(Process):
         # Janitor created in init.
         self._create_threads()  # can't do this in init.
         self._start_threads()
+        # A startup task that reads the database: here, in this process,
+        # which starts only after the web process has run the migrations,
+        # not in ``__init__``, which runs in the web process.
+        queue_unstamped_tags_sync(self.queue)
         self.log.success(f"{self.name} ready for tasks.")
 
     def _stop_threads(self) -> None:

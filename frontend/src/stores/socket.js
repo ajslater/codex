@@ -160,11 +160,37 @@ export const useSocketStore = defineStore("socket", () => {
   return { reopen };
 });
 
-export function useSocketStoreWithOut() {
-  return useSocketStore(store);
+export async function readingListsNotified() {
+  // Everyone hears it: a user's drawer and add-to-list menus reload, and an
+  // admin's table too while it is on screen: the tab loads it afresh when
+  // it opens. Only what was already loaded reloads.
+  try {
+    const m = await import("@/stores/reading-lists");
+    const store = m.useReadingListsStore();
+    const loads = [];
+    if (
+      useAuthStore().isUserAdmin &&
+      store.listsLoaded &&
+      currentRouteName() === "admin-reading-lists"
+    ) {
+      loads.push(store.loadTable());
+    }
+    if (store.myListsLoaded) loads.push(store.loadMyLists());
+    // A ticked Reading Lists filter may name a list deleted elsewhere.
+    if (currentRouteName() === "browser") {
+      loads.push(useBrowserStore().syncReadingListsFilter());
+    }
+    await Promise.all(loads);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 // Notification handlers
+
+export function useSocketStoreWithOut() {
+  return useSocketStore(store);
+}
 
 async function adminFlagsNotified() {
   const route = currentRouteName();
@@ -233,6 +259,10 @@ function dispatchMessage(raw) {
     }
     case MESSAGE_TYPES.PENDING_DELETES_CHANGED: {
       pendingDeletesNotified();
+      break;
+    }
+    case MESSAGE_TYPES.READING_LISTS_CHANGED: {
+      readingListsNotified();
       break;
     }
     case MESSAGE_TYPES.TAG_SESSION_PROMPT: {

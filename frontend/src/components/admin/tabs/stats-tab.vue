@@ -39,6 +39,8 @@ const UNSET_LABELS = Object.freeze({
   pageTransition: "Unset (On)",
   cacheBook: "Unset (Off)",
 });
+// Buckets keyed by a filter's own name, which no choices map labels.
+const NAME_KEYED_BUCKETS = Object.freeze(new Set(["filter", "matchAll"]));
 const LOOKUPS = Object.freeze({
   topCollection: TOP_COLLECTION,
   orderBy: ORDER_BY,
@@ -80,10 +82,14 @@ const METADATA_LABELS = Object.freeze({
 });
 const USAGE_LABELS = Object.freeze({
   bookmarkCount: "Bookmarks",
-  shelfCount: "Shelves",
-  shelfUserCount: "Users with Shelves",
-  shelfItemCount: "Shelf Items",
-  shelfItems: "Shelf Items by Collection",
+  personalListCount: "Personal Reading Lists",
+  personalListUserCount: "Users with Reading Lists",
+  personalListEntryCount: "Issues on Personal Reading Lists",
+  listSources: "Reading List Sources by Kind",
+  listItemCount: "Reading List Items",
+  listItems: "Reading List Items by Collection",
+  listEntryCount: "Reading List Issues",
+  listEntryMissingCount: "Reading List Issues Missing",
   deviceKeyCount: "Device Keys",
   deviceKeyUserCount: "Users with Device Keys",
   deviceKeyUsedCount: "Device Keys Used",
@@ -119,9 +125,11 @@ const TAGGING_LABELS = Object.freeze({
   deleteOriginal: "Delete Original",
   renameFiles: "Rename Files",
   defaultSources: "Enabled Sources",
+  defaultSourceFirst: "Top Priority Source",
   defaultFormatCount: "Write Formats",
   hasMetronCredentials: "Metron Credentials",
   hasComicvineCredentials: "Comic Vine Credentials",
+  hasVersedbCredentials: "VerseDB Credentials",
   comicvineUrlSet: "Custom Comic Vine URL",
 });
 const AUTH_LABELS = Object.freeze({
@@ -335,6 +343,9 @@ export default {
       // No case conversion: choices_to_json emits these maps camelCased, the
       // same as the payload keys. Snake-casing them found nothing, so Order By
       // showed "sortName" and Fit To showed "W".
+      if (NAME_KEYED_BUCKETS.has(lookupKey)) {
+        return capitalCase(typeKey);
+      }
       const lookup = Reflect.get(LOOKUPS, lookupKey) ?? BOOLEAN_BUCKET;
       const label = Reflect.get(lookup, typeKey);
       // Fall back to the key itself rather than undefined: an unmapped value

@@ -318,10 +318,7 @@ const BASE_DEFAULTS = {
   defaultMatchMode: "auto",
   defaultPromptsMode: "ask",
   defaultSources: [],
-  hasMetronCredentials: false,
-  hasComicvineCredentials: false,
-  metronKeySet: false,
-  comicvineKeySet: false,
+  configuredSources: [],
   comicvineUrl: "",
 };
 

@@ -194,8 +194,9 @@ class TagPassRunnerFinishTests(TestCase):
         class _CancelledSession:
             def tag_many(self, paths):
                 # comicbox aborts the retry sleep on cancel, so the deadline
-                # it was serving is abandoned with time left on it.
-                return iter([SimpleNamespace(path=p) for p in paths])
+                # it was serving is abandoned with time left on it, and the
+                # lookup comes back cancelled.
+                return iter([SimpleNamespace(path=p, cancelled=True) for p in paths])
 
         state = double(
             SimpleNamespace(

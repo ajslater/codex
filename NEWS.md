@@ -6,6 +6,50 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.8.0 - Reading Lists
+
+### ✨ Added
+
+- Reading lists: import ComicRack CBL and json-cbl files or URLs, the DieselTech
+  catalog, Metron and Comic Vine lists in Admin → Reading Lists, and review how
+  their issues match your comics.
+- A reading list shows its missing issues in order, how much you have and have
+  read, and Continue Reading, and exports, downloads as a zip and has an OPDS
+  feed.
+- Users make their own reading lists, add series, folders or publishers that
+  keep them current, and copy any list.
+- Filter by reading list, or by kind: Mine, Curated or From Tags.
+- Admins can write a reading list into its comics as a story arc.
+- VerseDB online tagging source.
+- Drag online tagging sources into priority order; with Merge all sources the
+  higher source wins.
+
+### ♻️ Changed
+
+- Story Arcs and Shelves are now Reading Lists, contents kept, in saved views,
+  filters, columns, sorts, search, backups and OPDS. Story arc links and OPDS
+  bookmarks change once.
+- Filters take several values with the menu open, and tag filters can match all
+  of them.
+
+### 🔥 Removed
+
+- The `/api/v4/shelves/` API, replaced by `/api/v4/reading-lists/`.
+
+### 🐛 Fixed
+
+- The tag editor keeps story arc numbers, and metadata story arc chips open
+  their list.
+- Filter choices: arrow keys step one row, and letter keys no longer close the
+  menu.
+- The `lang:` search field works.
+- Online tagging: Pause stops at once, Effort applies, Merge all sources asks
+  every source, and backups keep its defaults.
+
+### 🧑‍💻 Developer
+
+- Require comicbox 5.7.0.
+
 ## v2.7.1
 
 ### 🐛 Fixed

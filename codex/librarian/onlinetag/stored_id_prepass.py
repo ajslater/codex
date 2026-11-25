@@ -3,7 +3,7 @@ Resolve already-identified comics by their stored online id before searching.
 
 A bulk online-tag scan otherwise hands every comic to comicbox's search path,
 which resolves the series by name and lists issues per candidate series — many
-API calls per comic. Comics codex already holds a Metron / Comic Vine *issue*
+API calls per comic. Comics codex already holds an online source's *issue*
 id for (in the ``Identifier`` table) need none of that: fetching that one issue
 by explicit id is a single API call. Reading the id straight from the database
 also covers comics whose id never round-tripped into the file. Callers use this

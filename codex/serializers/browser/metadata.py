@@ -12,16 +12,18 @@ parsed out of the model-side ``Identifier.name``
 display label backend-side via the comicbox ID-source map.
 """
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any, override
 
 from comicbox.enums.maps.identifiers import ID_SOURCE_NAME_MAP
 from rest_framework.fields import CharField, SerializerMethodField
 from rest_framework.serializers import IntegerField, ListField, Serializer, URLField
 
+from codex.models.identifier import to_comicbox_id_type
 from codex.serializers.browser.mixins import BrowserAggregateSerializerMixin
 from codex.serializers.models.comic import ComicSerializer
 from codex.serializers.models.named import StoryArcNumberSerializer
+from codex.views.admin.identifier_parse import parse_identifier_url
 
 PREFETCH_PREFIX = "attached_"
 
@@ -131,19 +133,43 @@ def pivot_credits(credit_rows) -> dict[str, list[dict[str, Any]]]:
     return ordered
 
 
-def shape_identifiers(identifiers) -> list[dict[str, Any]]:
+def _url_from_urls(source: str, id_type: str, key: str, urls: Iterable[Any]) -> str:
+    """
+    Return the comic's own link to this identifier's page, or "".
+
+    Some sources' pages need more than the key (VerseDB's carry a slug), so
+    comicbox derives no url for them and the stored one is empty. The comic's
+    ``urls`` tag may still hold the page: take the entry that parses back to
+    this exact source, type and key. Derived here and never stored.
+    """
+    wanted = (source, to_comicbox_id_type(id_type), str(key))
+    for url in urls:
+        if isinstance(url, str) and parse_identifier_url(url) == wanted:
+            return url
+    return ""
+
+
+def shape_identifiers(
+    identifiers, urls: Iterable[Any] | None = ()
+) -> list[dict[str, Any]]:
     """
     Reshape ``[Identifier]`` → ``[{source, type, code, displayName, pk, url}]``.
 
     ``source`` is the raw source name (e.g. ``"comicvine"``) that the tag
     editor's Source select binds to; ``displayName`` is its human label
-    (e.g. ``"Comic Vine"``) shown in the read-only metadata pane.
+    (e.g. ``"Comic Vine"``) shown in the read-only metadata pane. An
+    identifier with no url of its own takes its link from the comic's
+    ``urls`` when one of them is that identifier's page.
     """
+    urls = tuple(urls or ())
     out: list[dict[str, Any]] = []
     for identifier in identifiers or ():
         source = getattr(identifier, "source", None)
         source_name = source.name if source else ""
         display_name = _SOURCE_DISPLAY_MAP.get(source_name, source_name)
+        url = identifier.url or _url_from_urls(
+            source_name, identifier.id_type, identifier.key, urls
+        )
         out.append(
             {
                 "pk": identifier.pk,
@@ -151,7 +177,7 @@ def shape_identifiers(identifiers) -> list[dict[str, Any]]:
                 "type": identifier.id_type,
                 "code": identifier.key,
                 "displayName": display_name,
-                "url": identifier.url or "",
+                "url": url,
             }
         )
     return out
@@ -208,21 +234,26 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
         """Whether any selected comic lives in a writable (non-read-only) library."""
         return bool(getattr(obj, "editable", False))
 
-    # Set by MetadataView.get_object: pks of the requesting user's shelves that
-    # every selected comic is on, directly or through a parent. Names stay
-    # client-side in the shelves store.
-    shelves = SerializerMethodField(read_only=True)
+    # Set by MetadataView.get_object: the reading lists the viewer may see
+    # that hold any selected comic, ``{pk, name, position, count, editable}``.
+    reading_lists = SerializerMethodField(read_only=True)
+    # One reading list's own details, when the selection is that list.
+    reading_list_details = SerializerMethodField(read_only=True)
 
-    def get_shelves(self, obj) -> list[int]:
-        """Return the user's shelves the whole selection shares."""
-        return list(getattr(obj, "shelves", None) or ())
+    def get_reading_list_details(self, obj) -> dict | None:
+        """Return the list's details, or None for any other selection."""
+        return getattr(obj, "reading_list_details", None)
+
+    def get_reading_lists(self, obj) -> list[dict]:
+        """Return the reading lists the selection is in."""
+        return list(getattr(obj, "reading_lists", None) or ())
 
     publisher_list = CollectionSerializer(many=True, required=False)
     imprint_list = CollectionSerializer(many=True, required=False)
     series_list = CollectionSerializer(many=True, required=False)
     volume_list = CollectionSerializer(many=True, required=False)
     folder_list = CollectionSerializer(many=True, required=False)
-    story_arc_list = CollectionSerializer(many=True, required=False)
+    reading_list_list = CollectionSerializer(many=True, required=False)
     publisher = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     imprint = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
     series = None  # pyright: ignore[reportIncompatibleUnannotatedOverride]
@@ -260,7 +291,9 @@ class MetadataSerializer(BrowserAggregateSerializerMixin, ComicSerializer):
 
     def get_identifiers(self, obj):
         """Reshape the prefetched identifiers list."""
-        return shape_identifiers(getattr(obj, "attached_identifiers", None))
+        return shape_identifiers(
+            getattr(obj, "attached_identifiers", None), getattr(obj, "urls", None)
+        )
 
     class Meta(ComicSerializer.Meta):
         """Configure the model."""

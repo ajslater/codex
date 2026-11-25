@@ -104,10 +104,7 @@ export default {
       return linkCollection;
     },
     linkPks() {
-      const collectionMode =
-        this.collectionMode ||
-        (this.linkCollection !== "arcs" && this.filter === "storyArcs");
-      return collectionMode ? this.item.value.toString() : "0";
+      return this.collectionMode ? this.item.value.toString() : "0";
     },
     toRoute() {
       if (!this.clickable) {

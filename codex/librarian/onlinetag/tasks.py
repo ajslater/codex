@@ -3,8 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
-from comicbox.formats.base.online import SOURCE_NAMES
-
+from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES
 from codex.librarian.tasks import LibrarianTask
 
 
@@ -18,16 +17,18 @@ class BulkOnlineTagTask(OnlineTagTask):
 
     comic_pks: frozenset[int]
     session_id: str
-    sources: tuple[str, ...] = SOURCE_NAMES
+    sources: tuple[str, ...] = SUPPORTED_SOURCES
     mode: str = "auto"
     prompts_mode: str = "ask"
     # How much API budget a comic may spend against a source that fans
-    # out per candidate, which today means Comic Vine alone. Empty leaves
-    # the choice to comicbox, which is what lets it spare a large run.
+    # out per candidate, which today means Comic Vine alone (Metron and
+    # VerseDB ignore it). Empty leaves the choice to comicbox, which is
+    # what lets it spare a large run.
     effort: str = ""
     delete_original: bool = False
     # Query every source per comic and merge (comicbox first_wins=False)
-    # instead of stopping at the first match.
+    # instead of stopping at the first match. ``sources`` order decides who
+    # wins where they disagree: the first listed.
     merge_all_sources: bool = False
     # Rename each written archive to the comicbox filename scheme.
     rename: bool = False

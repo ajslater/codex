@@ -7,7 +7,7 @@ OPDS v1 start entries, facets and head links, and the OPDS cache key.
 * The start links said ``orderReverse=True`` and the Order Direction facet
   is ``true``, so the facet never marked itself active.
 * Facet clients got one untitled ``featured`` head link per start link
-  and shelf, and the shelves were queried once per use.
+  and list, and the lists were queried once per use.
 * With remote-user auth the feed cache did not vary on ``Remote-User``,
   so one proxied user's feed could be served to another's.
 """
@@ -23,7 +23,8 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.test.utils import CaptureQueriesContext
 
-from codex.models import Shelf, ShelfItem
+from codex.models import ReadingList
+from codex.views.readinglists.entries import add_comics
 from tests.test_opds_keep_reading import (
     _ATOM_NS,
     _TEST_PASSWORD,
@@ -86,14 +87,12 @@ class OPDS1LinksTestCase(KeepReadingSeedTestCase):
             direction
         )
 
-    def _shelve_one(self) -> None:
-        shelf = Shelf.objects.create(user=self.user, name="Want to Read")
-        ShelfItem.objects.create(
-            shelf=shelf, collection="comics", target_id=self.comics[0].pk
-        )
+    def _list_one(self) -> None:
+        reading_list = ReadingList.objects.create(user=self.user, name="Want to Read")
+        add_comics(reading_list, [self.comics[0].pk])
 
     def test_head_links_are_titled(self) -> None:
-        self._shelve_one()
+        self._list_one()
         self._login()
         root = self._get(_V1_START, HTTP_USER_AGENT=_FACET_UA)
         featured = [
@@ -106,17 +105,17 @@ class OPDS1LinksTestCase(KeepReadingSeedTestCase):
             link.attrib for link in featured
         ]
 
-    def test_shelves_are_read_once_per_feed(self) -> None:
-        self._shelve_one()
+    def test_lists_are_read_once_per_feed(self) -> None:
+        self._list_one()
         self._login()
         with CaptureQueriesContext(connection) as ctx:
             self._get(_V1_START, HTTP_USER_AGENT=_FACET_UA)
-        shelf_reads = [
+        list_reads = [
             q["sql"]
             for q in ctx.captured_queries
-            if q["sql"].startswith('SELECT DISTINCT "codex_shelf"."id"')
+            if q["sql"].startswith('SELECT DISTINCT "codex_readinglist"."id"')
         ]
-        assert len(shelf_reads) == 1, shelf_reads
+        assert len(list_reads) == 1, list_reads
 
 
 def _vary(*, remote_user: bool) -> str:

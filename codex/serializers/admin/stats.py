@@ -94,7 +94,7 @@ class StatsCollectionSerializer(Serializer):
     volume_count = IntegerField(required=False, read_only=True)
     issue_count = IntegerField(required=False, read_only=True)
     folder_count = IntegerField(required=False, read_only=True)
-    story_arc_count = IntegerField(required=False, read_only=True)
+    reading_list_count = IntegerField(required=False, read_only=True)
 
 
 class StatsComicMetadataSerializer(Serializer):
@@ -141,10 +141,14 @@ class StatsUsageSerializer(Serializer):
     """Reader Engagement Counts."""
 
     bookmark_count = IntegerField(required=False, read_only=True)
-    shelf_count = IntegerField(required=False, read_only=True)
-    shelf_user_count = IntegerField(required=False, read_only=True)
-    shelf_item_count = IntegerField(required=False, read_only=True)
-    shelf_items = CountDictField(required=False, read_only=True)
+    personal_list_count = IntegerField(required=False, read_only=True)
+    personal_list_user_count = IntegerField(required=False, read_only=True)
+    personal_list_entry_count = IntegerField(required=False, read_only=True)
+    list_sources = CountDictField(required=False, read_only=True)
+    list_item_count = IntegerField(required=False, read_only=True)
+    list_items = CountDictField(required=False, read_only=True)
+    list_entry_count = IntegerField(required=False, read_only=True)
+    list_entry_missing_count = IntegerField(required=False, read_only=True)
     device_key_count = IntegerField(required=False, read_only=True)
     device_key_user_count = IntegerField(required=False, read_only=True)
     device_key_used_count = IntegerField(required=False, read_only=True)
@@ -198,9 +202,11 @@ class StatsTaggingSerializer(Serializer):
     delete_original = BooleanField(required=False, read_only=True)
     rename_files = BooleanField(required=False, read_only=True)
     default_sources = CountDictField(required=False, read_only=True)
+    default_source_first = CharField(required=False, read_only=True, allow_blank=True)
     default_format_count = IntegerField(required=False, read_only=True)
     has_metron_credentials = BooleanField(required=False, read_only=True)
     has_comicvine_credentials = BooleanField(required=False, read_only=True)
+    has_versedb_credentials = BooleanField(required=False, read_only=True)
     comicvine_url_set = BooleanField(required=False, read_only=True)
 
 
@@ -271,10 +277,16 @@ class StatsPerUserSerializer(Serializer):
     browser_order_by_users = CountDictField(required=False)
     browser_view_mode_users = CountDictField(required=False)
     browser_table_cover_size_users = CountDictField(required=False)
+    browser_show_missing_issues_users = CountDictField(required=False)
     browser_chosen_top_collection_users = CountDictField(required=False)
     browser_chosen_order_by_users = CountDictField(required=False)
     browser_chosen_view_mode_users = CountDictField(required=False)
     browser_chosen_table_cover_size_users = CountDictField(required=False)
+    browser_chosen_show_missing_issues_users = CountDictField(required=False)
+    # Keyed by the filter's name: users with the filter on, and users who
+    # set it to match all ticked values.
+    browser_filter_users = CountDictField(required=False)
+    browser_match_all_users = CountDictField(required=False)
     reader_global_fit_to_users = CountDictField(required=False)
     reader_global_two_pages_users = CountDictField(required=False)
     reader_global_reading_direction_users = CountDictField(required=False)

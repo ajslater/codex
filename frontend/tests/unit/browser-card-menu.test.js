@@ -1,17 +1,20 @@
 /*
  * Unit tests for ``browser-card-menu.vue`` — the cover card's action
- * menu. Covers its Shelves entry: a submenu for a single-id card, and
- * absent for a card that aggregates several ids, which can't be
- * shelved atomically. The other entries are stubbed; they have their
- * own components and tests.
+ * menu. Covers its Reading Lists entry: a submenu for a single-id card,
+ * and absent for a card that aggregates several ids, which can't go in
+ * a list atomically. And its Copy to My Lists entry, on reading list
+ * cards for signed-in users only. The other entries are stubbed; they
+ * have their own components and tests.
  */
 import { createTestingPinia } from "@pinia/testing";
 import { flushPromises, mount } from "@vue/test-utils";
 import { afterEach, beforeAll, describe, expect, test } from "vitest";
 
 import BrowserCardMenu from "@/components/browser/card/browser-card-menu.vue";
-import ShelfMenu from "@/components/shelf-menu.vue";
+import ReadingListMenu from "@/components/reading-list-menu.vue";
 import vuetify from "@/plugins/vuetify";
+import { useBrowserStore } from "@/stores/browser";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 beforeAll(() => {
   // VOverlay's connected location strategy reads the bare global.
@@ -36,17 +39,25 @@ const STUBS = Object.freeze({
 
 const wrappers = [];
 
-async function mountOpenMenu(item) {
+async function mountOpenMenu(
+  item,
+  { loggedIn = true, listEditable = false, route = {} } = {},
+) {
   const pinia = createTestingPinia({
     initialState: {
-      auth: { user: { pk: 1 } },
-      shelves: { shelves: [] },
+      auth: { user: loggedIn ? { pk: 1 } : null },
+      browser: { page: { listEditable } },
+      readingLists: { myLists: [], myListsLoaded: true },
     },
     stubActions: true,
   });
   const wrapper = mount(BrowserCardMenu, {
     attachTo: document.body,
-    global: { plugins: [pinia, vuetify], stubs: STUBS },
+    global: {
+      plugins: [pinia, vuetify],
+      stubs: STUBS,
+      mocks: { $route: { params: route } },
+    },
     props: { item },
   });
   wrappers.push(wrapper);
@@ -62,31 +73,120 @@ afterEach(() => {
   wrappers.length = 0;
 });
 
-describe("BrowserCardMenu — Shelves", () => {
-  test("a single-id card gets a Shelves submenu", async () => {
+describe("BrowserCardMenu — Reading Lists", () => {
+  test("a single-id card gets a Reading Lists submenu", async () => {
     const wrapper = await mountOpenMenu({ collection: "series", ids: [7] });
-    const shelfMenu = wrapper.findComponent(ShelfMenu);
-    expect(shelfMenu.props()).toMatchObject({
+    const listMenu = wrapper.findComponent(ReadingListMenu);
+    expect(listMenu.props()).toMatchObject({
       collection: "series",
       pk: 7,
       location: "end",
     });
-    const entry = document.querySelector(".shelvesListItem");
-    expect(entry.textContent).toContain("Shelves");
+    const entry = document.querySelector(".readingListsListItem");
+    expect(entry.textContent).toContain("Reading Lists");
   });
 
-  test("the Shelves menu is a submenu, so arrow keys don't pop it open", async () => {
+  test("the Reading Lists menu is a submenu, so arrow keys don't pop it open", async () => {
     const wrapper = await mountOpenMenu({ collection: "series", ids: [7] });
-    const shelfMenu = wrapper.findComponent(ShelfMenu);
-    expect(shelfMenu.props("submenu")).toBe(true);
-    expect(shelfMenu.findComponent({ name: "VMenu" }).props("submenu")).toBe(
+    const listMenu = wrapper.findComponent(ReadingListMenu);
+    expect(listMenu.props("submenu")).toBe(true);
+    expect(listMenu.findComponent({ name: "VMenu" }).props("submenu")).toBe(
       true,
     );
   });
 
-  test("a card aggregating several ids gets no Shelves entry", async () => {
+  test("a card aggregating several ids gets no Reading Lists entry", async () => {
     const wrapper = await mountOpenMenu({ collection: "folders", ids: [3, 4] });
-    expect(wrapper.findComponent(ShelfMenu).exists()).toBe(false);
-    expect(document.querySelector(".shelvesListItem")).toBeNull();
+    expect(wrapper.findComponent(ReadingListMenu).exists()).toBe(false);
+    expect(document.querySelector(".readingListsListItem")).toBeNull();
+  });
+});
+
+describe("BrowserCardMenu — Copy to My Lists", () => {
+  test("a reading list card copies into the user's lists", async () => {
+    const wrapper = await mountOpenMenu({ collection: "arcs", ids: [5] });
+    const lists = useReadingListsStore();
+    lists.duplicateList.mockResolvedValue({ pk: 9, name: "Civil War (copy)" });
+    const entry = document.querySelector(".copyListItem");
+    expect(entry.textContent).toContain("Copy to My Lists");
+    await wrapper.vm.copyList();
+    expect(lists.duplicateList).toHaveBeenCalledWith(5);
+    expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledOnce();
+    expect(wrapper.vm.showMenu).toBe(false);
+  });
+
+  test("a failed copy refreshes nothing", async () => {
+    const wrapper = await mountOpenMenu({ collection: "arcs", ids: [5] });
+    useReadingListsStore().duplicateList.mockResolvedValue();
+    await wrapper.vm.copyList();
+    expect(useBrowserStore().refreshBrowserPage).not.toHaveBeenCalled();
+  });
+
+  test("other cards and anonymous sessions get no copy entry", async () => {
+    await mountOpenMenu({ collection: "series", ids: [7] });
+    expect(document.querySelector(".copyListItem")).toBeNull();
+    for (const wrapper of wrappers) wrapper.unmount();
+    wrappers.length = 0;
+    await mountOpenMenu({ collection: "arcs", ids: [5] }, { loggedIn: false });
+    expect(document.querySelector(".copyListItem")).toBeNull();
+  });
+});
+
+describe("BrowserCardMenu — reading a list", () => {
+  test("a reading list card offers Continue Reading and Export to anyone", async () => {
+    const wrapper = await mountOpenMenu(
+      { collection: "arcs", ids: [5] },
+      { loggedIn: false },
+    );
+    expect(document.querySelector(".continueListItem").textContent).toContain(
+      "Continue Reading",
+    );
+    expect(document.querySelector(".exportListItem").textContent).toContain(
+      "Export",
+    );
+    await wrapper.vm.continueList();
+    expect(useReadingListsStore().continueReading).toHaveBeenCalledWith(5);
+    expect(wrapper.vm.showMenu).toBe(false);
+  });
+
+  test("other cards get neither", async () => {
+    await mountOpenMenu({ collection: "series", ids: [7] });
+    expect(document.querySelector(".continueListItem")).toBeNull();
+    expect(document.querySelector(".exportListItem")).toBeNull();
+  });
+});
+
+describe("BrowserCardMenu — Remove from List", () => {
+  const ROUTE = Object.freeze({ collection: "arcs", parentIds: "5" });
+
+  test("a comic inside a list its viewer edits can be removed", async () => {
+    const wrapper = await mountOpenMenu(
+      { collection: "comics", ids: [42] },
+      { listEditable: true, route: ROUTE },
+    );
+    const lists = useReadingListsStore();
+    lists.removeFromList.mockResolvedValue(true);
+    expect(document.querySelector(".removeFromListItem").textContent).toContain(
+      "Remove from List",
+    );
+    await wrapper.vm.removeFromThisList();
+    expect(lists.removeFromList).toHaveBeenCalledWith(5, [42]);
+    expect(useBrowserStore().refreshBrowserPage).toHaveBeenCalledOnce();
+  });
+
+  test("no Remove where the viewer may not edit the list", async () => {
+    await mountOpenMenu(
+      { collection: "comics", ids: [42] },
+      { listEditable: false, route: ROUTE },
+    );
+    expect(document.querySelector(".removeFromListItem")).toBeNull();
+  });
+
+  test("no Remove outside a list", async () => {
+    await mountOpenMenu(
+      { collection: "comics", ids: [42] },
+      { listEditable: true, route: { collection: "series", parentIds: "3" } },
+    );
+    expect(document.querySelector(".removeFromListItem")).toBeNull();
   });
 });

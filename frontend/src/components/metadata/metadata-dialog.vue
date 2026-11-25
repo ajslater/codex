@@ -50,7 +50,7 @@ import MetadataHeader from "@/components/metadata/metadata-header.vue";
 import PlaceholderLoading from "@/components/placeholder-loading.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useMetadataStore } from "@/stores/metadata";
-import { useShelvesStore } from "@/stores/shelves";
+import { useReadingListsStore } from "@/stores/reading-lists";
 
 /*
  * Progress circle
@@ -104,7 +104,7 @@ export default {
       md: (state) => state.md,
     }),
     ...mapState(useAuthStore, ["isUserAdmin"]),
-    ...mapState(useShelvesStore, ["membershipVersion"]),
+    ...mapState(useReadingListsStore, ["membershipVersion"]),
     editPanelComponent() {
       if (!this.editing) return null;
       return defineAsyncComponent(
@@ -140,8 +140,9 @@ export default {
     },
     membershipVersion() {
       /*
-       * The Shelves row lists what the server works out through parents,
-       * so refetch after a membership change. The current tags stay up
+       * The Reading Lists row lists what the server works out through
+       * series and the other collections a list holds whole, so refetch
+       * after a membership change. The current tags stay up
        * until the reply replaces them.
        */
       if (this.dialog && this.md) {

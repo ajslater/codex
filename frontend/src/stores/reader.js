@@ -573,6 +573,17 @@ export const useReaderStore = defineStore("reader", {
       if (!params) {
         params = route.params;
       }
+      if (!arc && route.query?.list) {
+        // Continue Reading opens a comic with its list as the reading
+        // order; the server keeps it for the books after. Read once: left
+        // in the route, a later reload of this book would force the list
+        // back over a reading order picked since.
+        arc = { collection: "arcs", ids: [Number(route.query.list)] };
+        const { list: _list, ...query } = route.query;
+        void router
+          .replace({ name: route.name, params: route.params, query })
+          .catch(console.debug);
+      }
       const pk = params.pk;
       const settings = { arc };
       if (!mtime) {
@@ -771,8 +782,8 @@ export const useReaderStore = defineStore("reader", {
         this.intermediateInfo?.scopePk === scopePk
       );
     },
-    _getStoryArcPk() {
-      // When browsing by story arc, pass the first arc id for scoped settings.
+    _getReadingListPk() {
+      // When reading a reading list, pass its id for scoped settings.
       return this.arc?.collection === "arcs" && this.arc?.ids?.length
         ? this.arc.ids[0]
         : null;
@@ -782,12 +793,12 @@ export const useReaderStore = defineStore("reader", {
         return;
       }
       const arcCollection = this.arc?.collection || "series";
-      const storyArcPk = this._getStoryArcPk();
+      const readingListPk = this._getReadingListPk();
       try {
         const response = await READER_API.getSettings(
           pk,
           ["global", arcCollection, "comics"],
-          storyArcPk,
+          readingListPk,
         );
         // A later load for the book now open supersedes this one.
         if (!this._isCurrentBook(pk)) return;

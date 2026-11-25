@@ -1,33 +1,41 @@
 <template>
-  <div>
-    <v-list
-      :model-value="filter"
-      class="filterGroup overflow-y-auto"
-      density="compact"
-      multiple
-      @update:selected="$emit('selected', $event)"
-    >
+  <div @keydown.capture="onKeydownCapture" @keydown="onKeydown">
+    <v-list class="filterGroup overflow-y-auto" density="compact">
       <!--
         Manual ``v-for`` instead of ``:items=...`` — Vuetify would
         render each row a second time on top of this loop. Also needed
-        for the per-item ``#prepend`` slot (the standardized age-rating
-        column in the As-tagged tab). The column renders for every
-        As-tagged row — empty for unmapped tags — so the raw tags stay
-        vertically aligned.
+        for the per-item ``#prepend`` slot. Each row is a checkbox that
+        toggles its value, as the released Shelves sub-menu did; the
+        list has no selection model of its own. The As-tagged tab puts
+        the standardized age rating in a column after the checkbox,
+        empty for unmapped tags, so the raw tags stay aligned.
       -->
       <v-list-item
         v-for="item of vuetifyItems"
         :key="item.value"
+        class="filterChoice"
+        :class="{ filterChoiceTicked: item.ticked }"
         density="compact"
         variant="plain"
-        :value="item.value"
+        role="menuitemcheckbox"
+        :aria-checked="String(item.ticked)"
+        :disabled="item.blocked"
         :title="itemTitle(item)"
-        :active="item.active"
-        :disabled="item.active"
-        :append-icon="item.icon"
+        @click="onToggle(item)"
       >
-        <template v-if="name === 'ageRatingTagged'" #prepend>
-          <span class="metronName">{{ item.metronName }}</span>
+        <template #prepend>
+          <v-checkbox-btn
+            density="compact"
+            :model-value="item.ticked"
+            tabindex="-1"
+            readonly
+          />
+          <span v-if="name === 'ageRatingTagged'" class="metronName">{{
+            item.metronName
+          }}</span>
+        </template>
+        <template v-if="item.reason" #subtitle>
+          <span class="filterChoiceReason">{{ item.reason }}</span>
         </template>
       </v-list-item>
     </v-list>
@@ -35,12 +43,36 @@
 </template>
 
 <script>
-import { mdiCheck } from "@mdi/js";
 import { mapActions, mapState } from "pinia";
 
+import { VUETIFY_NULL_CODE } from "@/choices/browser-choices.json";
 import { toVuetifyItems } from "@/vuetify-items";
 import { useBrowserStore } from "@/stores/browser";
 
+/*
+ * Filters whose choices come in an order that means something: Metron's
+ * age ratings by age, reading lists with your own first, and the reading
+ * list kinds as Mine, Curated, From Tags.
+ */
+const SERVER_ORDERED_FILTERS = new Set([
+  "ageRatingMetron",
+  "readingListKind",
+  "readingLists",
+]);
+/*
+ * Filters whose order is the point, so ticked rows do not jump ahead:
+ * the age ratings by age, the reading list kinds as Mine, Curated, From
+ * Tags. Reading lists do bring ticked lists first.
+ */
+const FIXED_ORDER_FILTERS = Object.freeze(
+  new Set(["ageRatingMetron", "ageRatingTagged", "readingListKind"]),
+);
+// Under All, None cannot be ticked with other values; its row says so.
+const NONE_UNDER_ALL_REASON = "Not with Match all";
+// Keys a VList moves focus with.
+const NAVIGATION_KEYS = Object.freeze(
+  new Set(["ArrowDown", "ArrowUp", "Home", "End"]),
+);
 const NUMERIC_FILTERS = new Set([
   "decade",
   "seriesEndYear",
@@ -67,8 +99,32 @@ export default {
       type: String,
       default: "",
     },
+    // The filter matches all ticked values, not any.
+    matchAll: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["selected"],
+  data() {
+    return {
+      /*
+       * The values ticked when the list opened. They come first, and
+       * stay where they are as you tick, so rows don't jump under the
+       * pointer.
+       */
+      tickedOnOpen: new Set(this.filter),
+      /*
+       * Every row shown since the list opened, in its place. Under All a
+       * refresh never removes one, which would move rows under the
+       * pointer: a row no longer offered dims instead, and rows newly
+       * offered go after. They drop out when the list opens again.
+       */
+      keptItems: [],
+      // The row focused before a navigation key, while it is handled.
+      focusBefore: undefined,
+    };
+  },
   computed: {
     ...mapState(useBrowserStore, {
       readingDirectionTitles: (state) => state.choices.static.readingDirection,
@@ -76,15 +132,14 @@ export default {
     isNumeric() {
       return NUMERIC_FILTERS.has(this.name);
     },
-    vuetifyItems() {
+    offeredItems() {
       /*
-       * ``choices`` may be ``true`` (a loading-state placeholder set
-       * by the store before ``loadFilterChoices`` resolves) or
-       * ``undefined`` if the dynamic filter isn't applicable to the
-       * current group. ``toVuetifyItems`` calls ``for...of`` on its
-       * ``items``, so anything non-iterable would TypeError; bail out
-       * with an empty list and let the parent show its progress
-       * indicator until real choices arrive.
+       * The choices on offer now as rows, sorted, before the search box.
+       * ``choices`` may be ``true`` (a loading-state placeholder set by
+       * the store before ``loadFilterChoices`` resolves) or ``undefined``
+       * if the dynamic filter isn't applicable to the current group;
+       * either is no rows, and the parent shows its progress indicator
+       * until real choices arrive.
        */
       if (!Array.isArray(this.choices)) {
         return [];
@@ -95,7 +150,7 @@ export default {
           : this.choices;
       const sortBy = this.isNumeric
         ? "numeric"
-        : this.name == "ageRatingMetron"
+        : SERVER_ORDERED_FILTERS.has(this.name)
           ? ""
           : this.name == "ageRatingTagged"
             ? "index"
@@ -106,17 +161,40 @@ export default {
           : this.name === "ageRatingTagged"
             ? ["metronName", "index"]
             : [];
-      const vItems = toVuetifyItems({
-        items,
-        filter: this.search,
-        sortBy,
-        copyKeys,
-      });
-      for (const item of vItems) {
-        item.active = this.filter?.includes(item.value);
-        item.icon = item.active ? mdiCheck : undefined;
+      return toVuetifyItems({ items, sortBy, copyKeys });
+    },
+    vuetifyItems() {
+      const offered = this.offeredItems;
+      const offeredValues = new Set(offered.map((item) => item.value));
+      const ticked = new Set(this.filter);
+      const search = this.search?.toLowerCase();
+      const shown = [];
+      for (const source of this.matchAll ? this.keptItems : offered) {
+        if (search && !source.title.toLowerCase().includes(search)) {
+          continue;
+        }
+        shown.push(this._row(source, ticked, offeredValues));
       }
-      return vItems;
+      if (FIXED_ORDER_FILTERS.has(this.name) || !this.tickedOnOpen.size) {
+        return shown;
+      }
+      const isFirst = (item) => this.tickedOnOpen.has(item.value);
+      return [
+        ...shown.filter((item) => isFirst(item)),
+        ...shown.filter((item) => !isFirst(item)),
+      ];
+    },
+  },
+  watch: {
+    offeredItems: {
+      immediate: true,
+      handler(items) {
+        const kept = new Set(this.keptItems.map((item) => item.value));
+        const added = items.filter((item) => !kept.has(item.value));
+        if (added.length) {
+          this.keptItems = [...this.keptItems, ...added];
+        }
+      },
     },
   },
   methods: {
@@ -124,6 +202,71 @@ export default {
       "fixUniverseTitles",
       "identifierSourceTitle",
     ]),
+    onKeydownCapture(event) {
+      this.focusBefore = NAVIGATION_KEYS.has(event.key)
+        ? document.activeElement
+        : undefined;
+    },
+    onKeydown(event) {
+      /*
+       * This list sits inside the select's own list, and a VList moves
+       * focus without stopping the key, so each arrow stepped two rows.
+       * Once this list has moved one row, the key stops here. At either
+       * end this list would wrap; put focus back and let the menu's list
+       * step out of the choices instead.
+       */
+      const before = this.focusBefore;
+      this.focusBefore = undefined;
+      if (!before) {
+        return;
+      }
+      const rows = [...this.$el.querySelectorAll("[role=menuitemcheckbox]")];
+      const from = rows.indexOf(before);
+      const to = rows.indexOf(document.activeElement);
+      if (from === -1 || to === -1) {
+        return;
+      }
+      const wrapped =
+        (event.key === "ArrowDown" && to < from) ||
+        (event.key === "ArrowUp" && to > from);
+      if (wrapped) {
+        before.focus({ preventScroll: true });
+        return;
+      }
+      event.stopPropagation();
+    },
+    _row(source, ticked, offeredValues) {
+      /*
+       * One row to show. Under All a row is not tickable when it no
+       * longer occurs with the ticked values, or is None, which cannot
+       * combine with them. A ticked row is never blocked, so it can be
+       * unticked.
+       */
+      const item = { ...source, ticked: ticked.has(source.value) };
+      if (!this.matchAll || item.ticked) {
+        return item;
+      }
+      const isNone = item.value === VUETIFY_NULL_CODE;
+      item.blocked = isNone || !offeredValues.has(item.value);
+      if (isNone) {
+        item.reason = NONE_UNDER_ALL_REASON;
+      }
+      return item;
+    },
+    onToggle(item) {
+      if (item.blocked) {
+        return;
+      }
+      /*
+       * From the whole filter, not the rows shown: a ticked value the
+       * search box hides stays ticked.
+       */
+      const filter = this.filter || [];
+      const next = filter.includes(item.value)
+        ? filter.filter((value) => value !== item.value)
+        : [...filter, item.value];
+      this.$emit("selected", next);
+    },
     itemTitle(item) {
       if (this.name === "readingDirection") {
         return this.readingDirectionTitles[item.value];
@@ -145,6 +288,30 @@ export default {
     /* has to be less than the menu height */
   }
 
+  /*
+   * Plain rows sit at 0.62 opacity unless hovered or focused; a ticked
+   * row reads at full strength, like the one last clicked.
+   */
+  .filterChoiceTicked {
+    opacity: 1;
+  }
+
+  /*
+   * Under the title, and no wider than the menu already is: a reason
+   * that widened the menu moved it under the pointer as All came on.
+   */
+  .filterChoice :deep(.v-list-item-subtitle) {
+    display: block;
+    -webkit-line-clamp: unset;
+  }
+
+  .filterChoiceReason {
+    display: block;
+    width: 0;
+    min-width: 100%;
+    white-space: normal;
+  }
+
   .metronName {
     /*
      * The standardized (metron) equivalent of a raw tagged age
@@ -162,9 +329,8 @@ export default {
 
   /*
    * Vuetify puts a 32px spacer between a list item's prepend and its
-   * content; the standardized column already pads itself with its
-   * fixed width, so tighten the gap. Only As-tagged rows render a
-   * prepend, so the selector can't affect other filter lists.
+   * content; the checkbox, and the standardized column with its fixed
+   * width, already pad themselves, so tighten the gap.
    */
   .filterGroup :deep(.v-list-item__prepend > .v-list-item__spacer) {
     width: 8px;

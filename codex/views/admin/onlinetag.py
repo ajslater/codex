@@ -25,6 +25,7 @@ from codex.librarian.onlinetag.session_snapshot import (
     get_snapshot,
     overlay_resolutions,
 )
+from codex.librarian.onlinetag.sources import SUPPORTED_SOURCES, configured_sources
 from codex.librarian.onlinetag.tasks import (
     BulkOnlineTagTask,
     OnlineTagAbortTask,
@@ -51,18 +52,6 @@ _FLAG_DEFAULT_FIELDS: Final = MappingProxyType(
         "rename": "rename_files",
     }
 )
-
-
-def _configured_sources(defaults: ComicboxTaggingDefaults | None) -> frozenset[str]:
-    """Which online sources actually have credentials configured."""
-    if not defaults:
-        return frozenset()
-    sources = set()
-    if defaults.metron_key:
-        sources.add("metron")
-    if defaults.comicvine_key:
-        sources.add("comicvine")
-    return frozenset(sources)
 
 
 class AdminOnlineTagActiveView(AdminAPIView):
@@ -119,6 +108,22 @@ class AdminOnlineTagSnapshotView(AdminAPIView):
             resume = get_resume_state()
             snapshot["resumable"] = bool(resume and resume.get("remaining_pks"))
         return Response({"snapshot": snapshot})
+
+
+def _unkeyed_detail(sources: Sequence[str], configured: frozenset[str]) -> str:
+    """Say which sources a scan names that have no key, or nothing."""
+    if unkeyed := [source for source in sources if source not in configured]:
+        return f"No {', '.join(unkeyed)} credentials configured."
+    return ""
+
+
+def _default_sources(
+    defaults: ComicboxTaggingDefaults | None, configured: frozenset[str]
+) -> list[str]:
+    """Return the sources a scan naming none runs: keyed ones, admin order first."""
+    order = list((defaults.default_sources if defaults else None) or SUPPORTED_SOURCES)
+    order += [source for source in SUPPORTED_SOURCES if source not in order]
+    return [source for source in order if source in configured]
 
 
 class AdminOnlineTagStartView(FilteredComicPksView):
@@ -186,8 +191,13 @@ class AdminOnlineTagStartView(FilteredComicPksView):
 
     @staticmethod
     def _resolve_effort(data: dict, defaults: ComicboxTaggingDefaults | None) -> str:
-        """Take the run's effort from the request, falling back to the default."""
-        if requested := data.get("effort"):
+        """
+        Take the run's effort from the request, falling back to the default.
+
+        An empty effort is the launcher's Auto, a choice; only an omitted one
+        falls back.
+        """
+        if (requested := data.get("effort")) is not None:
             return str(requested)
         if defaults and defaults.default_effort:
             return str(defaults.default_effort)
@@ -204,10 +214,23 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         except ComicboxTaggingDefaults.DoesNotExist:
             defaults = None
 
-        try:
-            ids = self._parse_pinned_ids(
-                data.get("ids") or {}, data["sources"], _configured_sources(defaults)
+        # Refused here, not after the 202: the daemon cannot run a source
+        # with no key, and the admin would wait on a scan that never starts.
+        configured = frozenset(configured_sources(defaults))
+        sources = (
+            data["sources"]
+            if "sources" in data
+            else _default_sources(defaults, configured)
+        )
+        if not sources:
+            return Response(
+                {"detail": "No online source credentials configured."}, status=400
             )
+        if detail := _unkeyed_detail(sources, configured):
+            return Response({"detail": detail}, status=400)
+
+        try:
+            ids = self._parse_pinned_ids(data.get("ids") or {}, sources, configured)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -219,7 +242,7 @@ class AdminOnlineTagStartView(FilteredComicPksView):
         task = BulkOnlineTagTask(
             comic_pks=comic_pks,
             session_id=session_id,
-            sources=tuple(data["sources"]),
+            sources=tuple(sources),
             mode=data["mode"],
             effort=self._resolve_effort(data, defaults),
             prompts_mode=data["prompts_mode"],
@@ -287,11 +310,15 @@ class AdminOnlineTagResumeView(AdminAPIView):
         if not resume or not remaining:
             return Response({"detail": "Nothing to resume."}, status=400)
 
+        params = _resume_task_params(resume)
+        defaults = ComicboxTaggingDefaults.objects.filter(pk=1).first()
+        configured = frozenset(configured_sources(defaults))
+        # A key removed since the pause would fail the scan in the daemon.
+        if detail := _unkeyed_detail(params.get("sources", ()), configured):
+            return Response({"detail": detail}, status=400)
         session_id = str(uuid.uuid4())
         task = BulkOnlineTagTask(
-            comic_pks=frozenset(remaining),
-            session_id=session_id,
-            **_resume_task_params(resume),
+            comic_pks=frozenset(remaining), session_id=session_id, **params
         )
         LIBRARIAN_QUEUE.put(task)
         return Response(

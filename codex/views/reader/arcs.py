@@ -12,7 +12,8 @@ from codex.collection import READER_REPRINT_COLLECTION, Collection
 from codex.models import AdminFlag
 from codex.models.comic import Comic
 from codex.models.functions import JsonGroupArray
-from codex.models.named import Reprint, StoryArc
+from codex.models.named import Reprint
+from codex.models.readinglist import ReadingList
 from codex.util import max_none
 from codex.views.const import (
     STORY_ARC_COLLECTION,
@@ -34,12 +35,10 @@ _COMIC_ARC_FIELD_COLLECTIONS = MappingProxyType(
 _COMIC_ARC_FIELD_NAMES = tuple(_COMIC_ARC_FIELD_COLLECTIONS)
 
 # Arc collections whose rows are groups rather than a single row, so the
-# requested ids may be a stale subset of the current group. Both story
-# arcs (grouped by sort_name) and reprints (grouped by identity)
-# accept an intersecting id set as the same arc.
-_MULTI_ROW_ARC_COLLECTIONS = frozenset(
-    {STORY_ARC_COLLECTION, READER_REPRINT_COLLECTION}
-)
+# requested ids may be a stale subset of the current group. Reprints
+# (grouped by identity) accept an intersecting id set as the same arc. A
+# reading list is one row, so its id names it exactly.
+_MULTI_ROW_ARC_COLLECTIONS = frozenset({READER_REPRINT_COLLECTION})
 
 # Preference order when the requested arc collection has no arc for this
 # comic. Series first: it's the reader's default reading order.
@@ -107,32 +106,30 @@ class ReaderArcsView(ReaderParamsView):
         arcs[arc_collection] = {arc_ids: {"name": collection.name, "mtime": mtime}}
         return max_mtime
 
-    def _get_story_arcs(self, comic: Comic, arcs, max_mtime: int | None):
-        """Append the story arcs."""
-        qs = StoryArc.objects.filter(storyarcnumber__comic__pk=comic.pk)
-        if not qs.exists():
-            return max_mtime
-
-        # ``Max("updated_at")`` returns a single typed datetime per arc
-        # via the field's ``from_db_value`` hook — replaces the prior
-        # ``JsonGroupArray("updated_at")`` + per-row Python ``strptime``
-        # loop (sub-plan 01 #4 / Tier 3 #8). SQLite stores datetimes as
-        # ISO strings, so any aggregate that yields a typed datetime
-        # bypasses the manual parse.
-        qs = qs.group_by("sort_name")  # pyright: ignore[reportAttributeAccessIssue]
-        qs = qs.annotate(
-            ids=JsonGroupArray("id", distinct=True, order_by="id"),
-            mtime=Max("updated_at"),
+    def _get_reading_lists(self, comic: Comic, arcs, max_mtime: int | None):
+        """Append the reading lists this comic is in that the viewer may see."""
+        qs = (
+            ReadingList.objects.filter(
+                self.reading_list_visibility_filter(self.request.user),
+                entries__comic_id=comic.pk,
+                entries__ignored=False,
+            )
+            .distinct()
+            .order_by("sort_name", "pk")
+            .only("name", "updated_at")
         )
-        qs = qs.order_by("sort_name").only("name")
-
-        arcs[STORY_ARC_COLLECTION] = {}
-
-        for sa in qs:
-            ids = tuple(sorted(set(sa.ids)))
-            mtime = sa.mtime
-            arcs[STORY_ARC_COLLECTION][ids] = {"name": sa.name, "mtime": mtime}
-            max_mtime = max_none(max_mtime, mtime)
+        lists = {
+            (reading_list.pk,): {
+                "name": reading_list.name,
+                "mtime": reading_list.updated_at,
+            }
+            for reading_list in qs
+        }
+        if not lists:
+            return max_mtime
+        arcs[STORY_ARC_COLLECTION] = lists
+        for info in lists.values():
+            max_mtime = max_none(max_mtime, info["mtime"])
         return max_mtime
 
     def _get_reprint_arcs(self, comic: Comic, arcs, max_mtime: int | None):
@@ -198,24 +195,22 @@ class ReaderArcsView(ReaderParamsView):
         requested_arc_ids = arc.get("ids", ())
         if not arcs.get(arc_collection):
             arc_collection = self._fallback_arc_collection(arcs)
-        arc_id_infos = arcs.get(arc_collection)
-        all_arc_ids: frozenset[tuple[int, ...]] = (
-            frozenset(arc_id_infos.keys()) if arc_id_infos else frozenset()
-        )
+        # Ordered: reading lists by sort name then pk, reprints by identity.
+        arc_id_infos: Mapping[tuple[int, ...], dict] = arcs.get(arc_collection) or {}
         arc_ids = ()
-        if arc_collection in _MULTI_ROW_ARC_COLLECTIONS:
-            if requested_arc_ids in all_arc_ids:
-                arc_ids = requested_arc_ids
-            else:
-                # Pre-build the frozenset cast for each candidate once,
-                # outside the per-iteration intersection compute (sub-plan 01 #6).
-                requested_set = frozenset(requested_arc_ids)
-                for candidate in all_arc_ids:
-                    if requested_set.intersection(candidate):
-                        arc_ids = candidate
-                        break
-        if not arc_ids and all_arc_ids:
-            arc_ids = next(iter(all_arc_ids))
+        if requested_arc_ids in arc_id_infos:
+            arc_ids = requested_arc_ids
+        elif arc_collection in _MULTI_ROW_ARC_COLLECTIONS:
+            # Pre-build the frozenset cast for each candidate once,
+            # outside the per-iteration intersection compute (sub-plan 01 #6).
+            requested_set = frozenset(requested_arc_ids)
+            for candidate in arc_id_infos:
+                if requested_set.intersection(candidate):
+                    arc_ids = candidate
+                    break
+        if not arc_ids:
+            # The first key in order, so the fallback is stable across requests.
+            arc_ids = next(iter(arc_id_infos), ())
         self._selected_arc_collection = arc_collection
         self._selected_arc_ids = arc_ids
 
@@ -258,7 +253,7 @@ class ReaderArcsView(ReaderParamsView):
         max_mtime = None
         for field_name in field_names:
             max_mtime = self._get_collection_arc(comic, field_name, arcs, max_mtime)
-        max_mtime = self._get_story_arcs(comic, arcs, max_mtime)
+        max_mtime = self._get_reading_lists(comic, arcs, max_mtime)
         max_mtime = self._get_reprint_arcs(comic, arcs, max_mtime)
         self._set_selected_arc(arcs)
         return arcs, max_mtime

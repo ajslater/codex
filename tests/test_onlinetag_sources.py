@@ -1,0 +1,339 @@
+"""
+The online-tag source registry, and what a source codex never registered does.
+
+Codex drives only the sources registered in ``codex.librarian.onlinetag.sources``.
+comicbox can know more than codex has registered (it knew ``versedb`` before
+codex could drive it). Such a source must be inert everywhere codex takes a
+source name: refused with a 400 or a user-facing message, never a 500, and
+never handed another source's key. ``_UNREGISTERED`` stands in for it; the
+registry's own filtering is tested on a made-up comicbox vocabulary.
+"""
+
+import json
+from http import HTTPStatus
+from importlib import import_module
+from typing import Any, Final, override
+from unittest.mock import patch
+
+import pytest
+from comicbox.config.online import Effort
+from comicbox.config.online.settings import OnlineSourceCredentials
+from comicbox.formats.base.online import SOURCE_NAMES
+from comicbox.formats.base.online.sources.base import OnlineSource
+from comicbox.formats.comicvine_api.online_source import ComicVineOnlineSource
+from comicbox.formats.metron_api.online_source import MetronOnlineSource
+from comicbox.formats.versedb_api.online_source import VerseDBOnlineSource
+from comicbox.online_estimate import requests_per_comic
+from comicbox.online_session import OnlineCredentials
+from django.contrib.auth.models import User
+from django.test import Client, SimpleTestCase, TestCase
+
+from codex.choices.admin import TAGGING_CHOICES
+from codex.choices.onlinetag import TAGGING_ESTIMATE
+from codex.librarian.onlinetag.credential_validator import (
+    KNOWN_SOURCES,
+    validate_credentials,
+)
+from codex.librarian.onlinetag.sources import (
+    CREDENTIAL_FIELDS,
+    SOURCES,
+    SUPPORTED_SOURCES,
+    configured_sources,
+    source_credentials,
+    supported_sources,
+)
+from codex.librarian.onlinetag.tasks import BulkOnlineTagTask
+from codex.models import ComicboxTaggingDefaults
+from codex.serializers.admin.tagging import OnlineTagStartSerializer
+from codex.views.admin.identifier_parse import parse_identifier_input
+
+#: A source comicbox might add that codex has not registered.
+_UNREGISTERED: Final = "newsource"
+_TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
+_DEFAULTS_URL: Final = "/api/v4/admin/tagging-defaults"
+_VALIDATE_URL: Final = f"{_DEFAULTS_URL}/validate"
+_START_URL: Final = "/api/v4/admin/tag-sessions/start"
+_ALL_SOURCES: Final = ("metron", "comicvine", "versedb")
+_COMICVINE_PER_HOUR: Final = 200
+_VERSEDB_PER_HOUR: Final = 300
+_VERSEDB_PER_DAY: Final = 4000
+_FULL_CREDS: Final = OnlineCredentials(
+    metron_key="m",
+    comicvine_key="c",
+    comicvine_url="https://cv.example.com/api",
+    versedb_key="v",
+)
+
+
+class RegistryTests(SimpleTestCase):
+    """The registry filters comicbox's names and describes each source."""
+
+    def test_an_unregistered_comicbox_source_is_filtered_out(self) -> None:
+        names = (*_ALL_SOURCES, _UNREGISTERED)
+        assert supported_sources(names) == _ALL_SOURCES
+
+    def test_comicbox_order_is_kept(self) -> None:
+        names = ("versedb", _UNREGISTERED, "comicvine", "metron")
+        assert supported_sources(names) == ("versedb", "comicvine", "metron")
+
+    def test_supported_sources_derive_from_comicbox(self) -> None:
+        assert supported_sources(SOURCE_NAMES) == SUPPORTED_SOURCES
+        assert SUPPORTED_SOURCES == _ALL_SOURCES
+        assert tuple(SOURCES) == SUPPORTED_SOURCES
+        assert frozenset(SUPPORTED_SOURCES) == KNOWN_SOURCES
+
+    def test_credential_fields_exist_on_both_ends(self) -> None:
+        """Each field is a model column and a comicbox credential of one name."""
+        assert CREDENTIAL_FIELDS == (
+            "metron_key",
+            "comicvine_key",
+            "comicvine_url",
+            "versedb_key",
+        )
+        for field in CREDENTIAL_FIELDS:
+            ComicboxTaggingDefaults._meta.get_field(field)
+            assert field in OnlineCredentials.__dataclass_fields__
+
+    def test_each_source_names_its_comicbox_class_and_module(self) -> None:
+        classes = {name: source.source_class() for name, source in SOURCES.items()}
+        assert classes == {
+            "metron": MetronOnlineSource,
+            "comicvine": ComicVineOnlineSource,
+            "versedb": VerseDBOnlineSource,
+        }
+        for source in SOURCES.values():
+            assert issubclass(source.source_class(), OnlineSource)
+            assert callable(import_module(source.module).close_shared_sessions)
+
+    def test_labels_are_comicbox_display_names(self) -> None:
+        labels = [source.label for source in SOURCES.values()]
+        assert labels == ["Metron", "Comic Vine", "VerseDB"]
+
+
+class SourceCredentialsTests(SimpleTestCase):
+    """Each source gets its own slice of the credentials, and only that."""
+
+    def test_metron_takes_its_key_and_no_url(self) -> None:
+        creds = OnlineCredentials(metron_key="m", metron_url="https://x.example")
+        assert source_credentials("metron", creds) == OnlineSourceCredentials(key="m")
+
+    def test_comicvine_takes_its_key_and_url(self) -> None:
+        assert source_credentials("comicvine", _FULL_CREDS) == (
+            OnlineSourceCredentials(key="c", url="https://cv.example.com/api")
+        )
+
+    def test_versedb_takes_its_key_and_no_url(self) -> None:
+        """Codex stores no VerseDB url, so none is ever forwarded."""
+        creds = OnlineCredentials(versedb_key="v", versedb_url="https://x.example")
+        assert source_credentials("versedb", creds) == OnlineSourceCredentials(key="v")
+
+    def test_blank_values_are_unset(self) -> None:
+        creds = OnlineCredentials(comicvine_key="", comicvine_url="")
+        assert source_credentials("comicvine", creds) == OnlineSourceCredentials()
+
+    def test_an_unregistered_source_gets_no_one_elses_key(self) -> None:
+        """Before the registry, any non-Metron source got Comic Vine's key."""
+        assert source_credentials(_UNREGISTERED, _FULL_CREDS) == (
+            OnlineSourceCredentials()
+        )
+
+    def test_configured_sources_reads_comicbox_credentials(self) -> None:
+        assert configured_sources(_FULL_CREDS) == _ALL_SOURCES
+        assert configured_sources(OnlineCredentials(versedb_key="v")) == ("versedb",)
+
+    def test_a_url_alone_configures_nothing(self) -> None:
+        creds = OnlineCredentials(comicvine_url="https://cv.example.com/api")
+        assert configured_sources(creds) == ()
+
+    def test_no_holder_configures_nothing(self) -> None:
+        assert configured_sources(None) == ()
+
+
+class UnregisteredSourceDefaultsTests(SimpleTestCase):
+    """Nothing defaults to every name comicbox knows."""
+
+    def test_the_frontend_is_offered_the_supported_sources(self) -> None:
+        assert TAGGING_CHOICES["sources"] == SUPPORTED_SOURCES
+
+    def test_a_start_request_without_sources_leaves_them_to_the_view(self) -> None:
+        """The view picks the keyed sources; see test_onlinetag_start_validation."""
+        serializer = OnlineTagStartSerializer(data={"collection": "c", "pks": ["1"]})
+        assert serializer.is_valid(), serializer.errors
+        assert "sources" not in serializer.validated_data
+
+    def test_a_task_defaults_to_the_supported_sources(self) -> None:
+        task = BulkOnlineTagTask(comic_pks=frozenset({1}), session_id="s")
+        assert task.sources == SUPPORTED_SOURCES
+
+    def test_validating_an_unregistered_source_is_a_no_op(self) -> None:
+        assert validate_credentials(_FULL_CREDS, {_UNREGISTERED}) == {}
+
+
+class UnregisteredSourceIdentifierTests(SimpleTestCase):
+    """Tag-by-id refuses an unregistered source with a message, not a crash."""
+
+    def test_its_prefix_is_an_unknown_source(self) -> None:
+        with pytest.raises(ValueError, match="Unknown source") as exc_info:
+            parse_identifier_input(f"{_UNREGISTERED}:123")
+        assert str(exc_info.value).endswith("Use metron, comicvine, or versedb.")
+
+
+def _make_admin() -> User:
+    return User.objects.create_user(
+        username="onlinetag_sources_admin",
+        password=_TEST_PASSWORD,
+        is_staff=True,
+        is_superuser=True,
+    )
+
+
+class UnregisteredSourceEndpointTests(TestCase):
+    """The admin endpoints refuse an unregistered source with a 400."""
+
+    @override
+    def setUp(self) -> None:
+        self.client = Client()
+        self.client.force_login(_make_admin())
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1, defaults={"metron_key": "m", "comicvine_key": "c", "versedb_key": "v"}
+        )
+
+    def _post(self, url: str, data: dict):
+        return self.client.post(url, data=data, content_type="application/json")
+
+    def test_validating_every_source_probes_only_the_registered_ones(self) -> None:
+        """With no ``source`` this was a ``KeyError`` once comicbox knew more."""
+        with (
+            patch.object(MetronOnlineSource, "probe", return_value=None),
+            patch.object(ComicVineOnlineSource, "probe", return_value=None),
+            patch.object(VerseDBOnlineSource, "probe", return_value=None),
+        ):
+            response = self._post(_VALIDATE_URL, {})
+        assert response.status_code == HTTPStatus.OK, response.content
+        results = response.json()["data"]["results"]
+        assert set(results) == set(_ALL_SOURCES)
+        assert all(result["ok"] for result in results.values())
+
+    def test_validating_an_unregistered_source_is_a_400(self) -> None:
+        response = self._post(_VALIDATE_URL, {"source": _UNREGISTERED})
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
+    def test_an_unregistered_default_source_is_a_400(self) -> None:
+        response = self.client.put(
+            _DEFAULTS_URL,
+            data=json.dumps({"defaultSources": ["metron", _UNREGISTERED]}),
+            content_type="application/json",
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+        defaults = ComicboxTaggingDefaults.objects.get(pk=1)
+        assert _UNREGISTERED not in defaults.default_sources
+
+    def test_starting_a_scan_with_an_unregistered_source_is_a_400(self) -> None:
+        response = self._post(
+            _START_URL,
+            {"collection": "comics", "pks": ["1"], "sources": [_UNREGISTERED]},
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
+    def test_pinning_an_unregistered_source_is_a_400(self) -> None:
+        response = self._post(
+            _START_URL,
+            {"collection": "comics", "pks": ["1"], "ids": {_UNREGISTERED: "123"}},
+        )
+        assert response.status_code == HTTPStatus.BAD_REQUEST
+
+
+class StoredUnregisteredSourceTests(TestCase):
+    """
+    A stored source name outside the registry does not lock the Tagging tab.
+
+    A restore writes ``default_sources`` without the write validation, so a
+    backup naming a source this build does not register put it in the row.
+    The tab then sent it back with every auto-save, and each one was a 400.
+    """
+
+    @override
+    def setUp(self) -> None:
+        self.client = Client()
+        self.client.force_login(_make_admin())
+        ComicboxTaggingDefaults.objects.update_or_create(
+            pk=1,
+            defaults={"metron_key": "m", "default_sources": ["metron", _UNREGISTERED]},
+        )
+
+    def test_the_tab_can_save_what_it_was_given(self) -> None:
+        """The defaults read without the unknown name, so they save back."""
+        response = self.client.get(_DEFAULTS_URL)
+        assert response.status_code == HTTPStatus.OK, response.content
+        draft = response.json()["data"]
+        assert draft["defaultSources"] == ["metron"]
+        response = self.client.put(
+            _DEFAULTS_URL,
+            data=json.dumps(
+                {"defaultSources": draft["defaultSources"], "deleteOriginal": True}
+            ),
+            content_type="application/json",
+        )
+        assert response.status_code == HTTPStatus.OK, response.content
+
+
+class ConfiguredSourcesFieldTests(TestCase):
+    """The tagging defaults report which supported sources have a key."""
+
+    @override
+    def setUp(self) -> None:
+        self.client = Client()
+        self.client.force_login(_make_admin())
+
+    def _configured(self, **fields: str) -> list[str]:
+        unset = dict.fromkeys(CREDENTIAL_FIELDS, "")
+        ComicboxTaggingDefaults.objects.filter(pk=1).update(**(unset | fields))
+        response = self.client.get(_DEFAULTS_URL)
+        assert response.status_code == HTTPStatus.OK, response.content
+        return response.json()["data"]["configuredSources"]
+
+    def test_none(self) -> None:
+        assert self._configured() == []
+
+    def test_one(self) -> None:
+        assert self._configured(versedb_key="v") == ["versedb"]
+
+    def test_all_three_in_comicbox_order(self) -> None:
+        # Not run priority, which defaultSources holds.
+        assert self._configured(versedb_key="v", comicvine_key="c", metron_key="m") == [
+            "metron",
+            "comicvine",
+            "versedb",
+        ]
+
+    def test_a_url_alone_is_not_configured(self) -> None:
+        assert self._configured(comicvine_url="https://cv.example.com/api") == []
+
+
+def _estimate(key: str) -> Any:
+    """One entry of the estimate table; its values differ in type by key."""
+    return TAGGING_ESTIMATE[key]
+
+
+class TaggingEstimateTests(SimpleTestCase):
+    """The launcher's estimate table is comicbox's, per source and effort."""
+
+    def test_requests_per_comic_is_comicbox_pricing(self) -> None:
+        table = _estimate("requests_per_comic")
+        assert tuple(table) == SUPPORTED_SOURCES
+        for source in SUPPORTED_SOURCES:
+            assert dict(table[source]) == {
+                effort.value: requests_per_comic(source, effort.value)
+                for effort in Effort
+            }
+
+    def test_source_rates(self) -> None:
+        rates = _estimate("source_rates")
+        assert tuple(rates) == SUPPORTED_SOURCES
+        metron = rates["metron"]
+        assert metron["per_hour"] == metron["per_minute"] * 60
+        assert metron["per_day"] is None
+        assert rates["comicvine"]["per_hour"] == _COMICVINE_PER_HOUR
+        assert rates["comicvine"]["per_day"] is None
+        assert rates["versedb"]["per_hour"] == _VERSEDB_PER_HOUR
+        assert rates["versedb"]["per_day"] == _VERSEDB_PER_DAY

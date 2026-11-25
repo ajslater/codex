@@ -1,6 +1,7 @@
 """Comicbox tagging serializers."""
 
-from comicbox.formats.base.online import SOURCE_NAMES
+from typing import override
+
 from rest_framework.fields import SerializerMethodField
 from rest_framework.serializers import (
     BooleanField,
@@ -17,6 +18,7 @@ from rest_framework.serializers import (
 from codex.choices.limits import MAX_NAME_LEN
 from codex.choices.tagging import NAMED_WRITE_FORMATS, WRITE_FORMATS
 from codex.librarian.onlinetag.credential_validator import KNOWN_SOURCES
+from codex.librarian.onlinetag.sources import configured_sources
 from codex.models import ComicboxTaggingDefaults
 from codex.serializers.models.base import BaseModelSerializer
 
@@ -25,9 +27,9 @@ def _validate_ordered_sources(value: list) -> list:
     """
     Validate an ordered source list: known names, deduped, order kept.
 
-    List order is run priority (comicbox tries the first source first and,
-    under first-wins, its match ends the lookup), so order must survive
-    validation untouched.
+    List order is priority: comicbox tries the first source first and, under
+    first-wins, its match ends the lookup; when merging, the first source wins
+    where sources disagree. So order must survive validation untouched.
     """
     sources = list(dict.fromkeys(value))
     unknown = [s for s in sources if s not in KNOWN_SOURCES]
@@ -121,14 +123,27 @@ class OnlineTagStartSerializer(Serializer):
 
     collection = CharField()
     pks = ListField(child=CharField())
-    sources = ListField(child=CharField(), required=False, default=list(SOURCE_NAMES))
+    # Omitted: the sources with keys, in the admin's default order. An
+    # explicit empty list names no source, which is a 400.
+    sources = ListField(
+        child=CharField(),
+        required=False,
+        allow_empty=False,
+        error_messages={"empty": "Choose at least one source."},
+    )
     mode = ChoiceField(
         choices=ComicboxTaggingDefaults.MatchModeChoices.values,
         required=False,
         default="auto",
     )
     # None falls back to the admin default, like the flags below.
-    effort = CharField(required=False, default=None, allow_null=True)
+    effort = ChoiceField(
+        choices=ComicboxTaggingDefaults.EffortChoices.values,
+        required=False,
+        default=None,
+        allow_null=True,
+        allow_blank=True,
+    )
     prompts_mode = CharField(required=False, default="ask")
     delete_original = BooleanField(required=False, default=None)
     # None falls back to the admin ComicboxTaggingDefaults default.
@@ -174,19 +189,21 @@ class TaggingValidateRequestSerializer(Serializer):
     metron_key = CharField(required=False, allow_blank=True)
     comicvine_key = CharField(required=False, allow_blank=True)
     comicvine_url = CharField(required=False, allow_blank=True)
+    versedb_key = CharField(required=False, allow_blank=True)
 
 
 class TaggingRateLimitWindowSerializer(Serializer):
-    """One rate-limit window (burst or sustained) as limit/remaining counts."""
+    """One rate-limit window (burst, hourly or sustained) as limit/remaining."""
 
     limit = IntegerField(allow_null=True, required=False, default=None)
     remaining = IntegerField(allow_null=True, required=False, default=None)
 
 
 class TaggingRateLimitsSerializer(Serializer):
-    """A source account's live rate limits (Metron: from X-RateLimit-* headers)."""
+    """A source account's live rate limits, from its X-RateLimit-* headers."""
 
     burst = TaggingRateLimitWindowSerializer()
+    hourly = TaggingRateLimitWindowSerializer()
     sustained = TaggingRateLimitWindowSerializer()
 
 
@@ -211,36 +228,14 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
 
     metron_key = CharField(write_only=True, required=False, allow_blank=True)
     comicvine_key = CharField(write_only=True, required=False, allow_blank=True)
+    versedb_key = CharField(write_only=True, required=False, allow_blank=True)
 
-    metron_key_set = SerializerMethodField()
-    comicvine_key_set = SerializerMethodField()
-
-    has_metron_credentials = SerializerMethodField()
-    has_comicvine_credentials = SerializerMethodField()
+    configured_sources = SerializerMethodField()
 
     @staticmethod
-    def get_metron_key_set(obj) -> bool:
-        """Whether a Metron API key has been configured."""
-        return bool(obj.metron_key)
-
-    @staticmethod
-    def get_comicvine_key_set(obj) -> bool:
-        """Whether a Comic Vine API key has been configured."""
-        return bool(obj.comicvine_key)
-
-    @staticmethod
-    def get_has_metron_credentials(obj) -> bool:
-        """
-        Whether a Metron API key is set.
-
-        Mirrors comicbox's ``MetronOnlineSource.is_configured``.
-        """
-        return bool(obj.metron_key)
-
-    @staticmethod
-    def get_has_comicvine_credentials(obj) -> bool:
-        """Whether a Comic Vine API key is set."""
-        return bool(obj.comicvine_key)
+    def get_configured_sources(obj) -> list[str]:
+        """List the supported sources with an API key, in comicbox's order."""
+        return list(configured_sources(obj))
 
     @staticmethod
     def validate_default_formats(value: object) -> list:
@@ -257,6 +252,24 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
         """Require known source names; preserve the priority order."""
         return _validate_ordered_sources(value)
 
+    @override
+    def to_representation(self, instance) -> dict:
+        """
+        Read the defaults without a source this build does not register.
+
+        A restore writes ``default_sources`` past the write validation, and
+        a later build may register fewer sources. The Tagging tab sends what
+        it read back with every auto-save, so a name refused on write would
+        make each save a 400; the next save stores the list without it.
+        """
+        data = super().to_representation(instance)
+        data["default_sources"] = [
+            source
+            for source in data.get("default_sources") or ()
+            if source in KNOWN_SOURCES
+        ]
+        return data
+
     class Meta(BaseModelSerializer.Meta):
         """Specify model and fields."""
 
@@ -272,17 +285,10 @@ class ComicboxTaggingDefaultsSerializer(BaseModelSerializer):
             "merge_all_sources",
             "metron_key",
             "comicvine_key",
+            "versedb_key",
             # Not a secret, so unlike the keys this reads back: the form shows
             # the saved url as its placeholder.
             "comicvine_url",
-            "metron_key_set",
-            "comicvine_key_set",
-            "has_metron_credentials",
-            "has_comicvine_credentials",
+            "configured_sources",
         )
-        read_only_fields = (
-            "metron_key_set",
-            "comicvine_key_set",
-            "has_metron_credentials",
-            "has_comicvine_credentials",
-        )
+        read_only_fields = ("configured_sources",)

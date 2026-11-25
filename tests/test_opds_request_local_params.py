@@ -15,7 +15,8 @@ import json
 from typing import Final
 from urllib.parse import urlsplit
 
-from codex.models import Comic, Imprint, Publisher, Series, Shelf, ShelfItem, Volume
+from codex.models import Comic, Imprint, Publisher, ReadingList, Series, Volume
+from codex.views.readinglists.entries import add_comics
 from tests.test_opds_keep_reading import (
     _TEST_PASSWORD,
     _TMP_DIR,
@@ -83,10 +84,8 @@ class OPDSRequestLocalParamsTestCase(KeepReadingSeedTestCase):
         return self._local(group["links"][0]["href"])
 
     def _shelf(self) -> None:
-        shelf = Shelf.objects.create(user=self.user, name=_SHELF_NAME)
-        ShelfItem.objects.create(
-            shelf=shelf, collection="comics", target_id=self.comics[0].pk
-        )
+        reading_list = ReadingList.objects.create(user=self.user, name=_SHELF_NAME)
+        add_comics(reading_list, [self.comics[0].pk])
 
     def _publisher_names(self, feed: dict) -> set[str]:
         return {link["title"] for link in feed.get("navigation", [])}

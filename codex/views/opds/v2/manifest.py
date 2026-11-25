@@ -3,9 +3,9 @@
 import json
 from collections.abc import Mapping, Sequence
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, override
+from typing import Any, Final, override
 
-from django.db.models import CharField, F, Value
+from django.db.models import CharField, F, Min, Value
 from rest_framework.exceptions import NotFound
 
 from codex.models.base import NamedModel
@@ -19,9 +19,13 @@ from codex.models.named import (
     Location,
     SeriesGroup,
     StoryArc,
-    StoryArcNumber,
     Tag,
     Team,
+)
+from codex.models.readinglist import (
+    ReadingListEntry,
+    ReadingListSource,
+    ReadingListSourceKind,
 )
 from codex.serializers.opds.v2.publication import (
     OPDS2PublicationDivinaManifestSerializer,
@@ -60,18 +64,20 @@ _PUBLICATION_FIELD_MAP: MappingProxyType[str, str] = MappingProxyType(
     }
 )
 # The browser filter each subject kind's facet link filters on. Not the model
-# name plus "s": that spells ``storyarcs`` and ``seriesgroups``.
+# name plus "s": that spells ``storyarcs`` and ``seriesgroups``. A story arc
+# is a reading list, so its link filters by the list its tags made.
 SUBJECT_FILTER_KEYS: MappingProxyType[type[NamedModel], str] = MappingProxyType(
     {
         Character: "characters",
         Genre: "genres",
         Location: "locations",
         SeriesGroup: "series_groups",
-        StoryArc: "story_arcs",
+        StoryArc: "reading_lists",
         Tag: "tags",
         Team: "teams",
     }
 )
+_ARC_FILTER_KEY: Final = SUBJECT_FILTER_KEYS[StoryArc]
 # Readium Contributor browse-group routing for publisher/imprint —
 # matches the helper in ``codex/views/opds/v2/feed/publications.py``.
 _CONTRIBUTOR_KINDS: tuple[str, ...] = ("publisher", "imprint")
@@ -87,6 +93,25 @@ _PUBLICATION_METHOD_KEYS: tuple[str, ...] = (
 # page counts works; 999999999 is well clear of any plausible
 # ``page_count`` (sub-plan 05 #4).
 _READING_ORDER_PAGE_SENTINEL: int = 999999999
+
+
+def _arc_list_pks(arc_pks) -> dict[int, int]:
+    """Map story arcs to the reading lists their tags made."""
+    sort_names = dict(
+        StoryArc.objects.filter(pk__in=list(arc_pks)).values_list("pk", "sort_name")
+    )
+    if not sort_names:
+        return {}
+    lists = dict(
+        ReadingListSource.objects.filter(
+            kind=ReadingListSourceKind.TAGS, ref__in=set(sort_names.values())
+        ).values_list("ref", "reading_list_id")
+    )
+    return {
+        arc_pk: lists[sort_name]
+        for arc_pk, sort_name in sort_names.items()
+        if sort_name in lists
+    }
 
 
 class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
@@ -177,34 +202,34 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
 
         return self._publication_belongs_to_link(kwargs, query_params, name, number)
 
-    def _publication_belongs_to_story_arcs(self, obj) -> list:
-        story_arcs = []
-        rel = GroupACLMixin.get_rel_prefix(StoryArcNumber)
-        comic_filter = {rel + "in": [obj.pk]}
-        # ``select_related("story_arc")`` materializes the FK in the
-        # same query — the prior ``.only("story_arc", "number")`` form
-        # deferred the FK and triggered a per-row ``StoryArc.objects.get``
-        # (textbook N+1, sub-plan 05 #2).
-        story_arc_numbers = (
-            StoryArcNumber.objects.filter(**comic_filter)
-            .select_related("story_arc")
-            .only("number", "story_arc__name")
-            .order_by("story_arc__name")
+    def _publication_belongs_to_reading_lists(self, obj) -> list:
+        """
+        Link each reading list the comic is in, at its first position.
+
+        Only lists this user may see: another user's personal list is not
+        named here, any more than it browses.
+        """
+        entries = (
+            ReadingListEntry.objects.filter(
+                GroupACLMixin.reading_list_visibility_filter(
+                    self.request.user, "reading_list__"
+                ),
+                comic_id=obj.pk,
+                ignored=False,
+            )
+            .values_list("reading_list_id", "reading_list__name")
+            .annotate(first=Min("position"))
+            .order_by("reading_list__sort_name", "reading_list_id")
         )
         ts = self._obj_ts(obj)
-        for story_arc_number in story_arc_numbers:
-            story_arc = story_arc_number.story_arc
-            name = story_arc.name or BLANK_TITLE
-            pks = [story_arc.pk]
-            number = story_arc_number.number
-            kwargs = {"collection": "arcs", "pks": pks, "page": 1}
+        links = []
+        for list_pk, list_name, position in entries:
+            kwargs = {"collection": "arcs", "pks": [list_pk], "page": 1}
             query_params = {"ts": ts, "topCollection": "arcs"}
-
-            story_arc = self._publication_belongs_to_link(
-                kwargs, query_params, name, number
+            links += self._publication_belongs_to_link(
+                kwargs, query_params, list_name or BLANK_TITLE, position + 1
             )
-            story_arcs += story_arc
-        return story_arcs
+        return links
 
     def _publication_belongs_to(self, obj) -> dict:
         belongs_to = {}
@@ -214,8 +239,8 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
             belongs_to["volume"] = volume
         if folder := self._publication_belongs_to_folder(obj):
             belongs_to["collection"] = folder
-        if story_arcs := self._publication_belongs_to_story_arcs(obj):
-            belongs_to["story_arc"] = story_arcs
+        if reading_lists := self._publication_belongs_to_reading_lists(obj):
+            belongs_to["story_arc"] = reading_lists
 
         return belongs_to
 
@@ -269,10 +294,20 @@ class OPDS2ManifestMetadataView(OPDS2PublicationBaseView):
         # ``flat_subjs`` carries ``SimpleNamespace`` rows that quack
         # like ``NamedModel`` (``pk`` / ``name`` / ``links``); the
         # serializer downstream reads only those three attributes.
+        rows = list(rows)
+        arc_lists = _arc_list_pks(
+            row["pk"] for row in rows if row["_filter_key"] == _ARC_FILTER_KEY
+        )
         flat_subjs: list[Any] = []
         for row in rows:
-            subj = SimpleNamespace(pk=row["pk"], name=row["name"], links=())
-            self._add_tag_link(subj, row["_filter_key"])
+            filter_key = row["_filter_key"]
+            pk = row["pk"]
+            if filter_key == _ARC_FILTER_KEY:
+                # An arc is a reading list: its link filters by the list.
+                pk = arc_lists.get(pk)
+            subj = SimpleNamespace(pk=pk, name=row["name"], links=())
+            if pk is not None:
+                self._add_tag_link(subj, filter_key)
             flat_subjs.append(subj)
         return tuple(flat_subjs)
 
@@ -432,7 +467,7 @@ class OPDS2ManifestView(OPDS2ManifestMetadataView):
         """
         Find the manifest's comic by the ACL and its pk alone.
 
-        The saved OPDS browser filters (read state, shelves, search) are
+        The saved OPDS browser filters (read state, reading lists, search) are
         the last feed's; they say nothing about which book a manifest is
         for, and a book they hide would get a manifest with no reading
         order.

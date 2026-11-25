@@ -1,0 +1,61 @@
+<template>
+  <button class="missingRunCard" type="button" @click="$emit('expand', runKey)">
+    <span class="missingRunCount">{{ count }} more missing</span>
+    <span class="missingRunHint text-caption">Show them</span>
+  </button>
+</template>
+
+<script>
+/*
+ * A long run of missing issues, folded into one card that opens it.
+ */
+export default {
+  name: "MissingRunCard",
+  props: {
+    count: { type: Number, required: true },
+    runKey: { type: Number, required: true },
+  },
+  emits: ["expand"],
+};
+</script>
+
+<style scoped lang="scss">
+@use "vuetify/styles/settings/variables" as vuetify;
+@use "sass:map";
+@use "@/components/book-cover" as bookcover;
+
+@layer codex-components {
+  .missingRunCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: bookcover.$cover-height;
+    width: bookcover.$cover-width;
+    border: 1px dashed rgba(var(--v-border-color), var(--v-border-opacity));
+    border-radius: 4px;
+    color: rgb(var(--v-theme-text-secondary));
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .missingRunCard:hover,
+  .missingRunCard:focus-visible {
+    color: rgb(var(--v-theme-primary));
+    border-color: rgb(var(--v-theme-primary));
+  }
+
+  .missingRunCount {
+    font-size: 16px;
+  }
+
+  /* The grid's columns are small covers here, as the cards' are. */
+  @media #{map.get(vuetify.$display-breakpoints, 'sm-and-down')} {
+    .missingRunCard {
+      height: bookcover.$small-cover-height;
+      width: bookcover.$small-cover-width;
+    }
+  }
+}
+</style>

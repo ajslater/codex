@@ -21,8 +21,15 @@ from codex.models.identifier import Identifier, IdentifierType
 from codex.models.library import Library
 from codex.models.named import Credit, Reprint
 from codex.models.paths import CustomCover, FailedImport
+from codex.models.readinglist import (
+    ITEM_COLLECTIONS,
+    MISSING_Q,
+    ReadingList,
+    ReadingListEntry,
+    ReadingListSource,
+    ReadingListSourceKind,
+)
 from codex.models.settings import SettingsBrowser
-from codex.models.shelf import SHELF_COLLECTION_MODELS, Shelf, ShelfItem
 
 OTHER_IDENTIFIER_SOURCE: Final = "other"
 # comicbox's closed source vocabulary. A source name read from a comic file
@@ -59,8 +66,12 @@ _MANGA_COUNT_KEYS: Final = MappingProxyType(
     }
 )
 _MANGA_UNKNOWN_COUNT: Final = "comic_manga_unknown_count"
-# The shelf_items bucket for a stored collection outside the vocabulary.
-_OTHER_SHELF_COLLECTION: Final = "other"
+# The bucket a stored value outside its column's vocabulary is counted under.
+_OTHER_BUCKET: Final = "other"
+_ITEM_COLLECTION_KEYS: Final = frozenset(
+    collection.value for collection in ITEM_COLLECTIONS
+)
+_SOURCE_KIND_KEYS: Final = frozenset(kind.value for kind in ReadingListSourceKind)
 
 
 def get_library_stats() -> dict[str, int]:
@@ -142,33 +153,70 @@ def get_manga_stats() -> dict[str, int]:
     return stats
 
 
+def _closed_bucket(queryset, field: str, vocabulary: frozenset[str]) -> dict[str, int]:
+    """
+    Count rows by one column, keyed only by that column's closed vocabulary.
+
+    A stored value outside the vocabulary, whatever it holds, is counted
+    under "other": every writer validates these columns today, but a stored
+    value can be anything.
+    """
+    rows = queryset.values(field).annotate(count=Count("pk")).order_by()
+    bucket: dict[str, int] = {}
+    for row in rows:
+        key = row[field]
+        if key not in vocabulary:
+            key = _OTHER_BUCKET
+        bucket[key] = bucket.get(key, 0) + row["count"]
+    return bucket
+
+
+def _get_list_stats() -> dict[str, Any]:
+    """
+    Count reading lists: whose, where their issues come from, how many match.
+
+    Counts only. A list's name, type and description, a source's reference
+    and an entry's series name are free text or library names, so none is
+    read here. The two data-keyed buckets are keyed by closed vocabularies:
+    ``list_sources`` by the source kind, ``list_items`` by the item
+    collection. ``personal_list_entry_count`` is the issues people put on
+    their own lists one at a time, which an item's live entries are not.
+    """
+    personal = ReadingList.objects.filter(user__isnull=False)
+    sources = ReadingListSource.objects
+    list_items = _closed_bucket(
+        sources.filter(kind=ReadingListSourceKind.COLLECTION),
+        "collection",
+        _ITEM_COLLECTION_KEYS,
+    )
+    entries = ReadingListEntry.objects
+    return {
+        "personal_list_count": personal.count(),
+        "personal_list_user_count": personal.values("user").distinct().count(),
+        "personal_list_entry_count": entries.filter(
+            reading_list__user__isnull=False, live_source__isnull=True
+        ).count(),
+        "list_sources": _closed_bucket(sources.all(), "kind", _SOURCE_KIND_KEYS),
+        "list_item_count": sum(list_items.values()),
+        "list_items": list_items,
+        "list_entry_count": entries.count(),
+        "list_entry_missing_count": entries.filter(MISSING_Q).count(),
+    }
+
+
 def get_usage_stats() -> dict[str, Any]:
     """
-    Report reader engagement: bookmarks, shelves and API keys.
+    Report reader engagement: bookmarks, reading lists and API keys.
 
-    Counts only. A shelf's name is free text its user typed, so it must
-    never be read here; the one data-keyed bucket, ``shelf_items``, is
-    keyed by the closed ``Collection`` vocabulary. API keys are counted
-    and nothing else: never a name, a prefix, a digest or a timestamp.
-    "Used" is whether ``last_used_at`` is set, never its value.
+    Counts only; see :func:`_get_list_stats` for the lists. API keys are
+    counted and nothing else: never a name, a prefix, a digest or a
+    timestamp. "Used" is whether ``last_used_at`` is set, never its value.
     """
     device_keys = UserApiKey.objects.filter(scope=ApiKeyScope.DEVICE.value)
     universal_keys = UserApiKey.objects.filter(scope=ApiKeyScope.UNIVERSAL.value)
-    rows = ShelfItem.objects.values("collection").annotate(count=Count("pk")).order_by()
-    # Keyed only by the shelf collection vocabulary: a stored value outside
-    # it, whatever it holds, is counted under "other".
-    shelf_items: dict[str, int] = {}
-    for row in rows:
-        key = row["collection"]
-        if key not in SHELF_COLLECTION_MODELS:
-            key = _OTHER_SHELF_COLLECTION
-        shelf_items[key] = shelf_items.get(key, 0) + row["count"]
     return {
         "bookmark_count": Bookmark.objects.count(),
-        "shelf_count": Shelf.objects.count(),
-        "shelf_user_count": Shelf.objects.values("user").distinct().count(),
-        "shelf_item_count": sum(shelf_items.values()),
-        "shelf_items": shelf_items,
+        **_get_list_stats(),
         "device_key_count": device_keys.count(),
         "device_key_user_count": device_keys.values("user").distinct().count(),
         "device_key_used_count": device_keys.filter(last_used_at__isnull=False).count(),

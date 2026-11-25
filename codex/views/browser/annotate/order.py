@@ -7,8 +7,9 @@ from types import MappingProxyType
 from django.db.models import (
     F,
     FilteredRelation,
-    Q,
+    OuterRef,
     QuerySet,
+    Subquery,
     Value,
 )
 from django.db.models.aggregates import Avg, Count, Max, Min, Sum
@@ -19,7 +20,8 @@ from codex.choices.browser import BROWSER_EXTRA_SORT_UNSUPPORTED_KEYS
 from codex.models import (
     Comic,
     Folder,
-    StoryArc,
+    ReadingList,
+    ReadingListEntry,
 )
 from codex.models.collections import Volume
 from codex.models.functions import ComicFTSRank, JsonGroupArray
@@ -39,6 +41,7 @@ from codex.views.const import (
     STORY_ARC_COLLECTION,
 )
 from codex.views.mixins import SharedAnnotationsMixin
+from codex.views.readinglists.access import visible_lists
 
 # The ``FilteredRelation`` alias for the requesting user's own bookmark row.
 # See ``BrowserAnnotateOrderView.alias_my_bookmark``.
@@ -91,7 +94,6 @@ _ANNOTATED_ORDER_FIELDS = frozenset(
     {
         "bookmark_updated_at",
         "child_count",
-        "shelved",
         "filename",
         "search_score",
         "sort_name",
@@ -130,14 +132,14 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
         of link inside one feed.
 
         ``arcs`` is here knowingly, and is the one imperfect case. The
-        arcs *root* lists story arcs and nothing else, so that feed is
+        arcs *root* lists reading lists and nothing else, so that feed is
         pure navigation, but this one flag also labels every individual
-        arc entry, whose feed lists comics and for which acquisition is
+        list entry, whose feed lists comics and for which acquisition is
         right. Splitting them means threading an override through
         ``_facet_group`` / ``_facet_or_facet_entry`` / ``_facet_entry``
         for the four root View entries alone. Do not do that on spec
         reasoning: change it only when a real client is observed
-        misreading Story Arc View (#855 follow-up F7).
+        misreading the Reading Lists view (#855 follow-up F7).
         """
         collections: set[str] = {
             STORY_ARC_COLLECTION,
@@ -168,7 +170,7 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
     def _alias_sort_names(self, qs):
         """Annotate sort_name."""
         if self.order_key != "sort_name" and not (
-            qs.model is StoryArc and self.order_key == "story_arc_number"
+            qs.model is ReadingList and self.order_key == "story_arc_number"
         ):
             return qs
         collection = self.kwargs.get("collection")
@@ -218,27 +220,69 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
             filename = self.order_agg_func(filename_func)
         return qs.alias(filename=filename)
 
+    def _alias_reading_list_position(self, qs, list_pks):
+        """
+        Order comics by their first shown position in the lists.
+
+        A subquery per comic, not a join to the entries: a comic that two
+        ticked lists share would join twice and count twice in every sum
+        over a card's comics, its pages and progress included. The first
+        position is an aggregate, the last under a reversed order: ordered
+        by position instead, SQLite served it from the list's position
+        index and walked the whole list once per comic.
+        """
+        first = Subquery(
+            ReadingListEntry.objects.filter(
+                comic_id=OuterRef(self.get_rel_prefix(qs.model) + "pk"),
+                reading_list__in=list_pks,
+                ignored=False,
+            )
+            .order_by()
+            .values("comic_id")
+            .annotate(first=self.order_agg_func("position"))
+            .values("first")
+        )
+        if qs.model is Comic:
+            return qs, first
+        return qs, self.order_agg_func(first)
+
+    def _filtered_list_pks(self) -> list[int]:
+        """Return the Reading Lists filter's lists that the viewer may see."""
+        pks = [
+            pk
+            for pk in self.params.get("filters", {}).get("reading_lists", ())
+            if pk is not None
+        ]
+        if not pks:
+            return []
+        return list(
+            visible_lists(self.request.user)
+            .filter(pk__in=pks)
+            .values_list("pk", flat=True)
+        )
+
     def _alias_story_arc_number(self, qs):
+        """
+        Alias the ``story_arc_number`` order: the reading order.
+
+        Inside a reading list it is the list's own order, and under the
+        Reading Lists filter it is the order of the lists chosen.
+        """
         if self.order_key != "story_arc_number":
             return qs
 
-        # Get story_arc__pk
         collection = self.kwargs["collection"]
         pks = self.kwargs["pks"]
-        if collection == STORY_ARC_COLLECTION and pks:
-            story_arc_pks = pks
-        else:
-            story_arc_pks = self.params.get("filters", {}).get("story_arcs", ())
-
-        # If we have one annotate it.
-        if story_arc_pks:
-            rel = self.get_rel_prefix(qs.model) + "story_arc_numbers"
-            condition_rel = "pk" if qs.model is StoryArc else rel + "__story_arc"
-            condition = Q(**{f"{condition_rel}__in": story_arc_pks})
-            qs = qs.alias(
-                selected_story_arc_number=FilteredRelation(rel, condition=condition),
-            )
-            story_arc_number = self.order_agg_func("selected_story_arc_number__number")
+        if qs.model is ReadingList:
+            story_arc_number = NONE_INTEGERFIELD
+        elif self.model_collection == STORY_ARC_COLLECTION:
+            # The cover of a list card: its comic at the first position,
+            # read off the entry join the cover subquery correlates on.
+            story_arc_number = F("reading_list_entries__position")
+        elif collection == STORY_ARC_COLLECTION and pks:
+            qs, story_arc_number = self._alias_reading_list_position(qs, pks)
+        elif list_pks := self._filtered_list_pks():
+            qs, story_arc_number = self._alias_reading_list_position(qs, list_pks)
         else:
             story_arc_number = NONE_INTEGERFIELD
 
@@ -498,9 +542,8 @@ class BrowserAnnotateOrderView(BrowserOrderByView, SharedAnnotationsMixin):
 
     # Extra-sort keys whose value comes from a per-row annotation
     # already on the queryset — no aggregation needed, just F() the
-    # known column. ``shelved`` is added by
-    # ``_add_table_view_shelved_annotation``.
-    _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name", "shelved"})
+    # known column.
+    _EXTRA_COLLECTION_F_KEYS = frozenset({"sort_name"})
 
     def _extra_collection_special(self, qs, key: str, *, reverse: bool):
         """Collection-row extra: hand-rolled cases (returns None when not special)."""

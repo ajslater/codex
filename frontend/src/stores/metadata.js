@@ -15,15 +15,10 @@ const TAGS = Object.freeze([
   // reprints, split into two rows by alternativeName
   "seriesGroups",
   "stories",
-  "storyArcNumbers",
+  // storyArcNumbers: shown as the Reading Lists row, kept for the tag editor
   "tags",
   "universes",
 ]);
-
-// Rows whose display name isn't the capital-cased key.
-const TAG_NAMES = Object.freeze({
-  storyArcNumbers: "Story Arcs",
-});
 
 /*
  * Tag editor name suggestions.
@@ -250,7 +245,7 @@ export const useMetadataStore = defineStore("metadata", {
       this.tagNamesLoading = {};
     },
     getTagName(key) {
-      return TAG_NAMES[key] || capitalCase(key);
+      return capitalCase(key);
     },
     mapTag(tagSource, keys, filter) {
       const tagMap = {};

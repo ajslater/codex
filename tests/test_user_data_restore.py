@@ -21,15 +21,17 @@ from codex.models import (
     Imprint,
     Library,
     Publisher,
+    ReadingList,
+    ReadingListEntry,
+    ReadingListSource,
     Series,
-    Shelf,
-    ShelfItem,
     Volume,
 )
 from codex.models.admin import AdminFlag, Timestamp
 from codex.models.api_key import RevokedApiKey, UserApiKey
 from codex.startup import init_admin_flags
 from codex.user_data.dump import dump_user_data
+from codex.user_data.identifiers import encode_identifier
 from codex.user_data.restore import restore
 from codex.user_data.store import SidecarStore, reset_store_for_tests
 from tests.tmp_dirs import tmp_dir
@@ -42,6 +44,30 @@ _TEST_PASSWORD: Final = "test-pw-hush-S106"  # noqa: S105
 _SEED_BOOKMARK_PAGE: Final = 7
 _SEED_SHELF_ITEMS_COUNT: Final = 2
 _SEED_SHELF_NAME: Final = "Want to Read"
+_OLD_SHELF_TABLES: Final = """
+    CREATE TABLE shelves (
+        username TEXT NOT NULL,
+        name TEXT NOT NULL,
+        updated_at TEXT,
+        PRIMARY KEY (username, name)
+    );
+    CREATE TABLE shelf_items (
+        username TEXT NOT NULL,
+        shelf_name TEXT NOT NULL,
+        collection TEXT NOT NULL,
+        identifier_json TEXT NOT NULL,
+        updated_at TEXT,
+        PRIMARY KEY (username, shelf_name, collection, identifier_json)
+    );
+"""
+_INSERT_SHELF_ITEM: Final = """
+    INSERT INTO shelf_items (username, shelf_name, collection, identifier_json)
+    VALUES ('alice', {shelf}, ?, ?)
+"""
+_INSERT_FAVORITE: Final = """
+    INSERT INTO favorites (username, collection, identifier_json)
+    VALUES ('alice', ?, ?)
+"""
 _HTTP_OK: Final = 200
 
 
@@ -67,28 +93,6 @@ class _SidecarRestoreCase(TestCase):
         self.store.close()
         reset_store_for_tests(None)
         shutil.rmtree(_TMP_DIR, ignore_errors=True)
-
-    def _snapshot_sidecar(self) -> Path:
-        """
-        Dump the main-DB state to the sidecar; return a frozen copy.
-
-        Subsequent main-DB deletes won't touch the sidecar (we no longer
-        mirror via signals); the snapshot file is the artifact we restore
-        from to simulate "main DB lost, sidecar intact."
-        """
-        dump_user_data()
-        # Force any pending WAL writes to flush.
-        self.store.connection().execute("PRAGMA wal_checkpoint(FULL)")
-        snapshot = _TMP_DIR / "config" / "snapshot.sqlite"
-        snapshot.unlink(missing_ok=True)
-        # ``sqlite3.backup`` produces a consistent copy under load.
-        with sqlite3.connect(snapshot) as dst:
-            self.store.connection().backup(dst)
-        return snapshot
-
-
-class RestoreRoundTripTests(_SidecarRestoreCase):
-    """Write → wipe → restore → compare."""
 
     def _seed_main_db(self) -> dict:
         """Create a representative set of user-data rows in the main DB."""
@@ -123,13 +127,6 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         Bookmark.objects.create(
             user=user, comic=comic, page=_SEED_BOOKMARK_PAGE, finished=True
         )
-        shelf = Shelf.objects.create(user=user, name=_SEED_SHELF_NAME)
-        ShelfItem.objects.create(
-            shelf=shelf, collection="publishers", target_id=publisher.pk
-        )
-        ShelfItem.objects.create(shelf=shelf, collection="series", target_id=series.pk)
-        # An empty shelf must survive the round trip too.
-        Shelf.objects.create(user=user, name="Empty")
         # update_or_create rather than create — other suites' setUpTestData
         # calls into codex_init() can leak seeded AdminFlag/Timestamp rows
         # past TestCase's per-test rollback.
@@ -146,6 +143,28 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
             "editors": editors,
             "comic_path": str(comic_path),
         }
+
+    def _snapshot_sidecar(self) -> Path:
+        """
+        Dump the main-DB state to the sidecar; return a frozen copy.
+
+        Subsequent main-DB deletes won't touch the sidecar (we no longer
+        mirror via signals); the snapshot file is the artifact we restore
+        from to simulate "main DB lost, sidecar intact."
+        """
+        dump_user_data()
+        # Force any pending WAL writes to flush.
+        self.store.connection().execute("PRAGMA wal_checkpoint(FULL)")
+        snapshot = _TMP_DIR / "config" / "snapshot.sqlite"
+        snapshot.unlink(missing_ok=True)
+        # ``sqlite3.backup`` produces a consistent copy under load.
+        with sqlite3.connect(snapshot) as dst:
+            self.store.connection().backup(dst)
+        return snapshot
+
+
+class RestoreRoundTripTests(_SidecarRestoreCase):
+    """Write → wipe → restore → compare."""
 
     def test_round_trip_restores_users_and_groups(self) -> None:
         self._seed_main_db()
@@ -173,27 +192,65 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         assert bm.page == _SEED_BOOKMARK_PAGE
         assert bm.finished is True
 
-    def test_round_trip_restores_shelves(self) -> None:
+    def _old_shelves(self, snapshot: Path, seed: dict, *, filtered: bool) -> None:
+        """
+        Rewrite the snapshot as a backup from before shelves were lists.
+
+        Shelf "Want to Read" holds the comic, its series and a series the
+        library no longer has; shelf "Empty" holds nothing.
+        """
+        identity = {
+            "comic": encode_identifier("comics", [seed["comic_path"]]),
+            "series": encode_identifier("series", ["Pub", "Imp", "Ser"]),
+            "gone": encode_identifier("series", ["Pub", "Imp", "Gone"]),
+        }
+        with sqlite3.connect(snapshot) as conn:
+            conn.executescript(_OLD_SHELF_TABLES)
+            conn.executemany(
+                "INSERT INTO shelves (username, name) VALUES ('alice', ?)",
+                [(_SEED_SHELF_NAME,), ("Empty",)],
+            )
+            conn.executemany(
+                _INSERT_SHELF_ITEM.format(shelf="?"),
+                [
+                    (_SEED_SHELF_NAME, "comics", identity["comic"]),
+                    (_SEED_SHELF_NAME, "series", identity["series"]),
+                    (_SEED_SHELF_NAME, "series", identity["gone"]),
+                ],
+            )
+            if filtered:
+                conn.execute(
+                    "UPDATE settings_filters SET shelves = ?",
+                    (f'["{_SEED_SHELF_NAME}"]',),
+                )
+
+    def test_old_backup_shelves_restore_as_lists(self) -> None:
+        """Each shelf a personal list; its series an item, its comic by hand."""
         seed = self._seed_main_db()
         snapshot = self._snapshot_sidecar()
-        Shelf.objects.all().delete()
-        assert not ShelfItem.objects.exists()
+        self._old_shelves(snapshot, seed, filtered=False)
 
         report = restore(sidecar_path=snapshot)
-        assert report.written.get("shelf_items", 0) >= _SEED_SHELF_ITEMS_COUNT
-        shelf = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
-        ShelfItem.objects.get(
-            shelf=shelf, collection="publishers", target_id=seed["publisher"].pk
-        )
-        ShelfItem.objects.get(
-            shelf=shelf, collection="series", target_id=seed["series"].pk
-        )
-        assert not ShelfItem.objects.filter(
-            shelf__user=seed["user"], shelf__name="Empty"
-        ).exists()
 
-    def test_round_trip_restores_shelves_filter(self) -> None:
-        """A stored shelves filter comes back pointing at the restored shelf."""
+        assert report.written.get("shelves") == _SEED_SHELF_ITEMS_COUNT
+        assert report.written.get("shelf_items") == 3  # noqa: PLR2004
+        want = ReadingList.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        hand = ReadingListEntry.objects.get(reading_list=want, live_source=None)
+        assert (hand.comic_id, hand.manual) == (seed["comic"].pk, True)  # pyright: ignore[reportAttributeAccessIssue]
+        items = ReadingListSource.objects.filter(reading_list=want).order_by("rank")
+        # The gone series waits, dangling, for a series of its name.
+        assert list(items.values_list("kind", "collection", "target_id")) == [
+            ("collection", "series", seed["series"].pk),
+            ("collection", "series", None),
+        ]
+        # The comic is on the list by hand, so the series adds nothing.
+        assert ReadingListEntry.objects.filter(reading_list=want).count() == 1
+        empty = ReadingList.objects.get(user=seed["user"], name="Empty")
+        assert not ReadingListEntry.objects.filter(reading_list=empty).exists()
+        assert not ReadingListSource.objects.filter(reading_list=empty).exists()
+
+    def test_old_backup_shelves_filter_points_at_the_lists(self) -> None:
+        """A stored shelves filter comes back a Reading Lists filter."""
         from codex.models.settings import (
             SettingsBrowser,
             SettingsBrowserFilters,
@@ -201,22 +258,21 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         )
 
         seed = self._seed_main_db()
-        shelf = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
         show, _ = SettingsBrowserShow.objects.get_or_create()
         browser = SettingsBrowser.objects.create(user=seed["user"], show=show)
-        SettingsBrowserFilters.objects.create(browser=browser, shelves=[shelf.pk])
+        SettingsBrowserFilters.objects.create(browser=browser)
         snapshot = self._snapshot_sidecar()
+        self._old_shelves(snapshot, seed, filtered=True)
         SettingsBrowser.objects.all().delete()
-        Shelf.objects.all().delete()
 
         restore(sidecar_path=snapshot)
 
-        restored = Shelf.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
+        want = ReadingList.objects.get(user=seed["user"], name=_SEED_SHELF_NAME)
         filters = SettingsBrowserFilters.objects.get(browser__user=seed["user"])
-        assert filters.shelves == [restored.pk]
+        assert filters.reading_lists == [want.pk]
 
-    def test_pre_shelves_backup_restores_favorites_onto_a_shelf(self) -> None:
-        """A backup with a ``favorites`` table lands on a "Favorites" shelf."""
+    def test_pre_shelves_backup_restores_favorites_onto_a_list(self) -> None:
+        """A backup with a ``favorites`` table lands on a "Favorites" list."""
         from codex.models.settings import (
             SettingsBrowser,
             SettingsBrowserFilters,
@@ -226,7 +282,7 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
         seed = self._seed_main_db()
         show, _ = SettingsBrowserShow.objects.get_or_create()
         browser = SettingsBrowser.objects.create(
-            user=seed["user"], show=show, order_by="shelved"
+            user=seed["user"], show=show, order_by="reading_lists"
         )
         SettingsBrowserFilters.objects.create(browser=browser)
         snapshot = self._snapshot_sidecar()
@@ -242,31 +298,37 @@ class RestoreRoundTripTests(_SidecarRestoreCase):
                     updated_at TEXT,
                     PRIMARY KEY (username, collection, identifier_json)
                 );
-                INSERT INTO favorites
-                    SELECT username, collection, identifier_json, updated_at
-                    FROM shelf_items;
-                DROP TABLE shelf_items;
-                DROP TABLE shelves;
                 ALTER TABLE settings_filters
                     ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0;
                 UPDATE settings_filters SET favorite = 1;
                 ALTER TABLE settings_filters DROP COLUMN shelves;
                 """
             )
+            conn.executemany(
+                _INSERT_FAVORITE,
+                [
+                    ("publishers", encode_identifier("publishers", ["Pub"])),
+                    ("comics", encode_identifier("comics", [seed["comic_path"]])),
+                ],
+            )
             conn.execute("UPDATE settings_browser SET order_by = 'favorite'")
         SettingsBrowser.objects.all().delete()
-        Shelf.objects.all().delete()
 
         report = restore(sidecar_path=snapshot)
 
-        assert report.written.get("favorites", 0) >= _SEED_SHELF_ITEMS_COUNT
-        shelf = Shelf.objects.get(user=seed["user"])
-        assert shelf.name == "Favorites"
-        assert ShelfItem.objects.filter(shelf=shelf).count() == _SEED_SHELF_ITEMS_COUNT
+        assert report.written.get("favorites", 0) == _SEED_SHELF_ITEMS_COUNT
+        favorites = ReadingList.objects.get(user=seed["user"])
+        assert favorites.name == "Favorites"
+        items = ReadingListSource.objects.filter(reading_list=favorites)
+        assert list(items.values_list("collection", "target_id")) == [
+            ("publishers", seed["publisher"].pk)
+        ]
+        entries = ReadingListEntry.objects.filter(reading_list=favorites)
+        assert list(entries.values_list("comic_id", flat=True)) == [seed["comic"].pk]
         restored = SettingsBrowser.objects.get(user=seed["user"])
-        assert restored.order_by == "shelved"
+        assert restored.order_by == "reading_lists"
         filters = SettingsBrowserFilters.objects.get(browser=restored)
-        assert filters.shelves == [shelf.pk]
+        assert filters.reading_lists == [favorites.pk]
 
     def test_restore_logs_unmatched_comic(self) -> None:
         seed = self._seed_main_db()
@@ -664,19 +726,31 @@ class OverlappingLibraryRestoreTests(_SidecarRestoreCase):
             assert bookmark.page == _SEED_BOOKMARK_PAGE
             assert bookmark.finished is True
 
-    def test_shelved_folder_restores_into_every_overlapping_library(self) -> None:
+    def test_shelved_folder_restores_as_one_item(self) -> None:
+        """
+        An old backup's shelved folder becomes one item, on the first row.
+
+        A list holds an identity once, as the live sync binds it: the
+        sidecar keys an item on its identity, which both rows share.
+        """
         seed = self._seed_overlapping_libraries()
-        shelf = Shelf.objects.create(user=seed["user"], name="Folders")
-        ShelfItem.objects.create(
-            shelf=shelf, collection="folders", target_id=seed["folders"][0].pk
-        )
         snapshot = self._snapshot_sidecar()
-        Shelf.objects.all().delete()
+        folder = seed["folders"][0]
+        with sqlite3.connect(snapshot) as conn:
+            conn.executescript(_OLD_SHELF_TABLES)
+            conn.execute(
+                "INSERT INTO shelves (username, name) VALUES ('alice', 'Folders')"
+            )
+            conn.execute(
+                _INSERT_SHELF_ITEM.format(shelf="'Folders'"),
+                ("folders", encode_identifier("folders", [folder.path])),
+            )
 
         report = restore(sidecar_path=snapshot)
 
-        assert report.written.get("shelf_items", 0) >= 1
-        for folder in seed["folders"]:
-            assert ShelfItem.objects.filter(
-                shelf__user=seed["user"], collection="folders", target_id=folder.pk
-            ).exists()
+        assert report.written.get("shelf_items") == 1
+        reading_list = ReadingList.objects.get(user=seed["user"], name="Folders")
+        items = ReadingListSource.objects.filter(reading_list=reading_list)
+        assert list(items.values_list("collection", "target_id")) == [
+            ("folders", folder.pk)
+        ]

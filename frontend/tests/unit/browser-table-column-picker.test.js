@@ -16,21 +16,20 @@ import { smartInsertIndex } from "@/components/browser/table/browser-table-colum
 /*
  * Canonical-rank reference for the cases below — kept here so the
  * test reads as a story rather than an opaque number puzzle:
- *   cover=0, shelved=1, publisher_name=2, imprint_name=3,
- *   series_name=4, reprints=5, volume_name=6, issue=7, name=8,
- *   child_count=9, file_name=10, size=11, page_count=12,
- *   file_type=13, year=14, …
+ *   cover=0, publisher_name=1, imprint_name=2, series_name=3,
+ *   reprints=4, volume_name=5, issue=6, name=7, child_count=8,
+ *   file_name=9, size=10, page_count=11, file_type=12, year=13, …
  */
 
 describe("smartInsertIndex — canonical-order drafts", () => {
-  it("inserts shelved right after cover", () => {
+  it("inserts publisher_name right after cover", () => {
     const draft = ["cover", "name", "child_count"];
-    expect(smartInsertIndex(draft, "shelved")).toBe(1);
+    expect(smartInsertIndex(draft, "publisher_name")).toBe(1);
   });
 
-  it("inserts shelved first when cover is absent", () => {
+  it("inserts publisher_name first when cover is absent", () => {
     const draft = ["name", "child_count"];
-    expect(smartInsertIndex(draft, "shelved")).toBe(0);
+    expect(smartInsertIndex(draft, "publisher_name")).toBe(0);
   });
 
   it("inserts imprint_name after publisher_name when both are present", () => {
@@ -38,12 +37,12 @@ describe("smartInsertIndex — canonical-order drafts", () => {
     expect(smartInsertIndex(draft, "imprint_name")).toBe(2);
   });
 
-  it("inserts imprint_name after shelved when publisher is absent", () => {
-    const draft = ["cover", "shelved", "name"];
-    expect(smartInsertIndex(draft, "imprint_name")).toBe(2);
+  it("inserts series_name after imprint_name when publisher is absent", () => {
+    const draft = ["cover", "imprint_name", "name"];
+    expect(smartInsertIndex(draft, "series_name")).toBe(2);
   });
 
-  it("inserts imprint_name after cover when neither publisher nor shelved exists", () => {
+  it("inserts imprint_name after cover when no publisher exists", () => {
     const draft = ["cover", "name"];
     expect(smartInsertIndex(draft, "imprint_name")).toBe(1);
   });
@@ -54,7 +53,7 @@ describe("smartInsertIndex — canonical-order drafts", () => {
   });
 
   it("appends when the new key sorts after every existing key", () => {
-    const draft = ["cover", "shelved", "name"];
+    const draft = ["cover", "issue", "name"];
     expect(smartInsertIndex(draft, "child_count")).toBe(3);
   });
 
@@ -65,11 +64,11 @@ describe("smartInsertIndex — canonical-order drafts", () => {
   });
 
   it("handles an empty draft", () => {
-    expect(smartInsertIndex([], "shelved")).toBe(0);
+    expect(smartInsertIndex([], "issue")).toBe(0);
   });
 
   it("handles a single-element draft (canonical-after)", () => {
-    expect(smartInsertIndex(["cover"], "shelved")).toBe(1);
+    expect(smartInsertIndex(["cover"], "issue")).toBe(1);
   });
 
   it("handles a single-element draft (canonical-before)", () => {
@@ -81,13 +80,13 @@ describe("smartInsertIndex — non-canonical drafts fall back to append", () => 
   it("appends when the user has rearranged columns out of canonical order", () => {
     /* name (rank 7) sitting before cover (rank 0) — user-sorted. */
     const draft = ["name", "cover", "publisher_name"];
-    expect(smartInsertIndex(draft, "shelved")).toBe(draft.length);
+    expect(smartInsertIndex(draft, "issue")).toBe(draft.length);
   });
 
   it("appends when even one adjacent pair is reversed", () => {
-    /* publisher (rank 2) before shelved (rank 1) — barely out of order. */
-    const draft = ["cover", "publisher_name", "shelved", "name"];
-    expect(smartInsertIndex(draft, "imprint_name")).toBe(draft.length);
+    /* series (rank 3) before imprint (rank 2) — barely out of order. */
+    const draft = ["cover", "series_name", "imprint_name", "name"];
+    expect(smartInsertIndex(draft, "publisher_name")).toBe(draft.length);
   });
 });
 
@@ -99,7 +98,7 @@ describe("smartInsertIndex — orphans (rank +Infinity)", () => {
      * still considered canonically sorted.
      */
     const draft = ["cover", "name", "__not_a_real_column__"];
-    expect(smartInsertIndex(draft, "shelved")).toBe(1);
+    expect(smartInsertIndex(draft, "publisher_name")).toBe(1);
   });
 
   it("appends a new orphan to a canonical draft", () => {
@@ -109,6 +108,6 @@ describe("smartInsertIndex — orphans (rank +Infinity)", () => {
 
   it("appends when an orphan sits before a known key (out of order)", () => {
     const draft = ["cover", "__not_a_real_column__", "name"];
-    expect(smartInsertIndex(draft, "shelved")).toBe(draft.length);
+    expect(smartInsertIndex(draft, "issue")).toBe(draft.length);
   });
 });

@@ -69,7 +69,7 @@ TOP_GROUPS = (
             Link(Rel.SUB, "Series", "root", {"topCollection": "series"}),
             Link(Rel.SUB, "Issues", "root", {"topCollection": "comics"}),
             Link(Rel.SUB, "Folders", "folders", {"topCollection": "folders"}),
-            Link(Rel.SUB, "Story Arcs", "arcs", {"topCollection": "arcs"}),
+            Link(Rel.SUB, "Reading Lists", "arcs", {"topCollection": "arcs"}),
         ),
     ),
 )
@@ -175,14 +175,14 @@ PREVIEW_GROUPS = (
 )
 
 
-def shelf_preview_link(shelf_pk: int, name: str) -> Link:
+def list_preview_link(list_pk: int, name: str) -> Link:
     """
-    Build the start-page preview link for one of the user's shelves.
+    Build the start-page preview link for one of the user's reading lists.
 
-    Shelves are per-user rows, so unlike the static ``PREVIEW_GROUPS``
-    these are built per request in
-    ``OPDS2FeedGroupsView.get_ordered_groups``. Every browser parameter
-    is spelled out: OPDS settings persist between requests, so a
+    Lists are per-user rows, so unlike the static ``PREVIEW_GROUPS`` these
+    are built per request in ``OPDS2FeedGroupsView.get_ordered_groups``.
+    The preview is the list's comics in reading order. Every browser
+    parameter is spelled out: OPDS settings persist between requests, so a
     parameter left off the link would inherit whatever the client asked
     for last.
     """
@@ -193,10 +193,30 @@ def shelf_preview_link(shelf_pk: int, name: str) -> Link:
         MappingProxyType(
             {
                 "topCollection": "comics",
-                "filters": MappingProxyType({"bookmark": "", "shelves": [shelf_pk]}),
-                "orderBy": "sort_name",
+                "filters": MappingProxyType(
+                    {"bookmark": "", "reading_lists": [list_pk]}
+                ),
+                "orderBy": "story_arc_number",
                 "orderReverse": False,
                 "title": name,
             }
         ),
     )
+
+
+# Leads a reading list's feed: the first issue of it, in list order, that
+# the user has not finished.
+READING_LIST_CONTINUE = Link(
+    Rel.FEATURED,
+    "Continue Reading",
+    "arcs",
+    MappingProxyType(
+        {
+            "topCollection": "arcs",
+            "filters": BookmarkFilters.UNREAD,
+            "orderBy": "story_arc_number",
+            "orderReverse": False,
+        }
+    ),
+    subtitle="The next issue in this reading list you have not finished.",
+)

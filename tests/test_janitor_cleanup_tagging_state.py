@@ -9,8 +9,9 @@ clears an active-scan marker with no live scan behind it.
 
 import shutil
 from multiprocessing import Event
-from threading import Lock
+from threading import Lock, Thread
 from typing import Final, override
+from unittest.mock import patch
 
 from django.core.cache import caches
 from django.test import TestCase
@@ -19,6 +20,7 @@ from loguru import logger
 from codex.librarian.mp_queue import LIBRARIAN_QUEUE
 from codex.librarian.onlinetag.session_cache import (
     PROMPT_VERSION,
+    add_pending_prompts,
     get_active_scan_id,
     get_pending_prompts,
     set_active_scan_id,
@@ -28,12 +30,16 @@ from codex.librarian.onlinetag.session_snapshot import (
     get_resume_state,
     set_resume_state,
 )
+from codex.librarian.scribe.janitor import cleanup
 from codex.librarian.scribe.janitor.janitor import Janitor
 from codex.models import Comic, Imprint, Library, Publisher, Series, Volume
 from tests.tmp_dirs import tmp_dir
 
 _TMP_DIR: Final = tmp_dir("codex.tests.janitor.tagging")
 _MISSING_PK: Final = 999_999
+# How long the sweep lets the online tag thread's write run before going
+# on. Ample for an unblocked write; a write waiting on the lock never ends.
+_RACE_WAIT_S: Final = 0.5
 
 
 class _StubOnlineTagThread:
@@ -180,3 +186,31 @@ class CleanupTaggingStateTests(TestCase):
 
         assert get_active_scan_id() == ""
         assert get_pending_prompts() == {}
+
+    def test_a_prompt_added_mid_sweep_survives(self) -> None:
+        """
+        The online tag thread's write waits for the sweep, not lost under it.
+
+        The sweep reads the prompts, asks which comics still exist, then
+        writes back what it kept: a prompt added in between must survive.
+        """
+        comic = self._make_comic()
+        set_pending_prompts({"dead": _prompt(_MISSING_PK, "dead")})
+        writers: list[Thread] = []
+
+        def _read_while_a_prompt_lands() -> dict:
+            prompts = get_pending_prompts()
+            writer = Thread(
+                target=add_pending_prompts, args=({"new": _prompt(comic.pk, "new")},)
+            )
+            writer.start()
+            writer.join(timeout=_RACE_WAIT_S)
+            writers.append(writer)
+            return prompts
+
+        with patch.object(cleanup, "get_pending_prompts", _read_while_a_prompt_lands):
+            _make_janitor().cleanup_tagging_state()
+        for writer in writers:
+            writer.join(timeout=5)
+
+        assert set(get_pending_prompts()) == {"new"}

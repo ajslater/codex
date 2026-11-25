@@ -4,7 +4,8 @@ OPDS v2 manifest subject links filter by their subject.
 Each subject's facet link filtered on ``model name + "s"``. That spelled
 ``storyarcs`` and ``seriesgroups``, which are not browser filter keys
 (``story_arcs``, ``series_groups``), so those links opened an unfiltered
-feed.
+feed. A story arc is a reading list now, so its link filters by the list its
+tags made.
 """
 
 import json
@@ -17,6 +18,7 @@ from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.test import Client, TestCase
 
+from codex.librarian.scribe.readinglists.sync import sync_tag_lists
 from codex.models import (
     Character,
     Comic,
@@ -47,8 +49,8 @@ _EXPECTED_FILTER_KEYS: Final = frozenset(
         "characters",
         "genres",
         "locations",
+        "reading_lists",
         "series_groups",
-        "story_arcs",
         "tags",
         "teams",
     }
@@ -102,6 +104,8 @@ class OPDS2SubjectLinksTestCase(TestCase):
         self.comic.story_arc_numbers.add(StoryArcNumber.objects.create(story_arc=arc))
         self.comic.tags.add(Tag.objects.create(name="Subject Tag"))
         self.comic.teams.add(Team.objects.create(name="Subject Team"))
+        # The arc's reading list, which its subject link filters by.
+        sync_tag_lists()
         user = User.objects.create_user(
             username="opds_subject_links_test", password=_TEST_PASSWORD
         )

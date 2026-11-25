@@ -90,7 +90,7 @@ COLLECTION_LABELS: Final[MappingProxyType[Collection, str]] = MappingProxyType(
         Collection.VOLUME: "Volumes",
         Collection.COMIC: "Issues",
         Collection.FOLDER: "Folders",
-        Collection.ARC: "Story Arcs",
+        Collection.ARC: "Reading Lists",
     }
 )
 
