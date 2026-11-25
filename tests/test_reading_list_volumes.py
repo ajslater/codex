@@ -2,7 +2,7 @@
 Reading lists find every volume of a series name (issue 1053).
 
 A codex series is a name and holds every volume of it; a comicbox series
-is one volume run. Each volume keeps its own start year, so Batman (1940),
+is one volume run. Each volume keeps its own start year, so Burrowman (1940),
 (2011) and (2016) #1 are three issues, not one.
 """
 
@@ -52,16 +52,16 @@ from tests.tmp_dirs import tmp_dir
 
 TMP_DIR: Final = tmp_dir("codex.tests.reading_list_volumes")
 _YEARS: Final = (1940, 2011, 2016)
-# The issue's reproduction: every row is Batman #1.
+# The issue's reproduction: every row is Burrowman #1.
 _CBL: Final = """<?xml version="1.0"?>
-<ReadingList><Name>Batman firsts</Name><Books>
-<Book Series="Batman" Number="1" Volume="1940" Year="1940"/>
-<Book Series="Batman" Number="1" Volume="2011" Year="2011"/>
-<Book Series="Batman" Number="1" Volume="2016" Year="2016"/>
-<Book Series="Batman" Number="1" Year="2016"/>
-<Book Series="Batman" Number="1" Volume="2011"/>
-<Book Series="Batman" Number="1" Volume="1940"/>
-<Book Series="Batman" Number="1" Volume="2025" Year="2025"/>
+<ReadingList><Name>Burrowman firsts</Name><Books>
+<Book Series="Burrowman" Number="1" Volume="1940" Year="1940"/>
+<Book Series="Burrowman" Number="1" Volume="2011" Year="2011"/>
+<Book Series="Burrowman" Number="1" Volume="2016" Year="2016"/>
+<Book Series="Burrowman" Number="1" Year="2016"/>
+<Book Series="Burrowman" Number="1" Volume="2011"/>
+<Book Series="Burrowman" Number="1" Volume="1940"/>
+<Book Series="Burrowman" Number="1" Volume="2025" Year="2025"/>
 </Books></ReadingList>"""
 # The volume each row is, None for not in the library.
 _CBL_WANTS: Final = (1940, 2011, 2016, 2016, 2011, 1940, None)
@@ -77,7 +77,7 @@ def _metron(*, dated: bool) -> list[dict[str, Any]]:
     rows = []
     for number, start_year in enumerate(_YEARS, 1):
         row: dict[str, Any] = {
-            "series": {"name": "Batman", "start_year": start_year},
+            "series": {"name": "Burrowman", "start_year": start_year},
             "volume": {"number": number},
             "issue": {"name": "1"},
         }
@@ -88,7 +88,7 @@ def _metron(*, dated: bool) -> list[dict[str, Any]]:
 
 
 class BatmanFixture(TestCase):
-    """One Series "Batman" with three volumes, each with a #1 and a #5."""
+    """One Series "Burrowman" with three volumes, each with a #1 and a #5."""
 
     # Volume names: the year (as a CBL tags them) or 1, 2, 3 (as Metron).
     METRON_NAMES: bool = False
@@ -107,7 +107,7 @@ class BatmanFixture(TestCase):
             library=self.library, path=str(TMP_DIR), name=TMP_DIR.name
         )
         # The importer folds every volume's start year into the series.
-        self.series = self.make_series("Batman", 1940)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.series = self.make_series("Burrowman", 1940)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.volumes: dict[int, Volume] = {}  # pyright: ignore[reportUninitializedInstanceVariable]
         self.firsts: dict[int, Comic] = {}  # pyright: ignore[reportUninitializedInstanceVariable]
         self.fifths: dict[int, Comic] = {}  # pyright: ignore[reportUninitializedInstanceVariable]
@@ -189,7 +189,7 @@ class YearNamedVolumeTests(BatmanFixture):
     def test_references_carry_the_volume_start_year(self) -> None:
         """A comic's reference is its volume's year, not the series'."""
         reference = comic_references((self.firsts[2011].pk,))[self.firsts[2011].pk]
-        assert reference["series"] == {"name": "Batman", "start_year": 2011}
+        assert reference["series"] == {"name": "Burrowman", "start_year": 2011}
         assert reference["volume"] == {"number": 2011}
 
     def test_series_ids_only_for_one_volume(self) -> None:
@@ -199,16 +199,16 @@ class YearNamedVolumeTests(BatmanFixture):
             source=source, id_type=IdentifierType.SERIES.value, key="1"
         )
         self.series.save()
-        single = self.make_series("Robin", 1993)
-        robin = self.make_comic(self.make_volume(single, None, 1993), 1, 1993)
+        single = self.make_series("Rowan", 1993)
+        rowan = self.make_comic(self.make_volume(single, None, 1993), 1, 1993)
         single.identifier = Identifier.objects.create(
             source=source, id_type=IdentifierType.SERIES.value, key="2"
         )
         single.save()
-        pks = (self.firsts[2011].pk, robin.pk)
+        pks = (self.firsts[2011].pk, rowan.pk)
         references = comic_references(pks)
         assert "identifiers" not in references[pks[0]]["series"]
-        assert references[robin.pk]["series"]["identifiers"] == {"metron": {"key": "2"}}
+        assert references[rowan.pk]["series"]["identifiers"] == {"metron": {"key": "2"}}
 
 
 class MetronNumberedVolumeTests(BatmanFixture):
@@ -253,7 +253,7 @@ class InterimMetronTests(BatmanFixture):
         (match,) = ListMatcher().match(
             [
                 {
-                    "series": {"name": "Batman"},
+                    "series": {"name": "Burrowman"},
                     "issue": {"name": "1"},
                     "date": {"year": 2011},
                 }
@@ -270,7 +270,7 @@ class InterimMetronTests(BatmanFixture):
         (match,) = ListMatcher().match(
             [
                 {
-                    "series": {"name": "Batman"},
+                    "series": {"name": "Burrowman"},
                     "issue": {"name": "1"},
                     "date": {"year": 2011},
                 }
@@ -286,15 +286,15 @@ class SingleVolumeTests(BatmanFixture):
     @override
     def setUp(self) -> None:
         super().setUp()
-        series = self.make_series("Nightwing", 2016)
-        self.nightwing = self.make_comic(  # pyright: ignore[reportUninitializedInstanceVariable]
+        series = self.make_series("Nightjar", 2016)
+        self.nightjar = self.make_comic(  # pyright: ignore[reportUninitializedInstanceVariable]
             self.make_volume(series, None, 2016), 1, 2016
         )
 
     def test_a_year_volume_row_without_a_year(self) -> None:
         text = """<?xml version="1.0"?><ReadingList><Name>n</Name><Books>
-<Book Series="Nightwing" Number="1" Volume="2016"/></Books></ReadingList>"""
-        assert self.found(_cbl_references(text)) == [self.nightwing.pk]
+<Book Series="Nightjar" Number="1" Volume="2016"/></Books></ReadingList>"""
+        assert self.found(_cbl_references(text)) == [self.nightjar.pk]
 
 
 class MappingTests(BatmanFixture):
@@ -302,15 +302,15 @@ class MappingTests(BatmanFixture):
 
     @staticmethod
     def _map(year: int) -> None:
-        series = Series.objects.get(name="Batman")
+        series = Series.objects.get(name="Burrowman")
         ReadingListSeriesMapping.objects.create(
-            series_key="the dark knight", year=year, series=series
+            series_key="the pale rook", year=year, series=series
         )
 
     @staticmethod
     def _entry(**extra) -> dict[str, Any]:
         reference: dict[str, Any] = {
-            "series": {"name": "The Dark Knight"},
+            "series": {"name": "The Pale Rook"},
             "issue": {"name": "1"},
         }
         for key, value in extra.items():
@@ -386,8 +386,8 @@ class CombineTests(BatmanFixture):
         sync_tag_lists()
         tags_list = ReadingList.objects.get(name="Fives")
         text = """<?xml version="1.0"?><ReadingList><Name>Fives</Name><Books>
-<Book Series="Batman" Number="5" Volume="1940" Year="1940"/>
-<Book Series="Batman" Number="5" Volume="2011" Year="2011"/>
+<Book Series="Burrowman" Number="5" Volume="1940" Year="1940"/>
+<Book Series="Burrowman" Number="5" Volume="2011" Year="2011"/>
 </Books></ReadingList>"""
         import_document(
             to_json(loads(text).reading_list),
@@ -403,7 +403,7 @@ class CombineTests(BatmanFixture):
 
 
 class ExportTests(BatmanFixture):
-    """A hand-added Batman (2011) #1 exports as Volume="2011"."""
+    """A hand-added Burrowman (2011) #1 exports as Volume="2011"."""
 
     def _exported_volume(self, reading_list: ReadingList) -> str:
         text = dumps(export_document(reading_list, Q()), "cbl")
@@ -421,7 +421,7 @@ class ExportTests(BatmanFixture):
             reading_list=reading_list,
             comic=self.firsts[2011],
             reference={
-                "series": {"name": "Batman"},
+                "series": {"name": "Burrowman"},
                 "volume": {"number": 2011},
                 "issue": {"name": "1"},
             },
@@ -469,7 +469,7 @@ class RestoreTests(BatmanFixture):
         )
         for position, (series, volume, issue, comic) in enumerate(rows):
             reference: dict[str, Any] = {
-                "series": {"name": "Batman", **series},
+                "series": {"name": "Burrowman", **series},
                 "issue": {"name": issue},
             }
             if volume:
@@ -493,7 +493,7 @@ class RestoreTests(BatmanFixture):
             ).order_by("position")
         ]
         assert series == [
-            {"name": "Batman"},
-            {"name": "Batman"},
-            {"name": "Batman", "start_year": 2016},
+            {"name": "Burrowman"},
+            {"name": "Burrowman"},
+            {"name": "Burrowman", "start_year": 2016},
         ]

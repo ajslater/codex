@@ -37,12 +37,12 @@ def _data(response):
 
 
 class FilterFixture(LiveFixture):
-    """Civil War under Marvel, Daredevil beside it; the reader signed in."""
+    """Civil War under Marlow, Dashdemon beside it; the reader signed in."""
 
     @override
     def setUp(self) -> None:
         super().setUp()
-        self.daredevil, self.more = self.make_series("Daredevil")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.dashdemon, self.more = self.make_series("Dashdemon")  # pyright: ignore[reportUninitializedInstanceVariable]
         self.client = Client()
         self.client.force_login(self.reader)
 
@@ -84,7 +84,7 @@ class ListFilterTests(FilterFixture):
         """The filter is "in any of these lists"."""
         other = ReadingList.objects.create(name="Other", user=self.reader)
         add_comics(self.mine, [self.comics[0].pk])
-        self.hold(other, "series", self.daredevil)
+        self.hold(other, "series", self.dashdemon)
         filters = {"reading_lists": [self.mine.pk, other.pk]}
         assert self.listed(filters) == {self.comics[0].pk, *self.pks(self.more)}
 
@@ -112,7 +112,7 @@ class ListFilterTests(FilterFixture):
         add_comics(self.mine, [self.comics[0].pk])
         filters = {"reading_lists": [self.mine.pk]}
         assert self.listed(filters) == {self.comics[0].pk}
-        self.hold(self.mine, "series", self.daredevil)
+        self.hold(self.mine, "series", self.dashdemon)
         assert self.listed(filters) == {self.comics[0].pk, *self.pks(self.more)}
 
 

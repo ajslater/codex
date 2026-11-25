@@ -61,22 +61,22 @@ class _Seed:
         self.imprint = _objects(apps, "Imprint").create(
             name="DC", publisher=self.publisher
         )
-        batman = self._series("Batman", 1940)
-        self.b1940 = self._comic(self._volume(batman, 1940), 1, 1940)
-        self.b2011 = self._comic(self._volume(batman, 2011), 1, 2011)
-        superman = self._series("Superman", 1939)
+        burrowman = self._series("Burrowman", 1940)
+        self.b1940 = self._comic(self._volume(burrowman, 1940), 1, 1940)
+        self.b2011 = self._comic(self._volume(burrowman, 2011), 1, 2011)
+        sunderman = self._series("Sunderman", 1939)
         source = _objects(apps, "IdentifierSource").create(name="comicvine")
-        superman.identifier = _objects(apps, "Identifier").create(
+        sunderman.identifier = _objects(apps, "Identifier").create(
             source=source, id_type="series", key="123"
         )
-        superman.save()
-        self.s1 = self._comic(self._volume(superman, 1), 1, 1939)
-        self.s2 = self._comic(self._volume(superman, 2), 1, 1987)
-        self.robin_volume = self._volume(self._series("Robin", 1993), None)
-        self.robin = self._comic(self.robin_volume, 1, 1993)
+        sunderman.save()
+        self.s1 = self._comic(self._volume(sunderman, 1), 1, 1939)
+        self.s2 = self._comic(self._volume(sunderman, 2), 1, 1987)
+        self.robin_volume = self._volume(self._series("Rowan", 1993), None)
+        self.rowan = self._comic(self.robin_volume, 1, 1993)
         # One volume named for another year than the series': a deleted
         # volume's year, likely.
-        self.nightwing_volume = self._volume(self._series("Nightwing", 1996), 2016)
+        self.nightwing_volume = self._volume(self._series("Nightjar", 1996), 2016)
         self.reading_list = _objects(apps, "ReadingList").create(name="Mixed")
         self.position = 0
 
@@ -150,47 +150,49 @@ class VolumeStartYearMigrationTests(TransactionTestCase):
         years = dict(
             _objects(apps, "Volume")
             .values_list("series__name", "start_year")
-            .filter(series__name__in=("Robin", "Nightwing"))
+            .filter(series__name__in=("Rowan", "Nightjar"))
         )
-        assert years == {"Robin": 1993, "Nightwing": None}
-        multi = _objects(apps, "Volume").filter(series__name__in=("Batman", "Superman"))
+        assert years == {"Rowan": 1993, "Nightjar": None}
+        multi = _objects(apps, "Volume").filter(
+            series__name__in=("Burrowman", "Sunderman")
+        )
         assert set(multi.values_list("start_year", flat=True)) == {None}
 
     def test_rule_1(self) -> None:
         """A year-like volume that differs from the start year: year gone."""
         seed = self.seed
-        flattened = _ref("Batman", 1, 1940, 2011)
+        flattened = _ref("Burrowman", 1, 1940, 2011)
         linked = seed.entry(flattened, seed.b2011, "manual", manual=True)
         unlinked = seed.entry(flattened)
         self._migrate()
         for pk in (linked, unlinked):
-            assert _reference(pk) == _ref("Batman", 1, volume=2011)
+            assert _reference(pk) == _ref("Burrowman", 1, volume=2011)
 
     def test_rule_2(self) -> None:
         """A linked hand or tagged entry takes its volume's year, or none."""
         seed = self.seed
         ids = {"identifiers": {"comicvine": {"key": "123"}}}
-        hand = seed.entry(_ref("Superman", 1, 1939, 2, **ids), seed.s2, manual=True)
-        tagged = seed.entry(_ref("Superman", 1, 1939, 1), seed.s1, "tagged")
-        robin = seed.entry(_ref("Robin", 1, 1993), seed.robin, "tagged")
+        hand = seed.entry(_ref("Sunderman", 1, 1939, 2, **ids), seed.s2, manual=True)
+        tagged = seed.entry(_ref("Sunderman", 1, 1939, 1), seed.s1, "tagged")
+        rowan = seed.entry(_ref("Rowan", 1, 1993), seed.rowan, "tagged")
         self._migrate()
-        assert _reference(hand) == _ref("Superman", 1, volume=2)
-        assert _reference(tagged) == _ref("Superman", 1, volume=1)
-        assert _reference(robin) == _ref("Robin", 1, 1993)
+        assert _reference(hand) == _ref("Sunderman", 1, volume=2)
+        assert _reference(tagged) == _ref("Sunderman", 1, volume=1)
+        assert _reference(rowan) == _ref("Rowan", 1, 1993)
 
     def test_rule_3(self) -> None:
         """An unlinked hand entry loses a same-named multi-volume year."""
         seed = self.seed
-        hand = seed.entry(_ref("Superman", 3, 1939, 2), manual=True)
+        hand = seed.entry(_ref("Sunderman", 3, 1939, 2), manual=True)
         self._migrate()
-        assert _reference(hand) == _ref("Superman", 3, volume=2)
+        assert _reference(hand) == _ref("Sunderman", 3, volume=2)
 
     def test_other_references_are_left_alone(self) -> None:
         """A consistent CBL row copied by hand, and an imported row."""
         seed = self.seed
-        copied = _ref("Batman", 1, 2011, 2011)
+        copied = _ref("Burrowman", 1, 2011, 2011)
         copied_pk = seed.entry(copied, manual=True)
-        imported = _ref("Superman", 9, 1939, 1)
+        imported = _ref("Sunderman", 9, 1939, 1)
         imported_pk = seed.entry(imported)
         self._migrate()
         assert _reference(copied_pk) == copied
@@ -199,8 +201,8 @@ class VolumeStartYearMigrationTests(TransactionTestCase):
     def test_reset_and_rematch(self) -> None:
         """A name match in a multi-volume series matches its own volume again."""
         seed = self.seed
-        wrong = seed.entry(_ref("Batman", 1, 2011, 2011), seed.b1940, "exact_name")
-        by_hand = seed.entry(_ref("Batman", 1), seed.b1940, "manual", manual=True)
+        wrong = seed.entry(_ref("Burrowman", 1, 2011, 2011), seed.b1940, "exact_name")
+        by_hand = seed.entry(_ref("Burrowman", 1), seed.b1940, "manual", manual=True)
         self._migrate()
         assert _match(wrong) == (None, "")
         assert _match(by_hand) == (seed.b1940.pk, "manual")

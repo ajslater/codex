@@ -29,18 +29,18 @@ def _data(response):
 
 
 class LiveEntriesFixture(LiveFixture):
-    """The reader's list: Civil War #1 by hand, then all of Daredevil."""
+    """The reader's list: Civil War #1 by hand, then all of Dashdemon."""
 
     @override
     def setUp(self) -> None:
         super().setUp()
         self.client = Client()
         self.client.force_login(self.reader)
-        self.daredevil, self.more = self.make_series("Daredevil")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.dashdemon, self.more = self.make_series("Dashdemon")  # pyright: ignore[reportUninitializedInstanceVariable]
         ReadingListEntry.objects.create(
             reading_list=self.mine, comic=self.comics[0], manual=True
         )
-        self.item = self.hold(self.mine, "series", self.daredevil)  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.item = self.hold(self.mine, "series", self.dashdemon)  # pyright: ignore[reportUninitializedInstanceVariable]
         self.url = f"{_LISTS}/{self.mine.pk}"  # pyright: ignore[reportUninitializedInstanceVariable]
 
     def live_entry(self) -> ReadingListEntry:
@@ -73,11 +73,11 @@ class EditorTests(LiveEntriesFixture):
         """Live rows carry their item; the item is one row with a count."""
         body = _data(self.client.get(f"{self.url}/entries"))
         live = [entry for entry in body["entries"] if entry["liveSource"]]
-        assert [entry["seriesName"] for entry in live] == ["Daredevil", "Daredevil"]
+        assert [entry["seriesName"] for entry in live] == ["Dashdemon", "Dashdemon"]
         assert [entry["issue"] for entry in live] == ["1", "2"]
         (item,) = body["items"]
         assert item["pk"] == self.item.pk
-        assert (item["collection"], item["label"]) == ("series", "Daredevil")
+        assert (item["collection"], item["label"]) == ("series", "Dashdemon")
         assert (item["count"], item["position"]) == (2, 1)
 
 
@@ -97,13 +97,13 @@ class RefusalTests(LiveEntriesFixture):
             self.client.get(f"{entry_url}/candidates"),
         ):
             assert response.status_code == _BAD, response.content
-            assert "Daredevil" in response.content.decode()
+            assert "Dashdemon" in response.content.decode()
         assert not ReadingListEntry.objects.filter(
             reading_list=self.mine, ignored=True
         ).exists()
 
     def test_remove_names_the_series_it_cannot_remove_from(self) -> None:
-        """Hand-added #1 goes; Daredevil #1 is refused, with its series."""
+        """Hand-added #1 goes; Dashdemon #1 is refused, with its series."""
         c1 = self.comics[0]
         dd1 = self.more[0]
         response = self.client.patch(
@@ -117,7 +117,7 @@ class RefusalTests(LiveEntriesFixture):
         (refused,) = body["refused"]
         assert refused["comic"] == dd1.pk
         assert refused["item"]["pk"] == self.item.pk
-        assert refused["item"]["label"] == "Daredevil"
+        assert refused["item"]["label"] == "Dashdemon"
         assert dd1.pk in self.order(self.mine)
         assert c1.pk not in self.order(self.mine)
 
@@ -140,7 +140,7 @@ class AddTests(LiveEntriesFixture):
         assert entry.live_source_id is None  # pyright: ignore[reportAttributeAccessIssue]
 
     def test_an_insert_inside_a_block_goes_before_it(self) -> None:
-        """Position 2 is inside Daredevil, so the issue goes in at 1."""
+        """Position 2 is inside Dashdemon, so the issue goes in at 1."""
         c1, _, c3, _ = self.comics
         add_comics(self.mine, [c3.pk], 2)
         assert self.order(self.mine) == [c1.pk, c3.pk, *self.pks(self.more)]
@@ -157,7 +157,7 @@ class ReorderTests(LiveEntriesFixture):
         assert response.status_code == _BAD, response.content
 
     def test_a_block_moves_as_a_unit(self) -> None:
-        """On a hand-made list Daredevil moves to the front, whole."""
+        """On a hand-made list Dashdemon moves to the front, whole."""
         response = self.post("/entries/reorder", {"item": self.item.pk, "position": 0})
         assert response.status_code == _OK, response.content
         assert self.order(self.mine) == [*self.pks(self.more), self.comics[0].pk]
@@ -165,7 +165,7 @@ class ReorderTests(LiveEntriesFixture):
     def test_an_imported_list_keeps_its_items_at_the_end(self) -> None:
         """Moving an issue past the block stops before it."""
         imported = import_document(_document(), _upload(), user=self.reader)
-        self.hold(imported, "series", self.daredevil)
+        self.hold(imported, "series", self.dashdemon)
         url = f"{_LISTS}/{imported.pk}/entries/reorder"
         first = ReadingListEntry.objects.filter(reading_list=imported).order_by(
             "position"
@@ -185,7 +185,7 @@ class OneStepTests(LiveEntriesFixture):
     """
     The review dialog's arrows: a position is where the issue ends up.
 
-    One step down past Daredevil's block sends the block's last position;
+    One step down past Dashdemon's block sends the block's last position;
     one step up from after it sends the position just before, and the
     server puts the issue before the block.
     """

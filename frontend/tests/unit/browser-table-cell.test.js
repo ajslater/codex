@@ -185,9 +185,9 @@ describe("BrowserTableCell — type-aware text formatters", () => {
   it("stringifies plain values straight through", () => {
     const wrapper = mountCell({
       column: "name",
-      row: { name: "Conan the Barbarian" },
+      row: { name: "Corvan the Barbarian" },
     });
-    expect(wrapper.find(".tableTextCell").text()).toBe("Conan the Barbarian");
+    expect(wrapper.find(".tableTextCell").text()).toBe("Corvan the Barbarian");
   });
 });
 

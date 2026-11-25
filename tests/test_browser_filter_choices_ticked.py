@@ -31,9 +31,9 @@ class TickedFixture(FilterFixture):
     """
     Characters on the four Civil War comics, and one on a hidden comic.
 
-    Spider-Man and Iron Man on the first, Iron Man on the second,
-    Wolverine on the third, none on the fourth. The reader's own list
-    holds the third. Captain Marvel is only on a comic in a library the
+    Spindle-Man and Iron Marshal on the first, Iron Marshal on the second,
+    Woodvole on the third, none on the fourth. The reader's own list
+    holds the third. Captain Marlow is only on a comic in a library the
     reader may not see.
     """
 
@@ -41,16 +41,16 @@ class TickedFixture(FilterFixture):
     def setUp(self) -> None:
         super().setUp()
         c1, c2, c3, c4 = self.comics
-        self.spidey = Character.objects.create(name="Spider-Man")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.iron = Character.objects.create(name="Iron Man")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.wolverine = Character.objects.create(name="Wolverine")  # pyright: ignore[reportUninitializedInstanceVariable]
-        self.marvel = Character.objects.create(name="Captain Marvel")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.spidey = Character.objects.create(name="Spindle-Man")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.iron = Character.objects.create(name="Iron Marshal")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.woodvole = Character.objects.create(name="Woodvole")  # pyright: ignore[reportUninitializedInstanceVariable]
+        self.marlow = Character.objects.create(name="Captain Marlow")  # pyright: ignore[reportUninitializedInstanceVariable]
         c1.characters.add(self.spidey, self.iron)
         c2.characters.add(self.iron)
-        c3.characters.add(self.wolverine)
+        c3.characters.add(self.woodvole)
         Comic.objects.filter(pk=c4.pk).update(year=2010)
         add_comics(self.mine, [c3.pk])
-        self._hidden_comic().characters.add(self.marvel)
+        self._hidden_comic().characters.add(self.marlow)
 
     def _hidden_comic(self) -> Comic:
         """Make a comic of the series in a library no group of the reader's sees."""
@@ -94,30 +94,30 @@ class OwnFilterTests(TickedFixture):
     def test_nothing_ticked(self) -> None:
         """Every character of the series the reader may see, and None."""
         assert self.names("characters", {}) == {
-            "Spider-Man",
-            "Iron Man",
-            "Wolverine",
+            "Spindle-Man",
+            "Iron Marshal",
+            "Woodvole",
             _NONE,
         }
 
     def test_its_own_value_does_not_narrow(self) -> None:
-        """Spider-Man ticked: the others are still offered."""
+        """Spindle-Man ticked: the others are still offered."""
         filters = {"characters": [self.spidey.pk]}
         assert self.names("characters", filters) == {
-            "Spider-Man",
-            "Iron Man",
-            "Wolverine",
+            "Spindle-Man",
+            "Iron Marshal",
+            "Woodvole",
             _NONE,
         }
 
     def test_another_filter_narrows(self) -> None:
-        """The reader's list holds the third comic: only Wolverine."""
+        """The reader's list holds the third comic: only Woodvole."""
         filters = {"reading_lists": [self.mine.pk]}
-        assert self.names("characters", filters) == {"Wolverine"}
+        assert self.names("characters", filters) == {"Woodvole"}
 
     def test_its_own_list_is_narrowed_by_the_others(self) -> None:
         """Characters ticked, the list filter's choices follow them."""
-        filters = {"characters": [self.wolverine.pk]}
+        filters = {"characters": [self.woodvole.pk]}
         assert self.names("reading_lists", filters) == {"Mine"}
         filters = {"characters": [self.spidey.pk], "reading_lists": [self.mine.pk]}
         assert self.names("reading_lists", filters) == {"Mine", _NONE}
@@ -127,14 +127,14 @@ class TickedIsListedTests(TickedFixture):
     """A ticked value shows even when the other filters leave it no comic."""
 
     def test_a_ticked_value_with_no_comic_here(self) -> None:
-        """Spider-Man is on no comic of the list, and still listed."""
+        """Spindle-Man is on no comic of the list, and still listed."""
         filters = {"reading_lists": [self.mine.pk], "characters": [self.spidey.pk]}
-        assert self.names("characters", filters) == {"Wolverine", "Spider-Man"}
+        assert self.names("characters", filters) == {"Woodvole", "Spindle-Man"}
 
     def test_a_ticked_none(self) -> None:
         """None ticked where every comic left has a character."""
         filters = {"reading_lists": [self.mine.pk], "characters": [VUETIFY_NULL_CODE]}
-        assert self.names("characters", filters) == {"Wolverine", _NONE}
+        assert self.names("characters", filters) == {"Woodvole", _NONE}
 
     def test_a_ticked_plain_value(self) -> None:
         """A year no comic in the list has is echoed."""
@@ -145,13 +145,13 @@ class TickedIsListedTests(TickedFixture):
         """A list of the reader's that holds nothing left is still listed."""
         other = ReadingList.objects.create(name="Other", user=self.reader)
         add_comics(other, [self.comics[0].pk])
-        filters = {"characters": [self.wolverine.pk], "reading_lists": [other.pk]}
+        filters = {"characters": [self.woodvole.pk], "reading_lists": [other.pk]}
         assert self.names("reading_lists", filters) == {"Mine", "Other"}
 
     def test_a_ticked_list_none(self) -> None:
         """None ticked where every comic left is on a list."""
         filters = {
-            "characters": [self.wolverine.pk],
+            "characters": [self.woodvole.pk],
             "reading_lists": [VUETIFY_NULL_CODE],
         }
         assert self.names("reading_lists", filters) == {"Mine", _NONE}
@@ -161,11 +161,11 @@ class TickedIsNotLeakedTests(TickedFixture):
     """A ticked pk names nothing the reader may not see."""
 
     def test_a_tag_only_on_a_hidden_comic(self) -> None:
-        """Captain Marvel is on no comic the reader may see."""
-        filters = {"characters": [self.marvel.pk]}
+        """Captain Marlow is on no comic the reader may see."""
+        filters = {"characters": [self.marlow.pk]}
         names = self.names("characters", filters)
-        assert "Captain Marvel" not in names
-        assert names == {"Spider-Man", "Iron Man", "Wolverine", _NONE}
+        assert "Captain Marlow" not in names
+        assert names == {"Spindle-Man", "Iron Marshal", "Woodvole", _NONE}
 
     def test_another_users_list(self) -> None:
         """Another user's personal list is never named."""

@@ -47,7 +47,7 @@ def _objects(apps, name: str) -> Any:
 
 class _Library:
     """
-    Marvel: Daredevil (1964) with d1 and d2 in folder dd, X-Men with x1.
+    Marlow: Dashdemon (1964) with d1 and d2 in folder dd, X-Folk with x1.
 
     Two story arcs share the sort name "civil war": d1 is in one, x1 in
     the other, so the arcs step makes one global list of [d1, x1].
@@ -56,13 +56,13 @@ class _Library:
     def __init__(self, apps) -> None:
         self.apps = apps
         self.library = _objects(apps, "Library").create(path="/comics")
-        self.publisher = _objects(apps, "Publisher").create(name="Marvel")
+        self.publisher = _objects(apps, "Publisher").create(name="Marlow")
         self.imprint = _objects(apps, "Imprint").create(
-            name="Marvel", publisher=self.publisher
+            name="Marlow", publisher=self.publisher
         )
-        self.daredevil = self._series("Daredevil")
-        self.xmen = self._series("X-Men")
-        self.volume = self._volume(self.daredevil, 1964)
+        self.dashdemon = self._series("Dashdemon")
+        self.xmen = self._series("X-Folk")
+        self.volume = self._volume(self.dashdemon, 1964)
         self.folder = _objects(apps, "Folder").create(
             library=self.library, path="/comics/dd", name="dd", sort_name="dd"
         )
@@ -125,7 +125,7 @@ class _Library:
             ("comics", self.x1.pk),
             ("publishers", self.publisher.pk),
             ("imprints", self.imprint.pk),
-            ("series", self.daredevil.pk),
+            ("series", self.dashdemon.pk),
             ("volumes", self.volume.pk),
             ("folders", self.folder.pk),
             ("arcs", self.upper.pk),
@@ -201,17 +201,17 @@ class ShelvesToListsTests(_Fixture):
         assert _items(every) == [
             ("collection", "publishers", seed.publisher.pk, 1, ""),
             ("collection", "imprints", seed.imprint.pk, 1, ""),
-            ("collection", "series", seed.daredevil.pk, 1, ""),
+            ("collection", "series", seed.dashdemon.pk, 1, ""),
             ("collection", "volumes", seed.volume.pk, 1, ""),
             ("collection", "folders", seed.folder.pk, 1, ""),
             ("collection", "arcs", civil_war.pk, 1, ""),
         ]
         labels = [item.document["label"] for item in every.sources.order_by("rank")]
         assert labels == [
-            "Marvel",
-            "Marvel",
-            "Daredevil",
-            "Daredevil (1964)",
+            "Marlow",
+            "Marlow",
+            "Dashdemon",
+            "Dashdemon (1964)",
             "dd",
             "Civil War",
         ]
@@ -225,10 +225,10 @@ class ShelvesToListsTests(_Fixture):
         assert (hand.match_tier, hand.manual, hand.series_name, hand.issue) == (
             "manual",
             True,
-            "X-Men",
+            "X-Folk",
             "1",
         )
-        assert hand.reference["series"] == {"name": "X-Men"}
+        assert hand.reference["series"] == {"name": "X-Folk"}
         _assert_in_sync(every)
 
     def test_a_shelf_keeps_its_times(self) -> None:
@@ -263,7 +263,7 @@ class ShelvesToListsTests(_Fixture):
         apps = _migrate(_AFTER)
 
         hand: Any = _personal(apps, self.reader, "Ids").entries.get()
-        # The live references read the latest schema; X-Men has one volume,
+        # The live references read the latest schema; X-Folk has one volume,
         # so 0062 leaves the reference as it was.
         reference = hand.reference
         _migrate(_latest())
@@ -282,7 +282,7 @@ class ShelvesToListsTests(_Fixture):
         seed.shelf(
             self.reader,
             "Once",
-            (("series", seed.daredevil.pk), ("comics", seed.d1.pk)),
+            (("series", seed.dashdemon.pk), ("comics", seed.d1.pk)),
         )
         apps = _migrate(_AFTER)
 
@@ -465,7 +465,7 @@ class RoundTripTests(_Fixture):
         seed.shelf(
             self.reader,
             "Once",
-            (("series", seed.daredevil.pk), ("comics", seed.d1.pk)),
+            (("series", seed.dashdemon.pk), ("comics", seed.d1.pk)),
         )
         want = seed.shelf(self.reader, "Want ")
         seed.shelf(self.reader, "Want")

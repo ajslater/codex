@@ -591,8 +591,8 @@ class TelemeterPrivacyTestCase(TestCase):
     def test_the_bucket_check_catches_an_unregistered_bucket(self) -> None:
         """Prove the check above can actually fail."""
         payload = CodexStats().get()
-        payload["usage"]["top_publishers"] = {"Marvel Comics": 10}
+        payload["usage"]["top_publishers"] = {"Marlow Comics": 10}
         found: list[str] = []
         self._undeclared_keys(payload, "stats", self._declared_field_names(), found)
         assert "stats.usage.top_publishers" in found
-        assert "stats.usage.top_publishers.Marvel Comics" in found
+        assert "stats.usage.top_publishers.Marlow Comics" in found

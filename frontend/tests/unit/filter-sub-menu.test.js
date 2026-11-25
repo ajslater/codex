@@ -48,7 +48,7 @@ const CLEAR = ".filterHeaderTitle .clearFilterIcon";
 describe("Clear Filter, an icon in the title row", () => {
   test("is there but unseen with nothing ticked, so a first tick moves nothing", () => {
     const { wrapper } = mountSubmenu({
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     const clear = wrapper.find(CLEAR);
     expect(clear.exists()).toBe(true);
@@ -60,7 +60,7 @@ describe("Clear Filter, an icon in the title row", () => {
   test("shows with something ticked, named Clear Filter", () => {
     const { wrapper } = mountSubmenu({
       filters: { characters: [1] },
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     const clear = wrapper.find(CLEAR);
     expect(clear.classes()).not.toContain("clearFilterIconIdle");
@@ -71,7 +71,7 @@ describe("Clear Filter, an icon in the title row", () => {
   test("takes no row of its own", () => {
     const { wrapper } = mountSubmenu({
       filters: { characters: [1] },
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     expect(wrapper.find(".clearFilter").exists()).toBe(false);
   });
@@ -79,7 +79,7 @@ describe("Clear Filter, an icon in the title row", () => {
   test("clears and returns to the filter list, without the row's back", async () => {
     const { wrapper, browserStore } = mountSubmenu({
       filters: { characters: [1] },
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     let reachedRow = 0;
     wrapper.find(".filterHeaderTitle").element.addEventListener("click", () => {
@@ -95,7 +95,7 @@ describe("Clear Filter, an icon in the title row", () => {
   test("Enter and Space on it stay with it, not the row", async () => {
     const { wrapper } = mountSubmenu({
       filters: { characters: [1] },
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     const reached = [];
     wrapper
@@ -136,7 +136,7 @@ describe("the filter list row", () => {
   test("a filter with ticks is drawn at full strength", async () => {
     const { wrapper, browserStore } = mountSubmenu({
       filters: { characters: [1] },
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     browserStore.filterMode = "base";
     await flushPromises();
@@ -168,7 +168,7 @@ describe("stale choices refresh in place", () => {
   test("a tick elsewhere refreshes nothing: its own list does not change", async () => {
     const { wrapper, browserStore } = mountSubmenu({
       filters: { characters: [] },
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     wrapper.vm.onSelected([1]);
     browserStore.page = { mtime: 2 };
@@ -178,7 +178,7 @@ describe("stale choices refresh in place", () => {
 
   test("lists emptied while the sub-menu is open load again", async () => {
     const { browserStore } = mountSubmenu({
-      dynamic: { characters: [{ pk: 1, name: "Spider-Man" }] },
+      dynamic: { characters: [{ pk: 1, name: "Spindle-Man" }] },
     });
     browserStore.choices.dynamic = { characters: true };
     await flushPromises();
@@ -187,7 +187,7 @@ describe("stale choices refresh in place", () => {
 });
 
 describe("the Match all ticked switch", () => {
-  const SPIDEY = Object.freeze([{ pk: 1, name: "Spider-Man" }]);
+  const SPIDEY = Object.freeze([{ pk: 1, name: "Spindle-Man" }]);
 
   test("shows on tag-like filters only, ticked or not", () => {
     for (const [name, shown] of [

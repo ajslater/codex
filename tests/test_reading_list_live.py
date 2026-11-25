@@ -200,14 +200,14 @@ class OncePerListTests(LiveFixture):
 
     def test_overlapping_items_share_their_comics(self) -> None:
         """The publisher delivers only what the series did not."""
-        daredevil, more = self.make_series("Daredevil")
+        dashdemon, more = self.make_series("Dashdemon")
         self.hold(self.mine, "series", self.series)
         self.hold(self.mine, "publishers", self.publisher)
         order = self.order(self.mine)
         assert len(order) == len(set(order))
         assert set(order) == {*self.pks(self.comics), *self.pks(more)}
         assert order[:4] == self.pks(self.comics)
-        del daredevil
+        del dashdemon
 
     def test_a_hidden_entry_keeps_its_comic_out(self) -> None:
         """A comic a person hid is not brought back by a series."""
@@ -258,14 +258,14 @@ class DanglingTests(LiveFixture):
 
     def test_a_gone_series_dangles_and_comes_back(self) -> None:
         """Deleting the series keeps the item; a new series of its name binds."""
-        daredevil, _ = self.make_series("Daredevil")
-        item = self.hold(self.mine, "series", daredevil)
-        daredevil.delete()
+        dashdemon, _ = self.make_series("Dashdemon")
+        item = self.hold(self.mine, "series", dashdemon)
+        dashdemon.delete()
         reconcile_list(self.mine)
         item.refresh_from_db()
         assert item.target_id is None
         assert self.order(self.mine) == []
-        again, comics = self.make_series("Daredevil")
+        again, comics = self.make_series("Dashdemon")
         reconcile_list(self.mine)
         item.refresh_from_db()
         assert item.target_id == again.pk
@@ -337,7 +337,7 @@ class ListInListTests(LiveFixture):
     def test_includers_follow_a_changed_list(self) -> None:
         """A hand edit to the inner list reaches the outer one."""
         inner, outer = self._nested()
-        _, more = self.make_series("Daredevil", count=1)
+        _, more = self.make_series("Dashdemon", count=1)
         ReadingListEntry.objects.create(
             reading_list=inner, comic=more[0], manual=True, position=99
         )
@@ -384,13 +384,13 @@ class PlacementTests(LiveFixture):
 
     def test_a_block_sits_where_it_was_put_in_a_hand_made_list(self) -> None:
         """Between two hand-added issues, and it stays there."""
-        daredevil, more = self.make_series("Daredevil")
+        dashdemon, more = self.make_series("Dashdemon")
         c1, c2, _, _ = self.comics
         ReadingListEntry.objects.create(reading_list=self.mine, comic=c1, manual=True)
         ReadingListEntry.objects.create(
             reading_list=self.mine, comic=c2, manual=True, position=1
         )
-        self.hold(self.mine, "series", daredevil, position=1)
+        self.hold(self.mine, "series", dashdemon, position=1)
         expected = [c1.pk, *self.pks(more), c2.pk]
         assert self.order(self.mine) == expected
         reconcile_list(self.mine)
@@ -398,29 +398,29 @@ class PlacementTests(LiveFixture):
 
     def test_an_emptied_block_keeps_its_place(self) -> None:
         """A series that empties and refills comes back where it was."""
-        daredevil, more = self.make_series("Daredevil", count=1)
+        dashdemon, more = self.make_series("Dashdemon", count=1)
         c1, c2, _, _ = self.comics
         ReadingListEntry.objects.create(reading_list=self.mine, comic=c1, manual=True)
         ReadingListEntry.objects.create(
             reading_list=self.mine, comic=c2, manual=True, position=1
         )
-        self.hold(self.mine, "series", daredevil, position=1)
+        self.hold(self.mine, "series", dashdemon, position=1)
         more[0].delete()
         sweep_live()
         reconcile_list(self.mine)
-        volume = Volume.objects.get(series=daredevil)
-        back = self.make_comic(daredevil, volume, 7)
+        volume = Volume.objects.get(series=dashdemon)
+        back = self.make_comic(dashdemon, volume, 7)
         reconcile_list(self.mine)
         assert self.order(self.mine) == [c1.pk, back.pk, c2.pk]
 
     def test_blocks_sit_at_the_end_of_an_imported_list(self) -> None:
         """An imported order is not interrupted by a collection."""
         imported = import_document(_document(), _upload(), user=self.reader)
-        daredevil, more = self.make_series("Daredevil")
+        dashdemon, more = self.make_series("Dashdemon")
         before = self.order(imported)
-        self.hold(imported, "series", daredevil, position=0)
+        self.hold(imported, "series", dashdemon, position=0)
         assert self.order(imported) == [*before, *self.pks(more)]
-        assert daredevil.pk
+        assert dashdemon.pk
 
 
 class RenumberTests(LiveFixture):

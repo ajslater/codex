@@ -124,7 +124,7 @@ class ItemsAreNotSourcesTests(LiveFixture):
         body = json.loads(response.content)
         text = json.dumps(body)
         assert "collection" not in text
-        assert "Marvel" not in json.dumps(
+        assert "Marlow" not in json.dumps(
             body.get("listDetails", {}).get("sources", "")
         )
 

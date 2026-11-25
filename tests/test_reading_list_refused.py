@@ -31,7 +31,10 @@ _LISTS: Final = "/api/v4/reading-lists"
 
 
 def _batman(**fields) -> dict[str, Any]:
-    reference: dict[str, Any] = {"series": {"name": "Batman"}, "issue": {"name": "1"}}
+    reference: dict[str, Any] = {
+        "series": {"name": "Burrowman"},
+        "issue": {"name": "1"},
+    }
     if (start_year := fields.get("start_year")) is not None:
         reference["series"]["start_year"] = start_year
     if (volume := fields.get("volume")) is not None:
@@ -109,8 +112,8 @@ class RefusedEntryTests(BatmanFixture):
     def _import(self) -> ReadingList:
         return import_document(
             _cbl(
-                '<Book Series="Batman" Number="1" Volume="2012" Year="2011"/>',
-                '<Book Series="Batman" Number="1" Volume="2016" Year="2016"/>',
+                '<Book Series="Burrowman" Number="1" Volume="2012" Year="2011"/>',
+                '<Book Series="Burrowman" Number="1" Volume="2016" Year="2016"/>',
             ),
             SourceSpec(kind=ReadingListSourceKind.UPLOAD, ref="refused.cbl"),
         )

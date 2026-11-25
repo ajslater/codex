@@ -10,8 +10,8 @@ An entry is known by every key comicbox gives it (``entry_keys``: each issue
 id, best ranked database first, then the name keys), and a combined entry
 gains keys as sources join it: a Metron source puts Metron's id first on a
 list keyed by Comic Vine. So an edit finds its entry by any key the two
-share, unless their volumes differ (``Discriminators.conflicts``): X-Men
-(1963) and X-Men (1991) may both be volume 1 and share that name key. Each
+share, unless their volumes differ (``Discriminators.conflicts``): X-Folk
+(1963) and X-Folk (1991) may both be volume 1 and share that name key. Each
 edit is used once, in list order, so the two entries of an issue a list
 reads twice keep their own edits.
 """

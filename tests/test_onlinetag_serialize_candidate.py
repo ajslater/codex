@@ -29,10 +29,10 @@ _VOLUME: Final = 2
 _DETAIL: Final = MappingProxyType(
     {
         "series_start_year": 2016,
-        "series_publisher": "DC Comics",
+        "series_publisher": "DX Comics",
         "series_issue_count": 85,
         "series_type": "Ongoing Series",
-        "issue_title": "I Am Gotham, Part One",
+        "issue_title": "I Am Gravelton, Part One",
         "issue_summary": "A new hero arrives.",
     }
 )
@@ -48,7 +48,7 @@ def _summary(
         series="Fight Club 3",
         issue="1",
         year=2019,
-        publisher="Dark Horse",
+        publisher="Dark Pony",
         page_count=32,
         cover_url=cover_url,
         variant_label=None,
@@ -190,7 +190,7 @@ class SerializeCandidateTests(SimpleTestCase):
         The summary is a stand-in because the pinned comicbox predates
         the fields; the serializer reads them by name either way.
         """
-        summary = SimpleNamespace(series="Batman", issue="1", year=2016, **_DETAIL)
+        summary = SimpleNamespace(series="Burrowman", issue="1", year=2016, **_DETAIL)
         candidate = SimpleNamespace(
             source="comicvine", issue_id=1, score=0.5, summary=summary
         )

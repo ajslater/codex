@@ -89,7 +89,7 @@ class BatchedMatcherTests(ReadingListFixture):
     def _amazing(self) -> Series:
         first = self.comics[0]
         series = Series.objects.create(
-            name="Spider-Man", publisher=first.publisher, imprint=first.imprint
+            name="Spindle-Man", publisher=first.publisher, imprint=first.imprint
         )
         for number in (532, 533, 534):
             path = Path(first.path).parent / f"asm{number}.cbz"
@@ -111,10 +111,10 @@ class BatchedMatcherTests(ReadingListFixture):
         """Three mapped entries take no more queries than one."""
         series = self._amazing()
         ReadingListSeriesMapping.objects.create(
-            series_key="the amazing spider man", year=1963, series=series
+            series_key="the amazing spindle man", year=1963, series=series
         )
         refs = [
-            _reference("The Amazing Spider-Man", number, start_year=1963)
+            _reference("The Amazing Spindle-Man", number, start_year=1963)
             for number in (532, 533, 534)
         ]
         one, _ = _query_count(refs[:1])

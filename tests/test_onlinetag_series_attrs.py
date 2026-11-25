@@ -37,14 +37,14 @@ from tests.tmp_dirs import tmp_dir
 
 _TMP_DIR: Final = tmp_dir("codex.tests.onlinetag.series_attrs")
 _FILENAME_SERIES: Final = "Spidey"
-_SERIES: Final = "The Amazing Spider-Man"
+_SERIES: Final = "The Amazing Spindle-Man"
 _START_YEAR: Final = 1963
 _END_YEAR: Final = 1998
 _STATUS: Final = "Completed"
-_SUMMARY: Final = "The first Spider-Man series."
+_SUMMARY: Final = "The first Spindle-Man series."
 #: The tags a Metron match hands back, trimmed to what this test reads.
 _MATCH_TAGS: Final = {
-    "publisher": {"name": "Marvel"},
+    "publisher": {"name": "Marlow"},
     "series": {
         "name": _SERIES,
         "start_year": _START_YEAR,
@@ -176,7 +176,7 @@ class OnlineTagSeriesAttrsTestCase(TestCase):
         series = self.comic.series
         assert series.pk != old_series_pk
         assert series.name == _SERIES
-        assert series.publisher.name == "Marvel"
+        assert series.publisher.name == "Marlow"
         assert series.start_year == _START_YEAR
         assert series.end_year == _END_YEAR
         assert series.status == _STATUS

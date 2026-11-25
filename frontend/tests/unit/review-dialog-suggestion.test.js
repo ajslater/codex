@@ -23,7 +23,7 @@ import vuetify from "@/plugins/vuetify";
 const STUBS = Object.freeze({ VDialog: { template: "<div><slot /></div>" } });
 const SUGGESTED = Object.freeze({
   pk: 9,
-  seriesName: "Batman",
+  seriesName: "Burrowman",
   volumeName: "(2011)",
   issue: "1",
   year: 2011,
@@ -47,7 +47,7 @@ function suggestedEntry() {
   return {
     pk: 100,
     position: 0,
-    seriesName: "Batman",
+    seriesName: "Burrowman",
     issue: "1",
     year: 2011,
     ignored: false,
@@ -63,7 +63,7 @@ describe("A suggested comic in Edit Issues", () => {
     const wrapper = await mountReview([suggestedEntry()]);
     const text = wrapper.find(".suggestion").text();
     expect(text).toContain("Missing");
-    expect(text).toContain("maybe Batman (2011) #1");
+    expect(text).toContain("maybe Burrowman (2011) #1");
   });
 
   test("Use picks the suggested comic", async () => {

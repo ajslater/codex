@@ -49,7 +49,7 @@ function candidate(overrides = {}) {
       series: "Fight Club 3",
       issue: "1",
       year: 2019,
-      publisher: "Dark Horse",
+      publisher: "Dark Pony",
       coverUrl: COVER_URL,
       altSeries: [],
       volume: null,
@@ -253,11 +253,11 @@ describe("CandidateRow details", () => {
  */
 describe("CandidateRow series and issue detail", () => {
   const DETAIL = {
-    seriesPublisher: "DC Comics",
+    seriesPublisher: "DX Comics",
     seriesType: "Ongoing Series",
     seriesStartYear: 2016,
     seriesIssueCount: 85,
-    issueTitle: "I Am Gotham, Part One",
+    issueTitle: "I Am Gravelton, Part One",
     issueSummary: "A new hero arrives.",
   };
 
@@ -265,7 +265,7 @@ describe("CandidateRow series and issue detail", () => {
     const line = mountRow({ summary: DETAIL }).find(".candidateSeriesDetail");
 
     expect(line.text()).toBe(
-      "DC Comics · Ongoing Series · Series began 2016 · 85 issues",
+      "DX Comics · Ongoing Series · Series began 2016 · 85 issues",
     );
   });
 
@@ -274,7 +274,7 @@ describe("CandidateRow series and issue detail", () => {
       ".candidateSeriesDetail",
     );
 
-    expect(line.text()).toBe("Dark Horse · 1 issue");
+    expect(line.text()).toBe("Dark Pony · 1 issue");
   });
 
   test("the series publisher wins over the scored one", () => {
@@ -289,12 +289,12 @@ describe("CandidateRow series and issue detail", () => {
     const wrapper = mountRow();
 
     expect(wrapper.find(".candidatePublisher").exists()).toBe(false);
-    expect(wrapper.find(".candidateSeriesDetail").text()).toBe("Dark Horse");
+    expect(wrapper.find(".candidateSeriesDetail").text()).toBe("Dark Pony");
   });
 
   test("quotes the issue title before its deck, the whole as a tooltip", () => {
     const line = mountRow({ summary: DETAIL }).find(".candidateIssueDetail");
-    const text = "“I Am Gotham, Part One” — A new hero arrives.";
+    const text = "“I Am Gravelton, Part One” — A new hero arrives.";
 
     expect(line.text()).toBe(text);
     expect(line.attributes("title")).toBe(text);

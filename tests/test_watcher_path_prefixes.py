@@ -3,7 +3,7 @@ Watcher path matching must respect directory boundaries.
 
 Both the deleted-directory expansion and the library attributor matched a
 bare string prefix, so any two paths where one name starts with the other
-("Batman" / "Batman Beyond") were treated as parent and child. Expanding a
+("Burrowman" / "Burrowman Beyond") were treated as parent and child. Expanding a
 delete that way destroys a sibling tree's comics — and their bookmarks —
 while the files are still on disk.
 """
@@ -102,9 +102,9 @@ class ExpandDirDeletedTests(TestCase):
         )
 
     def test_sibling_prefix_tree_is_untouched(self) -> None:
-        """Deleting /Batman must not expand into /Batman Beyond."""
-        target = _ROOT / "Batman"
-        sibling = _ROOT / "Batman Beyond"
+        """Deleting /Burrowman must not expand into /Burrowman Beyond."""
+        target = _ROOT / "Burrowman"
+        sibling = _ROOT / "Burrowman Beyond"
         self._make_folder(target)
         self._make_folder(sibling)
         target_comic = self._make_comic(target / "a.cbz")
@@ -122,7 +122,7 @@ class ExpandDirDeletedTests(TestCase):
 
     def test_real_children_are_expanded(self) -> None:
         """Nested folders and their comics are still collected."""
-        target = _ROOT / "Batman"
+        target = _ROOT / "Burrowman"
         child = target / "Year One"
         self._make_folder(target)
         self._make_folder(child)
@@ -140,7 +140,7 @@ class ExpandDirDeletedTests(TestCase):
 
     def test_directory_is_listed_once(self) -> None:
         """The deleted directory's own row must not be emitted twice."""
-        target = _ROOT / "Batman"
+        target = _ROOT / "Burrowman"
         self._make_folder(target)
 
         batch = ChangeBatch()

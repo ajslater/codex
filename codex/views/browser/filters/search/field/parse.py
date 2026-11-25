@@ -85,8 +85,8 @@ class FieldQueryTransformer(Transformer):
         q_dict = parse_expression(self._rel, self._rel_class, str(token))
         if q_dict and self._many_to_many:
             # Joined inline, a many-to-many value repeats the comic's row
-            # once per matching tag: ``characters:*bat*`` found a comic with
-            # Batman and Batgirl twice. A membership test keeps one row per
+            # once per matching tag: ``characters:*bur*`` found a comic with
+            # Burrowman and Burrowgirl twice. A membership test keeps one row per
             # comic, as the tag filters do, and makes each operand of an
             # AND its own test rather than one joined tag matching both.
             q_dict = {"pk__in": Comic.objects.filter(**q_dict).values("pk")}

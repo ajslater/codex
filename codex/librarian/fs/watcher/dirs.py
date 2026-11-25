@@ -58,7 +58,7 @@ def expand_dir_deleted(dir_path: str, library_pk: int, batch: ChangeBatch) -> No
     )
 
     # Only true children. A bare prefix match also claims every sibling whose
-    # name merely starts with this one ("/c/Batman" would delete "/c/Batman
+    # name merely starts with this one ("/c/Burrowman" would delete "/c/Burrowman
     # Beyond" and all its comics), so terminate the prefix with a separator.
     child_prefix = dir_path.rstrip(os.sep) + os.sep
 

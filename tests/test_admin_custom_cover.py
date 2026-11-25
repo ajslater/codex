@@ -62,7 +62,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         self.client = Client()
         self.client.login(username="admin-cc", password=_TEST_PASSWORD)
         self.publisher: Publisher = Publisher.objects.create(  # pyright: ignore[reportUninitializedInstanceVariable]
-            name="Marvel", sort_name="marvel"
+            name="Marlow", sort_name="marlow"
         )
 
     @patch(_QUEUE_PATCH)
@@ -88,7 +88,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         filename = Path(cover.path).name
         assert filename.startswith(f"publishers-{pk}-")
         assert filename.endswith(".png")
-        assert "marvel" in filename
+        assert "marlow" in filename
         self.publisher.refresh_from_db()
         assert self.publisher.custom_cover_id == pk  # pyright: ignore[reportAttributeAccessIssue]
         # COVERS notification fans out to the WebSocket so connected
@@ -221,7 +221,7 @@ class AdminCustomCoverUploadTestCase(TestCase):
         assert len(rows) == 1
         attrs = rows[0]["attributes"]
         assert attrs["collection"] == "publishers"
-        assert attrs["linkedCollectionName"] == "Marvel"
+        assert attrs["linkedCollectionName"] == "Marlow"
 
     @patch(_QUEUE_PATCH)
     def test_replace_displaces_prior_cover(self, mock_queue) -> None:  # noqa: ARG002

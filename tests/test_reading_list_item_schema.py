@@ -16,7 +16,7 @@ from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
 from tests.test_reading_lists import ReadingListFixture
 
 _COLLECTION: Final = ReadingListSourceKind.COLLECTION
-_IDENTITY: Final = '["Marvel", "Marvel", "Civil War"]'
+_IDENTITY: Final = '["Marlow", "Marlow", "Civil War"]'
 
 
 def _count(reading_list: ReadingList) -> int:
@@ -89,7 +89,7 @@ class ItemSchemaTests(ReadingListFixture):
 
     def test_removing_the_last_item_keeps_a_global_list(self) -> None:
         """A list never goes with a collection item."""
-        reading_list = ReadingList.objects.create(name="Everything Marvel")
+        reading_list = ReadingList.objects.create(name="Everything Marlow")
         item = self._item(reading_list, self.comics[0].series_id)
         assert remove_source(item)
         assert ReadingList.objects.filter(pk=reading_list.pk).exists()

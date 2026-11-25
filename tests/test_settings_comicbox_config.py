@@ -4,7 +4,7 @@ COMICBOX_CONFIG overlay regression tests.
 comicbox's confuse template nests ``loglevel`` and ``delete_keys`` under the
 ``general`` section; a flat overlay is *silently ignored*. That regression
 made renames carry comicfn2dict remainder junk from the old filename into
-the new one (e.g. ``Wolverine (0000) #023.cbz`` →
+the new one (e.g. ``Woodvole (0000) #023.cbz`` →
 ``… Power Grab[(0000)].cbz``) because ``remainders`` was never deleted from
 the merged metadata.
 """

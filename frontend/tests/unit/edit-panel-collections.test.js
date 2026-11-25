@@ -4,7 +4,7 @@
  *
  * Behavior locked in here:
  *   - When the opened group spans MORE THAN ONE distinct value for a collection
- *     (e.g. case-variant publishers "Marvel" + "marvel"), the field starts
+ *     (e.g. case-variant publishers "Marlow" + "marlow"), the field starts
  *     BLANK and the dropdown offers both names. Picking any option — including
  *     the first/canonical one — registers as a change and enables Save, so the
  *     chosen value can be written to every selected comic to normalize them.
@@ -42,8 +42,8 @@ async function mountPanel({ md = {} } = {}) {
 describe("EditPanel — ambiguous (duplicate) collections", () => {
   const DUP_PUBLISHER = {
     publisherList: [
-      { ids: [1], name: "Marvel" },
-      { ids: [2], name: "marvel" },
+      { ids: [1], name: "Marlow" },
+      { ids: [2], name: "marlow" },
     ],
   };
 
@@ -56,8 +56,8 @@ describe("EditPanel — ambiguous (duplicate) collections", () => {
   test("the dropdown offers each distinct group value", async () => {
     const wrapper = await mountPanel({ md: DUP_PUBLISHER });
     expect(wrapper.vm.collectionOptions("publisher")).toEqual([
-      "Marvel",
-      "marvel",
+      "Marlow",
+      "marlow",
     ]);
     expect(wrapper.vm.collectionPlaceholder("publisher")).toBe(
       MULTI_PLACEHOLDER,
@@ -68,10 +68,10 @@ describe("EditPanel — ambiguous (duplicate) collections", () => {
     const wrapper = await mountPanel({ md: DUP_PUBLISHER });
     // Re-selecting the value already shown in the group is the case that was
     // impossible with a plain text field — it must now count as a change.
-    wrapper.vm.patch.publisher = "Marvel";
+    wrapper.vm.patch.publisher = "Marlow";
     await flushPromises();
     expect(wrapper.vm.hasChanges).toBe(true);
-    expect(wrapper.vm.buildPatch().patch.publisher).toEqual({ name: "Marvel" });
+    expect(wrapper.vm.buildPatch().patch.publisher).toEqual({ name: "Marlow" });
   });
 
   test("an untouched ambiguous field is never written", async () => {
@@ -152,10 +152,10 @@ describe("EditPanel — a named value mixed with the unnamed (no-collection) sta
 describe("EditPanel — single-value collections (no regression)", () => {
   test("a sole publisher is pre-filled with no multiple placeholder", async () => {
     const wrapper = await mountPanel({
-      md: { publisherList: [{ ids: [1], name: "Marvel" }] },
+      md: { publisherList: [{ ids: [1], name: "Marlow" }] },
     });
-    expect(wrapper.vm.patch.publisher).toBe("Marvel");
-    expect(wrapper.vm.collectionOptions("publisher")).toEqual(["Marvel"]);
+    expect(wrapper.vm.patch.publisher).toBe("Marlow");
+    expect(wrapper.vm.collectionOptions("publisher")).toEqual(["Marlow"]);
     expect(wrapper.vm.collectionPlaceholder("publisher")).toBeUndefined();
     expect(wrapper.vm.hasChanges).toBe(false);
   });
@@ -171,7 +171,7 @@ describe("EditPanel — single-value collections (no regression)", () => {
 describe("EditPanel — collection inputs render as comboboxes", () => {
   test("publisher / imprint / series / volume are comboboxes", async () => {
     const wrapper = await mountPanel({
-      md: { publisherList: [{ ids: [1], name: "Marvel" }] },
+      md: { publisherList: [{ ids: [1], name: "Marlow" }] },
     });
     // The four collection fields plus any other comboboxes on the panel.
     expect(wrapper.findAll(".v-combobox").length).toBeGreaterThanOrEqual(4);

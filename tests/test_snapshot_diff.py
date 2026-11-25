@@ -101,7 +101,7 @@ def test_file_to_directory_inode_collision_is_not_a_move() -> None:
     )
     disk = _snapshot(
         {
-            "/comics/Wolverine Saga (1989)": _stat(mode=_DIR_MODE, ino=1104, size=224),
+            "/comics/Woodvole Saga (1989)": _stat(mode=_DIR_MODE, ino=1104, size=224),
         }
     )
     diff = SnapshotDiff(db, disk)
@@ -109,7 +109,7 @@ def test_file_to_directory_inode_collision_is_not_a_move() -> None:
     assert not diff.files_moved
     assert not diff.dirs_moved
     assert diff.files_deleted == ["/comics/Powers Gods #001.cbz"]
-    assert diff.dirs_added == ["/comics/Wolverine Saga (1989)"]
+    assert diff.dirs_added == ["/comics/Woodvole Saga (1989)"]
 
 
 def test_directory_to_file_inode_collision_is_not_a_move() -> None:
@@ -272,17 +272,17 @@ def test_intra_snapshot_dir_inode_collision_suppresses_move() -> None:
     Directory pairs skip the size check, so without the ambiguity guard a
     collided inode would reparent comics under an unrelated folder.
     """
-    db = _snapshot({"/comics/Punisher": _stat(mode=_DIR_MODE, ino=50, size=128)})
+    db = _snapshot({"/comics/Pursuer": _stat(mode=_DIR_MODE, ino=50, size=128)})
     disk = _snapshot(
         {
-            "/comics/Wolverine": _stat(mode=_DIR_MODE, ino=50, size=128),
+            "/comics/Woodvole": _stat(mode=_DIR_MODE, ino=50, size=128),
             "/comics/Akira": _stat(mode=_DIR_MODE, ino=50, size=96),
         }
     )
     diff = SnapshotDiff(db, disk)
     assert not diff.dirs_moved
-    assert diff.dirs_deleted == ["/comics/Punisher"]
-    assert sorted(diff.dirs_added) == ["/comics/Akira", "/comics/Wolverine"]
+    assert diff.dirs_deleted == ["/comics/Pursuer"]
+    assert sorted(diff.dirs_added) == ["/comics/Akira", "/comics/Woodvole"]
 
 
 def test_db_side_inode_collision_suppresses_move() -> None:

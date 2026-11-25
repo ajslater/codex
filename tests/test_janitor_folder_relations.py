@@ -103,19 +103,19 @@ class FixFolderRelationsTests(TestCase):
     def _build_correct_tree(self) -> dict:
         """Create the correct folder tree + comics, then return key handles."""
         root = self._folder("", None)
-        pub = self._folder("Marvel", root)
-        s_a = self._folder("Marvel/Series A", pub)
-        s_b = self._folder("Marvel/Series B", pub)
-        s_c = self._folder("Marvel/Series C", pub)
-        stale = self._folder("Marvel/Series Empty", pub)
-        c_a = self._comic("Marvel/Series A/a.cbz", s_a, [root, pub, s_a])
-        c_b = self._comic("Marvel/Series B/b.cbz", s_b, [root, pub, s_b])
-        c_c = self._comic("Marvel/Series C/c.cbz", s_c, [root, pub, s_c])
+        pub = self._folder("Marlow", root)
+        s_a = self._folder("Marlow/Series A", pub)
+        s_b = self._folder("Marlow/Series B", pub)
+        s_c = self._folder("Marlow/Series C", pub)
+        stale = self._folder("Marlow/Series Empty", pub)
+        c_a = self._comic("Marlow/Series A/a.cbz", s_a, [root, pub, s_a])
+        c_b = self._comic("Marlow/Series B/b.cbz", s_b, [root, pub, s_b])
+        c_c = self._comic("Marlow/Series C/c.cbz", s_c, [root, pub, s_c])
         # The scanner imports an uppercase suffix verbatim, so the repair
         # has to recognize one. Part of the standard tree so every case
         # here covers it, including the migration-registry path.
-        s_u = self._folder("Marvel/Series Upper", pub)
-        c_u = self._comic("Marvel/Series Upper/u.CBZ", s_u, [root, pub, s_u])
+        s_u = self._folder("Marlow/Series Upper", pub)
+        c_u = self._comic("Marlow/Series Upper/u.CBZ", s_u, [root, pub, s_u])
         return {
             "root": root, "pub": pub, "s_a": s_a, "s_b": s_b, "s_c": s_c,
             "stale": stale, "c_a": c_a, "c_b": c_b, "c_c": c_c,
@@ -155,7 +155,7 @@ class FixFolderRelationsTests(TestCase):
 
     def _assert_repaired(self, t: dict) -> None:
         """Post-heal invariants: missing folder back, comics consistent, stale gone."""
-        recreated = Folder.objects.get(path=str(_TMP_DIR / "Marvel" / "Series C"))
+        recreated = Folder.objects.get(path=str(_TMP_DIR / "Marlow" / "Series C"))
         assert recreated.parent_folder is not None
         assert recreated.parent_folder.pk == t["pub"].pk
         assert recreated.sort_name == "series c"
@@ -164,7 +164,7 @@ class FixFolderRelationsTests(TestCase):
         # The uppercase comic's folder is not "empty".
         assert Folder.objects.filter(pk=t["s_u"].pk).exists()
         assert not Folder.objects.filter(
-            path=str(_TMP_DIR / "Marvel" / "Series Empty")
+            path=str(_TMP_DIR / "Marlow" / "Series Empty")
         ).exists()
 
     def test_full_repair(self) -> None:
@@ -205,7 +205,7 @@ class FixFolderRelationsTests(TestCase):
 
         assert result["pruned"] == 0
         assert Folder.objects.filter(
-            path=str(_TMP_DIR / "Marvel" / "Series Empty")
+            path=str(_TMP_DIR / "Marlow" / "Series Empty")
         ).exists()
 
     def test_repair_via_migration_apps_registry(self) -> None:
@@ -288,10 +288,10 @@ class PrunePreservesLiveFoldersTests(FixFolderRelationsTests):
     def test_folder_referenced_by_a_comic_is_never_pruned(self) -> None:
         """The backstop: a suffix rule can be wrong again; this cannot."""
         t = self._build_correct_tree()
-        odd = self._folder("Marvel/Series Odd", t["pub"])
+        odd = self._folder("Marlow/Series Odd", t["pub"])
         # A suffix no rule recognizes, so it contributes no needed folder.
         comic = self._comic(
-            "Marvel/Series Odd/odd.cbx", odd, [t["root"], t["pub"], odd]
+            "Marlow/Series Odd/odd.cbx", odd, [t["root"], t["pub"], odd]
         )
 
         fix_folder_relations(logger)

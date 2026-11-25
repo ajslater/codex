@@ -69,7 +69,7 @@ describe("TagNameCombobox", () => {
 
   test("opening the menu loads every name", async () => {
     const { inner, store } = mountCombobox({
-      props: { field: "imprint", scope: { publisher: "DC Comics" } },
+      props: { field: "imprint", scope: { publisher: "DX Comics" } },
     });
     expect(store.loadTagNames).not.toHaveBeenCalled();
 
@@ -78,7 +78,7 @@ describe("TagNameCombobox", () => {
 
     expect(store.loadTagNames).toHaveBeenCalledExactlyOnceWith({
       field: "imprint",
-      scope: { publisher: "DC Comics" },
+      scope: { publisher: "DX Comics" },
       q: "",
     });
   });
@@ -92,7 +92,7 @@ describe("TagNameCombobox", () => {
 
     inner.vm.$emit("update:search", "B");
     inner.vm.$emit("update:search", "Ba");
-    inner.vm.$emit("update:search", "Bat");
+    inner.vm.$emit("update:search", "Bur");
     vi.advanceTimersByTime(DEBOUNCE_MS - 1);
     expect(store.loadTagNames).not.toHaveBeenCalled();
 
@@ -100,7 +100,7 @@ describe("TagNameCombobox", () => {
     expect(store.loadTagNames).toHaveBeenCalledExactlyOnceWith({
       field: "characters",
       scope: {},
-      q: "Bat",
+      q: "Bur",
     });
   });
 
@@ -113,7 +113,7 @@ describe("TagNameCombobox", () => {
     });
     const input = wrapper.find("input");
     await input.trigger("focus");
-    await input.setValue("Bat");
+    await input.setValue("Bur");
     await flushPromises();
     expect(store.loadTagNames).toHaveBeenCalledWith({
       field: "characters",
@@ -125,7 +125,7 @@ describe("TagNameCombobox", () => {
     expect(store.loadTagNames).toHaveBeenLastCalledWith({
       field: "characters",
       scope: {},
-      q: "Bat",
+      q: "Bur",
     });
     wrapper.unmount();
   });
@@ -178,16 +178,16 @@ describe("TagNameCombobox", () => {
     const { inner } = mountCombobox({
       props: {
         field: "publisher",
-        modelValue: "DC Comics",
+        modelValue: "DX Comics",
         "onUpdate:modelValue": onUpdate,
         label: "Publisher",
       },
     });
-    expect(inner.props("modelValue")).toBe("DC Comics");
+    expect(inner.props("modelValue")).toBe("DX Comics");
     expect(inner.props("label")).toBe("Publisher");
 
-    inner.vm.$emit("update:modelValue", "Marvel");
-    expect(onUpdate).toHaveBeenCalledWith("Marvel");
+    inner.vm.$emit("update:modelValue", "Marlow");
+    expect(onUpdate).toHaveBeenCalledWith("Marlow");
   });
 
   test("a string array v-model round-trips", async () => {

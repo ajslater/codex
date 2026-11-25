@@ -165,7 +165,7 @@ class ReadingListBackupTests(ReadingListFixture):
         add_item(mine, "series", c1.series_id)
         reconcile_list(mine)
         ReadingListSeriesMapping.objects.create(
-            series_key="the amazing spider man", year=1963, series=c1.series
+            series_key="the amazing spindle man", year=1963, series=c1.series
         )
         # Arcs that only mirror their tags are rebuilt, not backed up.
         self.tag(c3, "Other Arc", 1)

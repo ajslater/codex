@@ -372,9 +372,9 @@ describe("reading lists tab — management", () => {
   test("saved series mappings show, and can be forgotten", async () => {
     const mapping = {
       pk: 7,
-      seriesKey: "the amazing spider man",
+      seriesKey: "the amazing spindle man",
       year: 1963,
-      series: { pk: 3, name: "Amazing Spider-Man", startYear: 1963 },
+      series: { pk: 3, name: "Amazing Spindle-Man", startYear: 1963 },
     };
     API.getMappings.mockResolvedValue({ data: { mappings: [mapping] } });
     API.getAdminLists.mockResolvedValue({ data: { lists: LISTS } });
@@ -386,7 +386,7 @@ describe("reading lists tab — management", () => {
     expect(wrapper.vm.mappingsLabel).toBe("1 saved series mapping");
     wrapper.vm.showMappings = true;
     await flushPromises();
-    expect(wrapper.find(".mappingRow").text()).toContain("Amazing Spider-Man");
+    expect(wrapper.find(".mappingRow").text()).toContain("Amazing Spindle-Man");
     await useReadingListsStore().deleteMapping(7);
     expect(API.deleteMapping).toHaveBeenCalledWith(7);
   });
@@ -742,8 +742,8 @@ describe("review dialog — moving an entry", () => {
   // A hand entry, a collection's block of two, another hand entry.
   const WITH_BLOCK = Object.freeze([
     { pk: 7, position: 0, seriesName: "Civil War", issue: "1" },
-    { pk: 8, position: 1, seriesName: "X-Men", issue: "1", liveSource: 5 },
-    { pk: 9, position: 2, seriesName: "X-Men", issue: "2", liveSource: 5 },
+    { pk: 8, position: 1, seriesName: "X-Folk", issue: "1", liveSource: 5 },
+    { pk: 9, position: 2, seriesName: "X-Folk", issue: "2", liveSource: 5 },
     { pk: 10, position: 3, seriesName: "Civil War", issue: "2" },
   ]);
 
@@ -755,7 +755,7 @@ describe("review dialog — moving an entry", () => {
         pk: 5,
         collection: "series",
         targetId: 42,
-        label: "X-Men",
+        label: "X-Folk",
         dangling: false,
         count: 2,
         position: 1,
@@ -775,7 +775,7 @@ describe("review dialog — moving an entry", () => {
     const rows = wrapper.findAll("tbody tr");
     expect(rows).toHaveLength(3);
     const held = rows[1];
-    expect(held.text()).toContain("X-Men");
+    expect(held.text()).toContain("X-Folk");
     expect(held.text()).toContain("2 issues");
     expect(held.find(".moveUp").exists()).toBe(false);
     expect(held.findAll(".entryActions button")).toHaveLength(1);
@@ -797,7 +797,7 @@ describe("review dialog — moving an entry", () => {
     const entries = [
       { pk: 7, position: 0, seriesName: "Civil War", issue: "1" },
       { pk: 8, position: 1, seriesName: "Civil War", issue: "2" },
-      { pk: 9, position: 2, seriesName: "X-Men", issue: "1", liveSource: 5 },
+      { pk: 9, position: 2, seriesName: "X-Folk", issue: "1", liveSource: 5 },
     ];
     const { row } = await mountReview(entries, [{ pk: 1, kind: "upload" }]);
     expect(row(8).find(".moveDown").attributes("disabled")).toBeDefined();

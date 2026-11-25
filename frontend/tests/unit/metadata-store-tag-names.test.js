@@ -40,7 +40,7 @@ describe("metadata store tag name suggestions", () => {
 
   test("an exact hit is served from the cache", async () => {
     const store = useMetadataStore();
-    respond(["DC Comics", "Marvel"]);
+    respond(["DX Comics", "Marlow"]);
     await store.loadTagNames({ field: "publisher", q: "" });
     await store.loadTagNames({ field: "publisher", q: "" });
 
@@ -51,69 +51,69 @@ describe("metadata store tag name suggestions", () => {
       { signal: expect.any(AbortSignal) },
     );
     expect(store.tagNameChoices("publisher", {}, "")).toStrictEqual([
-      "DC Comics",
-      "Marvel",
+      "DX Comics",
+      "Marlow",
     ]);
     expect(store.tagNamesLoading.publisher).toBe(false);
   });
 
   test("a complete shorter prefix skips the request", async () => {
     const store = useMetadataStore();
-    respond(["Batgirl", "Batman"]);
-    await store.loadTagNames({ field: "characters", q: "Bat" });
+    respond(["Burrowgirl", "Burrowman"]);
+    await store.loadTagNames({ field: "characters", q: "Bur" });
     // Different case and a trailing space normalize onto the same prefix.
-    await store.loadTagNames({ field: "characters", q: "batm " });
+    await store.loadTagNames({ field: "characters", q: "burr " });
 
     expect(API.getTagNames).toHaveBeenCalledTimes(1);
     // Vuetify narrows the reused page itself.
-    expect(store.tagNameChoices("characters", {}, "batm")).toStrictEqual([
-      "Batgirl",
-      "Batman",
+    expect(store.tagNameChoices("characters", {}, "burr")).toStrictEqual([
+      "Burrowgirl",
+      "Burrowman",
     ]);
   });
 
   test("an incomplete prefix fetches and stands in meanwhile", async () => {
     const store = useMetadataStore();
-    respond(["Alfred", "Batman"], false);
+    respond(["Alfred", "Burrowman"], false);
     await store.loadTagNames({ field: "characters", q: "" });
 
     const response = Promise.withResolvers();
     API.getTagNames.mockReturnValueOnce(response.promise);
-    const loading = store.loadTagNames({ field: "characters", q: "Robin" });
+    const loading = store.loadTagNames({ field: "characters", q: "Rowan" });
 
     expect(store.tagNamesLoading.characters).toBe(true);
-    expect(store.tagNameChoices("characters", {}, "Robin")).toStrictEqual([
+    expect(store.tagNameChoices("characters", {}, "Rowan")).toStrictEqual([
       "Alfred",
-      "Batman",
+      "Burrowman",
     ]);
-    response.resolve({ data: { names: ["Robin"], complete: true } });
+    response.resolve({ data: { names: ["Rowan"], complete: true } });
     await loading;
 
     expect(API.getTagNames).toHaveBeenLastCalledWith(
       "characters",
-      { q: "Robin" },
+      { q: "Rowan" },
       { signal: expect.any(AbortSignal) },
     );
-    expect(store.tagNameChoices("characters", {}, "Robin")).toStrictEqual([
-      "Robin",
+    expect(store.tagNameChoices("characters", {}, "Rowan")).toStrictEqual([
+      "Rowan",
     ]);
     expect(store.tagNamesLoading.characters).toBe(false);
   });
 
   test("scopes are cached apart and blank scope entries are dropped", async () => {
     const store = useMetadataStore();
-    respond(["Vertigo"]);
+    respond(["Verdigris"]);
     await store.loadTagNames({
       field: "imprint",
-      scope: { publisher: "DC Comics" },
+      scope: { publisher: "DX Comics" },
     });
-    respond(["Max", "Vertigo"]);
+    respond(["Max", "Verdigris"]);
     await store.loadTagNames({ field: "imprint", scope: { publisher: "" } });
 
     expect(API.getTagNames).toHaveBeenNthCalledWith(
       1,
       "imprint",
-      { publisher: "DC Comics", q: "" },
+      { publisher: "DX Comics", q: "" },
       { signal: expect.any(AbortSignal) },
     );
     expect(API.getTagNames).toHaveBeenNthCalledWith(
@@ -123,11 +123,11 @@ describe("metadata store tag name suggestions", () => {
       { signal: expect.any(AbortSignal) },
     );
     expect(
-      store.tagNameChoices("imprint", { publisher: "DC Comics" }, ""),
-    ).toStrictEqual(["Vertigo"]);
+      store.tagNameChoices("imprint", { publisher: "DX Comics" }, ""),
+    ).toStrictEqual(["Verdigris"]);
     expect(store.tagNameChoices("imprint", {}, "")).toStrictEqual([
       "Max",
-      "Vertigo",
+      "Verdigris",
     ]);
   });
 
@@ -167,11 +167,13 @@ describe("metadata store tag name suggestions", () => {
       return new Promise(() => {});
     });
     store.loadTagNames({ field: "teams", q: "a" });
-    respond(["Avengers"]);
+    respond(["Avengards"]);
     await store.loadTagNames({ field: "teams", q: "av" });
 
     expect(staleSignal.aborted).toBe(true);
-    expect(store.tagNameChoices("teams", {}, "av")).toStrictEqual(["Avengers"]);
+    expect(store.tagNameChoices("teams", {}, "av")).toStrictEqual([
+      "Avengards",
+    ]);
     expect(store.tagNamesLoading.teams).toBe(false);
   });
 

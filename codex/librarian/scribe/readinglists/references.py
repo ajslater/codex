@@ -8,8 +8,8 @@ again after it is removed and re-added, and so lists from tags combine
 and compare with fetched lists. The references are JSON-safe: issues are
 strings, dates are their parts.
 
-A codex series is a name, but comicbox's is one volume run: Batman (1940)
-and Batman (2011) are two. So the start year a reference carries is its
+A codex series is a name, but comicbox's is one volume run: Burrowman (1940)
+and Burrowman (2011) are two. So the start year a reference carries is its
 volume's, and series ids, which codex keeps one of per series name, are
 given only for a series with one volume.
 """

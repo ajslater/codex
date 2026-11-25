@@ -36,10 +36,10 @@ from codex.models.readinglist import ReadingListMatchTier, ReadingListSourceKind
 from tests.test_reading_lists import ReadingListFixture
 
 _CBL: Final = """<?xml version="1.0"?>
-<ReadingList><Name>[Marvel] Civil War (CBRO)</Name><Books>
+<ReadingList><Name>[Marlow] Civil War (CBRO)</Name><Books>
 <Book Series="Civil War" Number="1" Volume="2006" Year="2006">
   <Database Name="cv" Series="18023" Issue="105747" /></Book>
-<Book Series="The Amazing Spider-Man" Number="532" Volume="1963" Year="2006" />
+<Book Series="The Amazing Spindle-Man" Number="532" Volume="1963" Year="2006" />
 <Book Series="Civil War" Number="2" Volume="2006" Year="2006" />
 <Book Series="Civil War" Number="3" Volume="2006" Year="2006" />
 </Books><Matchers /></ReadingList>
@@ -71,11 +71,11 @@ class ImportMatchTests(ReadingListFixture):
         """Names find comics; a series the library lacks stays a placeholder."""
         c1, c2, c3, _ = self.comics
         reading_list = import_document(_document(), _upload())
-        assert reading_list.name == "[Marvel] Civil War (CBRO)"
+        assert reading_list.name == "[Marlow] Civil War (CBRO)"
         assert reading_list.user is None
         assert _rows(reading_list) == [
             ("Civil War", "1", c1.pk, ReadingListMatchTier.EXACT_NAME),
-            ("The Amazing Spider-Man", "532", None, ReadingListMatchTier.NONE),
+            ("The Amazing Spindle-Man", "532", None, ReadingListMatchTier.NONE),
             ("Civil War", "2", c2.pk, ReadingListMatchTier.EXACT_NAME),
             ("Civil War", "3", c3.pk, ReadingListMatchTier.EXACT_NAME),
         ]
@@ -97,7 +97,7 @@ class ImportMatchTests(ReadingListFixture):
     def test_series_mapping_resolves_its_rows(self) -> None:
         """A saved mapping sends a list's series to a library series."""
         asm = Series.objects.create(
-            name="Spider-Man",
+            name="Spindle-Man",
             publisher=self.comics[0].publisher,
             imprint=self.comics[0].imprint,
         )
@@ -115,7 +115,7 @@ class ImportMatchTests(ReadingListFixture):
             size=1,
         )
         ReadingListSeriesMapping.objects.create(
-            series_key="the amazing spider man", year=1963, series=asm
+            series_key="the amazing spindle man", year=1963, series=asm
         )
         reading_list = import_document(_document(), _upload())
         assert _rows(reading_list)[1][2:] == (comic.pk, ReadingListMatchTier.MAPPING)
@@ -295,7 +295,7 @@ class TagSyncRenameTests(ReadingListFixture):
         self._tags_source(curated, "civil war", 1)
         sync_tag_lists()
         curated.refresh_from_db()
-        assert curated.name == "[Marvel] Civil War (CBRO)"
+        assert curated.name == "[Marlow] Civil War (CBRO)"
 
     def test_a_tags_list_follows_its_arc(self) -> None:
         """A list its tags lead takes the arc's name."""

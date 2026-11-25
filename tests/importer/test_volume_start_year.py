@@ -44,7 +44,7 @@ class _Queue:
 
 
 def _md(volume: int | None, start_year: int | None) -> dict:
-    series: dict = {"name": "Batman"}
+    series: dict = {"name": "Burrowman"}
     if start_year:
         series["start_year"] = start_year
     md: dict = {"publisher": {"name": "DC"}, "series": series}
@@ -58,7 +58,7 @@ def _yaml(volume: int, start_year: int, number: int) -> str:
   publisher:
     name: DC
   series:
-    name: Batman
+    name: Burrowman
     start_year: {start_year}
   volume:
     number: {volume}

@@ -44,26 +44,26 @@ describe("BrowserToolbarTitle — title", () => {
     const wrapper = mountTitle({
       params: { collection: "series", parentIds: "5" },
       title: {
-        collectionName: "Amazing Spider-Man",
+        collectionName: "Amazing Spindle-Man",
         collectionCount: 0,
         collectionStartYear: 1963,
         collectionEndYear: 1996,
       },
     });
-    expect(titleText(wrapper)).toBe("Amazing Spider-Man 1963–1996");
+    expect(titleText(wrapper)).toBe("Amazing Spindle-Man 1963–1996");
   });
 
   test("shows a series without years by name alone", () => {
     const wrapper = mountTitle({
       params: { collection: "series", parentIds: "5" },
       title: {
-        collectionName: "Amazing Spider-Man",
+        collectionName: "Amazing Spindle-Man",
         collectionCount: 0,
         collectionStartYear: null,
         collectionEndYear: null,
       },
     });
-    expect(titleText(wrapper)).toBe("Amazing Spider-Man");
+    expect(titleText(wrapper)).toBe("Amazing Spindle-Man");
   });
 
   test("keeps a volume's own name and count", () => {
@@ -94,7 +94,7 @@ describe("BrowserToolbarTitle — Tags button", () => {
   test("opens the browsed series' own metadata", () => {
     const wrapper = mountTitle({
       params: { collection: "series", parentIds: "5" },
-      title: { collectionName: "Amazing Spider-Man", collectionCount: 0 },
+      title: { collectionName: "Amazing Spindle-Man", collectionCount: 0 },
     });
     const dialog = wrapper.findComponent(MetadataDialog);
     expect(dialog.exists()).toBe(true);

@@ -354,15 +354,15 @@ class BrowserAlternateSeriesSortTestCase(_ReprintsFixtureTestCase):
     def test_fallback_uses_raw_series_name_not_sort_name(self) -> None:
         """The fallback series segment is the raw name, like alternate names."""
         # Reprint series names sort raw, so the fallback compares
-        # ``lower(name)`` too. "cats" sits between "batman, the" (the
-        # article-moved sort_name) and "the batman" (the raw name):
+        # ``lower(name)`` too. "cats" sits between "burrowman, the" (the
+        # article-moved sort_name) and "the burrowman" (the raw name):
         # only the raw-name fallback puts the Cats comic first.
-        the_batman = self._create_series("The Batman")
-        self._create_comic("C2", 1, series=the_batman)
-        self._tag(self._create_comic("C3", 2, series=the_batman), "1", "Cats")
+        the_burrowman = self._create_series("The Burrowman")
+        self._create_comic("C2", 1, series=the_burrowman)
+        self._tag(self._create_comic("C3", 2, series=the_burrowman), "1", "Cats")
 
         self._set_settings(orderBy="reprints", orderReverse=False)
-        body = self._browse(f"/api/v4/browse/series/{the_batman.pk}?page=1")
+        body = self._browse(f"/api/v4/browse/series/{the_burrowman.pk}?page=1")
         names = [book["name"] for book in body["books"]]
         assert names == ["C3", "C2"], body
 

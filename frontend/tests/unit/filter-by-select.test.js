@@ -105,8 +105,8 @@ describe("BrowserFilterBySelect — closing on select", () => {
 });
 
 const CHARACTERS = Object.freeze([
-  { pk: 1, name: "Spider-Man" },
-  { pk: 2, name: "Iron Man" },
+  { pk: 1, name: "Spindle-Man" },
+  { pk: 2, name: "Iron Marshal" },
 ]);
 
 async function openCharacters(options = {}) {
@@ -138,7 +138,7 @@ const key = (el, name) =>
 describe("BrowserFilterBySelect — ticking in a sub-menu", () => {
   test("a tick applies and leaves the menu open on its sub-menu", async () => {
     const { wrapper, browserStore, choice } = await openCharacters();
-    choice("Iron Man").click();
+    choice("Iron Marshal").click();
     await flushPromises();
     expect(browserStore.tickFilters).toHaveBeenCalledWith({ characters: [2] });
     expect(browserStore.setSettings).not.toHaveBeenCalled();
@@ -152,9 +152,9 @@ describe("BrowserFilterBySelect — ticking in a sub-menu", () => {
     content.addEventListener("keydown", (event) => {
       reached.push(event.key);
     });
-    key(choice("Spider-Man"), "a");
-    key(choice("Spider-Man"), "ArrowDown");
-    key(choice("Spider-Man"), "Escape");
+    key(choice("Spindle-Man"), "a");
+    key(choice("Spindle-Man"), "ArrowDown");
+    key(choice("Spindle-Man"), "Escape");
     await flushPromises();
     expect(reached).toEqual(["ArrowDown", "Escape"]);
     expect(browserStore.setSettings).not.toHaveBeenCalled();
@@ -228,18 +228,18 @@ describe("BrowserFilterBySelect — arrow keys in a sub-menu", () => {
 
   test("an arrow key on a choice row steps one row", async () => {
     const { choice } = await openCharacters();
-    choice("Iron Man").focus();
-    key(choice("Iron Man"), "ArrowDown");
-    expect(document.activeElement).toBe(choice("Spider-Man"));
-    key(choice("Spider-Man"), "ArrowUp");
-    expect(document.activeElement).toBe(choice("Iron Man"));
+    choice("Iron Marshal").focus();
+    key(choice("Iron Marshal"), "ArrowDown");
+    expect(document.activeElement).toBe(choice("Spindle-Man"));
+    key(choice("Spindle-Man"), "ArrowUp");
+    expect(document.activeElement).toBe(choice("Iron Marshal"));
   });
 
   test("an arrow key off the end of the choices leaves them, not wraps", async () => {
     const { content, choice } = await openCharacters();
-    choice("Iron Man").focus();
-    key(choice("Iron Man"), "ArrowUp");
-    expect(document.activeElement).not.toBe(choice("Spider-Man"));
+    choice("Iron Marshal").focus();
+    key(choice("Iron Marshal"), "ArrowUp");
+    expect(document.activeElement).not.toBe(choice("Spindle-Man"));
     expect(document.activeElement.getAttribute("role")).not.toBe(
       "menuitemcheckbox",
     );

@@ -84,7 +84,7 @@ class ReadingListApiTests(ReadingListFixture):
         task = queue.put.call_args.args[0]
         assert isinstance(task, ReadingListImportTask)
         ReadingListWorker(logger, Queue(), Lock()).handle_task(task)
-        return ReadingList.objects.get(name="[Marvel] Civil War (CBRO)")
+        return ReadingList.objects.get(name="[Marlow] Civil War (CBRO)")
 
     def test_preview_writes_nothing(self) -> None:
         """A preview saves no list."""
@@ -180,7 +180,7 @@ class ReadingListApiTests(ReadingListFixture):
         reading_list = self._import_cbl()
         url = f"{_LISTS}/{reading_list.pk}/entries"
         entries = _missing(_data(self.client.get(url))["entries"])
-        assert [entry["seriesName"] for entry in entries] == ["The Amazing Spider-Man"]
+        assert [entry["seriesName"] for entry in entries] == ["The Amazing Spindle-Man"]
         missing = entries[0]["pk"]
 
         candidates = _data(
@@ -281,19 +281,19 @@ class ReadingListApiTests(ReadingListFixture):
         publisher = self.comics[0].publisher
         with patch.object(matcher_module, "SeriesNameIndex", _Counting):
             Series.objects.create(
-                name="Spider-Man", imprint=imprint, publisher=publisher
+                name="Spindle-Man", imprint=imprint, publisher=publisher
             )
             for _ in range(2):
                 response = self.client.get(candidates_url)
                 assert response.status_code == _OK, response.content
             assert len(built) == 1
             amazing = Series.objects.create(
-                name="Amazing Spider-Man", imprint=imprint, publisher=publisher
+                name="Amazing Spindle-Man", imprint=imprint, publisher=publisher
             )
             self.client.get(candidates_url)
             assert len(built) == 2  # noqa: PLR2004
         index = matcher_module.library_series_index()
-        reference = {"series": {"name": "The Amazing Spider-Man"}}
+        reference = {"series": {"name": "The Amazing Spindle-Man"}}
         assert amazing.pk in index.series_for(reference)
 
     def _personal_list(self) -> int:
@@ -413,7 +413,7 @@ class ReadingListApiTests(ReadingListFixture):
                 content_type="application/json",
             )
         assert response.status_code == _CREATED, response.content
-        assert _data(response)["seriesKey"] == "the amazing spider man"
+        assert _data(response)["seriesKey"] == "the amazing spindle man"
 
         self.tag(self.comics[0], "Civil War", 1)
         sync_tag_lists()
@@ -460,8 +460,8 @@ class ReadingListApiTests(ReadingListFixture):
         self.tag(self.comics[0], "Civil War", 1)
         sync_tag_lists()
         assert self._grid() == {
-            "[Marvel] Civil War (CBRO)": "Upload",
+            "[Marlow] Civil War (CBRO)": "Upload",
             "Civil War": "Tags",
         }
-        assert set(self._grid("curated")) == {"[Marvel] Civil War (CBRO)"}
+        assert set(self._grid("curated")) == {"[Marlow] Civil War (CBRO)"}
         assert set(self._grid("tags")) == {"Civil War"}

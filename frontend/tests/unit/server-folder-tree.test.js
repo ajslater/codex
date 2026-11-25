@@ -35,12 +35,12 @@ const LISTINGS = Object.freeze({
   "/comics": {
     rootFolder: "/comics",
     parentFolder: "/",
-    folders: ["DC", "empty", "Marvel"],
+    folders: ["DC", "empty", "Marlow"],
   },
   "/comics/DC": {
     rootFolder: "/comics/DC",
     parentFolder: "/comics",
-    folders: ["Batman"],
+    folders: ["Burrowman"],
   },
   "/comics/empty": {
     rootFolder: "/comics/empty",
@@ -106,7 +106,7 @@ describe("AdminServerFolderTree — opening", () => {
     expect(vm.items[0].children.map(({ title }) => title)).toEqual([
       "DC",
       "empty",
-      "Marvel",
+      "Marlow",
     ]);
     expect(child(vm, "DC").value).toBe("/comics/DC");
   });
@@ -116,7 +116,7 @@ describe("AdminServerFolderTree — opening", () => {
     await flushPromises();
     await vm.loadChildren(child(vm, "DC"));
     expect(child(vm, "DC").children.map(({ value }) => value)).toEqual([
-      "/comics/DC/Batman",
+      "/comics/DC/Burrowman",
     ]);
     const empty = child(vm, "empty");
     await vm.loadChildren(empty);
@@ -140,14 +140,14 @@ describe("AdminServerFolderTree — opening", () => {
   });
 
   test("a folder an existing library covers is disabled with a reason", async () => {
-    const { vm } = mountTree({ libraries: [{ path: "/comics/Marvel" }] });
+    const { vm } = mountTree({ libraries: [{ path: "/comics/Marlow" }] });
     await flushPromises();
-    const marvel = child(vm, "Marvel");
-    expect(marvel.props).toEqual({
+    const marlow = child(vm, "Marlow");
+    expect(marlow.props).toEqual({
       disabled: true,
       subtitle: "Already a library",
     });
-    expect(marvel).not.toHaveProperty("children");
+    expect(marlow).not.toHaveProperty("children");
     expect(child(vm, "DC").props).toBeUndefined();
   });
 });
@@ -198,8 +198,8 @@ describe("AdminServerFolderTree — navigating", () => {
     expect(vm.items[0].value).toBe("/");
     const comics = child(vm, "comics");
     expect(comics.title).toBe("comics");
-    expect(child(vm, "Batman", child(vm, "DC", comics)).value).toBe(
-      "/comics/DC/Batman",
+    expect(child(vm, "Burrowman", child(vm, "DC", comics)).value).toBe(
+      "/comics/DC/Burrowman",
     );
     expect(vm.opened).toEqual(["/", "/comics", "/comics/DC"]);
     expect(vm.parentFolder).toBeNull();
@@ -211,7 +211,7 @@ describe("AdminServerFolderTree — navigating", () => {
     const dc = child(vm, "DC");
     await vm.loadChildren(dc);
     vm.opened = ["/comics", "/comics/DC"];
-    vm.activated = ["/comics/DC/Batman"];
+    vm.activated = ["/comics/DC/Burrowman"];
     await flushPromises();
 
     vm.showHidden = true;
@@ -224,17 +224,17 @@ describe("AdminServerFolderTree — navigating", () => {
     // The open folder is the same node, still open, now with its hidden one.
     expect(child(vm, "DC")).toBe(dc);
     expect(dc.children.map(({ title }) => title)).toEqual([
-      "Batman",
+      "Burrowman",
       ".hidden",
     ]);
     expect(vm.opened).toEqual(["/comics", "/comics/DC"]);
-    expect(vm.activated).toEqual(["/comics/DC/Batman"]);
-    expect(vm.path).toBe("/comics/DC/Batman");
+    expect(vm.activated).toEqual(["/comics/DC/Burrowman"]);
+    expect(vm.path).toBe("/comics/DC/Burrowman");
 
     vm.showHidden = false;
     await flushPromises();
     expect(child(vm, ".hidden")).toBeUndefined();
-    expect(dc.children.map(({ title }) => title)).toEqual(["Batman"]);
+    expect(dc.children.map(({ title }) => title)).toEqual(["Burrowman"]);
   });
 
   test("hiding keeps the open way to a chosen folder inside a hidden one", async () => {
@@ -255,7 +255,7 @@ describe("AdminServerFolderTree — navigating", () => {
       ".hidden",
       "DC",
       "empty",
-      "Marvel",
+      "Marlow",
     ]);
     expect(child(vm, ".hidden")).toBe(hidden);
     expect(hidden.children.map(({ title }) => title)).toEqual(["deep"]);
@@ -281,10 +281,10 @@ describe("AdminServerFolderTree — navigating", () => {
   test("a folder that fails to load says so on its node only", async () => {
     const { vm } = mountTree();
     await flushPromises();
-    const marvel = child(vm, "Marvel");
-    await vm.loadChildren(marvel);
-    expect(marvel.props).toEqual({ subtitle: "Not a directory" });
-    expect(marvel).not.toHaveProperty("children");
+    const marlow = child(vm, "Marlow");
+    await vm.loadChildren(marlow);
+    expect(marlow.props).toEqual({ subtitle: "Not a directory" });
+    expect(marlow).not.toHaveProperty("children");
     expect(vm.pathErrors).toEqual([]);
     expect(useCommonStore().setErrors).not.toHaveBeenCalled();
   });

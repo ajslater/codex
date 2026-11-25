@@ -27,12 +27,12 @@ describe("browser store filter settings", () => {
   it("sends only the filters in use", () => {
     const store = storeWith({
       filters: { bookmark: "", characters: [], genres: [5], readingLists: [3] },
-      q: "batman",
+      q: "burrowman",
     });
 
     expect(store.filterOnlySettings).toStrictEqual({
       filters: { genres: [5], readingLists: [3] },
-      q: "batman",
+      q: "burrowman",
     });
   });
 

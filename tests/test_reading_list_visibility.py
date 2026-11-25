@@ -66,7 +66,7 @@ class EntryVisibilityFixture(ReadingListFixture):
         rows = (
             (c1, False, "Civil War", "1"),
             (self.hidden, False, "Civil War", "5"),
-            (None, False, "The Amazing Spider-Man", "532"),
+            (None, False, "The Amazing Spindle-Man", "532"),
             (c2, True, "Civil War", "2"),
         )
         for position, (comic, ignored, series, issue) in enumerate(rows):
@@ -167,7 +167,7 @@ class CopyVisibilityTests(EntryVisibilityFixture):
         )
         assert rows == [
             (self.comics[0].pk, "Civil War", "1"),
-            (None, "The Amazing Spider-Man", "532"),
+            (None, "The Amazing Spindle-Man", "532"),
         ]
 
 

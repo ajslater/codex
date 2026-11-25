@@ -608,7 +608,7 @@ class BrowserOrderByIntegrationTestCase(TestCase):
         """
         library = Library.objects.first()
         # Folder.presave stats the path so the dirs need to exist.
-        marvel_top_path = TMP_DIR / "Marvel"
+        marvel_top_path = TMP_DIR / "Marlow"
         marvel_sub_path = marvel_top_path / "Sub"
         image_top_path = TMP_DIR / "Image"
         image_sub_path = image_top_path / "Sub"
@@ -664,8 +664,8 @@ class BrowserOrderByIntegrationTestCase(TestCase):
             comic.folders.set([sub, top])
             return comic
 
-        _comic_in(marvel_sub, marvel_top, "marvel-1", 2024)
-        _comic_in(marvel_sub, marvel_top, "marvel-2", 2024)
+        _comic_in(marvel_sub, marvel_top, "marlow-1", 2024)
+        _comic_in(marvel_sub, marvel_top, "marlow-2", 2024)
         _comic_in(image_sub, image_top, "image-1", 2022)
         _comic_in(image_sub, image_top, "image-2", 2023)
 
