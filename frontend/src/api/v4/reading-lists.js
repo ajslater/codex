@@ -10,9 +10,7 @@ const fresh = (params = {}) => ({ params: { ...params, ts: Date.now() } });
 
 // Admin.
 export const getAdminLists = () => HTTP.get(ADMIN, fresh());
-export const getAdminList = (pk) => HTTP.get(`${ADMIN}/${pk}`, fresh());
 export const updateAdminList = (pk, data) => HTTP.patch(`${ADMIN}/${pk}`, data);
-export const deleteAdminList = (pk) => HTTP.delete(`${ADMIN}/${pk}`);
 export const searchLists = (source, q, curator = "") =>
   HTTP.get(`${ADMIN}/search`, fresh({ source, q, curator }));
 export const previewLists = (files, sources) => {
@@ -41,7 +39,6 @@ export const deleteMapping = (pk) =>
   HTTP.delete(`${ADMIN}/series-mappings`, { params: { pk } });
 export const getErrors = () => HTTP.get(`${ADMIN}/errors`, fresh());
 export const clearErrors = () => HTTP.delete(`${ADMIN}/errors`);
-export const abortFetch = () => HTTP.post(`${ADMIN}/abort`);
 
 // Owners and admins.
 export const getMyLists = () => HTTP.get(`${LISTS}/`, fresh());
@@ -65,8 +62,6 @@ export const updateItems = (pk, { add, remove }) => {
   if (remove) body.remove = remove;
   return HTTP.patch(`${LISTS}/${pk}/items`, body);
 };
-export const addEntries = (pk, comics, position) =>
-  HTTP.post(`${LISTS}/${pk}/entries`, { comics, position });
 export const updateEntry = (pk, entryPk, data) =>
   HTTP.patch(`${LISTS}/${pk}/entries/${entryPk}`, data);
 export const deleteEntry = (pk, entryPk) =>

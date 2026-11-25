@@ -434,7 +434,7 @@ class BrowserView(BrowserTitleView):
         )
 
     def _missing_entries(self, *, reading_order: bool) -> dict[str, Any]:
-        """Return the page's missing issues and the list's count, or nothing."""
+        """Return the page's missing issues, or nothing."""
         if not self._wants_missing_entries(reading_order=reading_order):
             return {}
         list_pk = self.kwargs["pks"][0]
@@ -447,10 +447,8 @@ class BrowserView(BrowserTitleView):
             per_page,
             self.page_orphans(per_page),
         )
-        entries, count = page_missing_entries(
-            self, user, list_pk, bounds, reverse=reverse
-        )
-        return {"missing_entries": entries, "missing_count": count}
+        entries = page_missing_entries(self, user, list_pk, bounds, reverse=reverse)
+        return {"missing_entries": entries}
 
     @override
     def get_object(self) -> MappingProxyType:

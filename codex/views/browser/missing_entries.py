@@ -58,9 +58,8 @@ def page_bounds(
     positions: Sequence[int], page: int, per_page: int, orphans: int
 ) -> PageBounds | None:
     """Return the positions page ``page`` owns, or None for no such page."""
-    if not positions:
-        # No comic to place them among: every missing issue is on page 1.
-        return PageBounds() if page == 1 else None
+    # With no comic to place them among, every missing issue is on page 1:
+    # the paginator allows an empty first page and refuses the rest.
     paginator = Paginator(positions, per_page, orphans=orphans)
     try:
         this_page = paginator.page(page)
@@ -94,20 +93,18 @@ def _entry_repr(entry: ReadingListEntry) -> dict[str, Any]:
 
 def page_missing_entries(
     acl, user, list_pk: int, bounds: PageBounds | None, *, reverse: bool
-) -> tuple[list[dict[str, Any]], int]:
-    """Return the missing issues on the page, in page order, and the list's total."""
+) -> list[dict[str, Any]]:
+    """Return the missing issues on the page, in page order."""
     missing = ReadingListEntry.objects.filter(
         shown_entries_q(acl, user), MISSING_Q, reading_list_id=list_pk
     ).order_by("-position" if reverse else "position", "pk")
-    entries = list(missing.only(*_FIELDS))
     if bounds is None:
-        return [], len(entries)
-    on_page = [
+        return []
+    return [
         _entry_repr(entry)
-        for entry in entries
+        for entry in missing.only(*_FIELDS)
         if _owns(entry.position, bounds, reverse=reverse)
     ]
-    return on_page, len(entries)
 
 
 _FIELDS: Final = ("pk", "position", "series_name", "issue", "year", "entry_type")

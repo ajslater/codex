@@ -75,7 +75,7 @@ class DanglingTests(DanglingFixture):
                 f"/api/v4/browse/arcs/{self.mine.pk}", {**params, "page": 1}
             )
         )
-        assert page["missingCount"] == 0
+        assert not page.get("missingEntries")
 
     def test_the_metadata_row_count(self) -> None:
         """A comic's chip says the list holds three."""
