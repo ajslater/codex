@@ -62,10 +62,13 @@ def _sociallogin(id_token=None, userinfo=None, sub=_SUB) -> SocialLogin:
     if userinfo is not None:
         extra_data["userinfo"] = userinfo
     account = SocialAccount(provider="oidc", uid=sub, extra_data=extra_data)
-    sociallogin = SocialLogin(user=User(), account=account)
-    data = merged_claims(sociallogin)
     adapter = CodexSocialAccountAdapter()
     request = RequestFactory().get("/sso/oidc/login/callback/")
+    # As the callback builds it: allauth 65.23 calls the provider's
+    # ``_on_login_processed`` hook after every login it completes.
+    provider = adapter.get_provider(request, provider="oidc")
+    sociallogin = SocialLogin(user=User(), account=account, provider=provider)
+    data = merged_claims(sociallogin)
     adapter.populate_user(request, sociallogin, {"email": data.get("email")})
     return sociallogin
 
