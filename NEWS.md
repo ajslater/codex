@@ -13,6 +13,10 @@ border-radius: 128px;
 - Reading lists find every volume of a series name, not only the first.
 - Review suggests the likely comic for a missing reading list issue.
 
+### 🧑‍💻 Developer
+
+- Require comicbox 5.7.1.
+
 ## v2.8.0 - Reading Lists
 
 ### ✨ Added
