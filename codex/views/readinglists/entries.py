@@ -6,7 +6,7 @@ comic, a hidden entry, an entry added by hand and a hand reorder all live
 in the entry rows, and a recombine keeps them.
 """
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from typing import Any, Final
 
 from comicbox.readinglists import parse_issue
@@ -36,6 +36,7 @@ from codex.models.readinglist import (
     ReadingListMatchTier,
     ReadingListSource,
 )
+from codex.views.auth import GroupACLMixin
 from codex.views.readinglists.access import (
     ReadingListAccessView,
     entries_acl_q,
@@ -112,11 +113,16 @@ def _live_refusal(entry: ReadingListEntry) -> str:
     return f"That issue is in this list through {label}. Remove {label} instead."
 
 
-def entry_repr(entry: ReadingListEntry) -> dict[str, Any]:
+def entry_repr(
+    entry: ReadingListEntry, visible: Collection[int] = ()
+) -> dict[str, Any]:
     """
     Return an entry for the review screen.
 
-    A live entry stores no names of its own: they come from its comic.
+    A live entry stores no names of its own: they come from its comic. A
+    missing entry's suggested comic is shown only when it is in
+    ``visible``, the suggestions the viewer may see: a missing entry is
+    seen by everyone who sees the list.
     """
     comic = entry.comic
     series_name, issue, year = entry.series_name, entry.issue, entry.year
@@ -138,7 +144,27 @@ def entry_repr(entry: ReadingListEntry) -> dict[str, Any]:
         "ignored": entry.ignored,
         "manual": entry.manual,
         "comic": _comic_repr(entry.comic),
+        "suggestedComic": _comic_repr(entry.suggested_comic)
+        if entry.suggested_comic_id in visible  # pyright: ignore[reportAttributeAccessIssue]
+        else None,
     }
+
+
+def visible_suggestions(
+    acl: GroupACLMixin, user, entries: Iterable[ReadingListEntry]
+) -> frozenset[int]:
+    """Return the entries' suggested comics the user may see, in one query."""
+    pks = {
+        pk
+        for entry in entries
+        if (pk := entry.suggested_comic_id) is not None  # pyright: ignore[reportAttributeAccessIssue]
+    }
+    if not pks:
+        return frozenset()
+    acl_q = acl.get_acl_filter(Comic, user)
+    return frozenset(
+        Comic.objects.filter(acl_q, pk__in=pks).values_list("pk", flat=True)
+    )
 
 
 def _renumber(reading_list: ReadingList, ordered: Iterable[ReadingListEntry]) -> None:
@@ -218,13 +244,35 @@ _ENTRY_REPR_FIELDS: Final = (
     "comic__series__name",
     "comic__volume__name",
     "comic__volume__number_to",
+    *(
+        f"suggested_comic__{field}"
+        for field in (
+            "id",
+            "series_id",
+            "volume_id",
+            "issue_number",
+            "issue_suffix",
+            "year",
+            "name",
+            "series__name",
+            "volume__name",
+            "volume__number_to",
+        )
+    ),
 )
 
 
 def _entries(reading_list: ReadingList):
     return (
         ReadingListEntry.objects.filter(reading_list=reading_list)
-        .select_related("comic", "comic__series", "comic__volume")
+        .select_related(
+            "comic",
+            "comic__series",
+            "comic__volume",
+            "suggested_comic",
+            "suggested_comic__series",
+            "suggested_comic__volume",
+        )
         .only(*_ENTRY_REPR_FIELDS)
         .order_by("position", "pk")
     )
@@ -251,7 +299,9 @@ class ReadingListEntriesView(ReadingListAccessView):
         """
         reading_list = self.get_reading_list()
         acl_q = entries_acl_q(self, self.request.user)
-        entries = [entry_repr(entry) for entry in _entries(reading_list).filter(acl_q)]
+        rows = list(_entries(reading_list).filter(acl_q))
+        visible = visible_suggestions(self, self.request.user, rows)
+        entries = [entry_repr(entry, visible) for entry in rows]
         items = _items_repr(reading_list, acl_q)
         return Response({"entries": entries, "items": items})
 
@@ -333,7 +383,15 @@ class ReadingListEntryView(ReadingListAccessView):
                 reading_list=reading_list,
                 pk=self.kwargs["entry_pk"],
             )
-            .select_related("comic", "comic__series", "comic__volume", "live_source")
+            .select_related(
+                "comic",
+                "comic__series",
+                "comic__volume",
+                "suggested_comic",
+                "suggested_comic__series",
+                "suggested_comic__volume",
+                "live_source",
+            )
             .first()
         )
         if entry is None:
@@ -348,6 +406,8 @@ class ReadingListEntryView(ReadingListAccessView):
             # A recompute would put the tagged comic back, and the entry
             # would stop being the list's own.
             raise ValidationError(_TAGGED_REFUSAL)
+        # A person decided, so the matcher's suggestion is answered.
+        entry.suggested_comic = None
         if comic_pk is None:
             # A person said the library does not have it: no rematch or
             # recombine may pick a comic for it again.
@@ -383,7 +443,8 @@ class ReadingListEntryView(ReadingListAccessView):
         reading_list.save()
         _settle(reading_list)
         entry = self._entry(reading_list)
-        return Response(entry_repr(entry))
+        visible = visible_suggestions(self, self.request.user, (entry,))
+        return Response(entry_repr(entry, visible))
 
     def delete(self, *_args, **_kwargs) -> Response:
         """
@@ -522,13 +583,19 @@ class ReadingListReorderView(ReadingListAccessView):
 
 
 class ReadingListAcceptView(ReadingListAccessView):
-    """POST: accept every best guess, clearing the review flags."""
+    """
+    POST: accept every best guess, clearing the review flags.
+
+    A missing entry's suggestion is not a guess the matcher took: it was
+    refused as another volume's issue or another year's, so a person picks
+    it or marks the entry missing one at a time.
+    """
 
     def post(self, *_args, **_kwargs) -> Response:
-        """Clear the list's review flags."""
+        """Clear the review flags of the list's matched entries."""
         reading_list = self.get_reading_list()
         count = ReadingListEntry.objects.filter(
-            reading_list=reading_list, needs_review=True
+            reading_list=reading_list, needs_review=True, comic__isnull=False
         ).update(needs_review=False)
         reading_list.save()
         return Response({"accepted": count})

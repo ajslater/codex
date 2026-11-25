@@ -10,8 +10,10 @@ An entry is known by every key comicbox gives it (``entry_keys``: each issue
 id, best ranked database first, then the name keys), and a combined entry
 gains keys as sources join it: a Metron source puts Metron's id first on a
 list keyed by Comic Vine. So an edit finds its entry by any key the two
-share. Each edit is used once, in list order, so the two entries of an issue
-a list reads twice keep their own edits.
+share, unless their volumes differ (``Discriminators.conflicts``): X-Men
+(1963) and X-Men (1991) may both be volume 1 and share that name key. Each
+edit is used once, in list order, so the two entries of an issue a list
+reads twice keep their own edits.
 """
 
 from collections import defaultdict
@@ -19,7 +21,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from comicbox.readinglists import entry_keys
+from comicbox.readinglists import Discriminators, discriminators, entry_keys
 
 from codex.librarian.scribe.readinglists.references import typed_reference
 from codex.models.readinglist import ReadingListEntry, ReadingListMatchTier
@@ -27,9 +29,18 @@ from codex.models.readinglist import ReadingListEntry, ReadingListMatchTier
 EntryKey = tuple[Any, ...]
 
 
-def reference_keys(reference: Mapping[str, Any]) -> frozenset[EntryKey]:
-    """Return every key an entry's reference is known by."""
-    return frozenset(entry_keys(typed_reference(reference)))
+@dataclass(frozen=True, slots=True)
+class Identity:
+    """Every key an entry is known by, and what tells its volume."""
+
+    keys: frozenset[EntryKey]
+    volume: Discriminators
+
+
+def reference_identity(reference: Mapping[str, Any]) -> Identity:
+    """Return the keys and volume an entry's reference is known by."""
+    typed = typed_reference(reference)
+    return Identity(frozenset(entry_keys(typed)), discriminators(typed))
 
 
 @dataclass(slots=True)
@@ -44,18 +55,20 @@ class Edit:
     """
 
     keys: frozenset[EntryKey]
+    volume: Discriminators = field(default_factory=Discriminators)
     picked_pk: int | None = None
     marked_missing: bool = False
     ignored: bool = False
     accepted_pk: int | None = None
 
     @classmethod
-    def of(cls, entry: ReadingListEntry, keys: frozenset[EntryKey]) -> "Edit":
+    def of(cls, entry: ReadingListEntry, identity: Identity) -> "Edit":
         """Read the edits off a current entry."""
         comic_pk: int | None = entry.comic_id  # pyright: ignore[reportAttributeAccessIssue]
         picked = entry.match_tier == ReadingListMatchTier.MANUAL.value
         return cls(
-            keys=keys,
+            keys=identity.keys,
+            volume=identity.volume,
             picked_pk=comic_pk if picked else None,
             marked_missing=entry.match_tier
             == ReadingListMatchTier.MARKED_MISSING.value,
@@ -97,8 +110,9 @@ class Overlay:
                 overlay.manual.append((previous, entry))
                 continue
             # An entry with no key cannot be found again.
-            if keys := reference_keys(entry.reference):
-                overlay.edits.append(Edit.of(entry, keys))
+            identity = reference_identity(entry.reference)
+            if identity.keys:
+                overlay.edits.append(Edit.of(entry, identity))
                 previous = len(overlay.edits) - 1
         return overlay
 
@@ -106,10 +120,11 @@ class Overlay:
         """Return the comics people picked by hand."""
         return {edit.picked_pk for edit in self.edits if edit.picked_pk is not None}
 
-    def assign(self, rows_keys: Sequence[frozenset[EntryKey]]) -> list[int | None]:
+    def assign(self, rows: Sequence[Identity]) -> list[int | None]:
         """
         Give each row, in order, the first unused edit sharing a key with it.
 
+        An edit of another volume is never a row's, though they share a key.
         Returns the edit index per row, or None.
         """
         by_key: defaultdict[EntryKey, list[int]] = defaultdict(list)
@@ -118,12 +133,13 @@ class Overlay:
                 by_key[key].append(index)
         used: set[int] = set()
         assigned: list[int | None] = []
-        for keys in rows_keys:
+        for row in rows:
             candidates = (
                 index
-                for key in keys
+                for key in row.keys
                 for index in by_key.get(key, ())
                 if index not in used
+                and not self.edits[index].volume.conflicts(row.volume)
             )
             if (best := min(candidates, default=None)) is not None:
                 used.add(best)
@@ -139,7 +155,9 @@ class Overlay:
         hand-added entries keep their places after the entries they
         followed.
         """
-        assigned = self.assign([edit.keys for edit in other.edits])
+        assigned = self.assign(
+            [Identity(edit.keys, edit.volume) for edit in other.edits]
+        )
         moved: dict[int, int] = {}
         for other_index, (edit, mine) in enumerate(
             zip(other.edits, assigned, strict=True)
