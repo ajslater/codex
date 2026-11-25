@@ -22,7 +22,10 @@ Candidates are found in the database first, so the matcher sees only the
 comics of series whose name could match and the comics an id names. A
 deterministic best is taken among several and the entry is flagged for
 review when they span more than one series or volume, or comicbox calls
-the match ambiguous. Matching ignores per-user visibility; reading a list applies it.
+the match ambiguous. An entry left missing whose issue comicbox refused
+as another volume's, or for its cover year, keeps that comic as a
+suggestion and is flagged for review instead of looking absent from the
+library. Matching ignores per-user visibility; reading a list applies it.
 """
 
 from collections import defaultdict
@@ -42,7 +45,7 @@ from comicbox.readinglists import (
     parse_issue,
 )
 from comicbox.readinglists.identity import any_conflict
-from comicbox.readinglists.match import FoundBy, match_comics
+from comicbox.readinglists.match import FoundBy, Refused, RefusedReason, match_comics
 from django.db.models import Count, Max
 
 from codex.librarian.scribe.readinglists.references import (
@@ -65,13 +68,24 @@ _FOUND_BY_TIER: Final = MappingProxyType(
 )
 
 
+# A refused comic's preference as a suggestion: another volume's issue of
+# the same cover year before a cover year more than one off.
+_REFUSED_ORDER: Final = (RefusedReason.OTHER_VOLUME, RefusedReason.COVER_YEAR)
+
+
 @dataclass(frozen=True, slots=True)
 class EntryMatch:
-    """The comic an entry matched, how, and whether a person should look."""
+    """
+    The comic an entry matched, how, and whether a person should look.
+
+    A missing entry may carry ``suggested_pk``, a comic the matcher refused
+    that a person may know is the one; it is then flagged for review.
+    """
 
     comic_pk: int | None = None
     tier: str = ReadingListMatchTier.NONE
     needs_review: bool = False
+    suggested_pk: int | None = None
 
 
 NO_MATCH: Final = EntryMatch()
@@ -394,8 +408,29 @@ class ListMatcher:
         needs_review = not sure or len(series) > 1 or any_conflict(volumes)
         return EntryMatch(comic_pk, _FOUND_BY_TIER[strongest.by], needs_review)
 
+    @staticmethod
+    def _suggest(
+        refused: Iterable[Refused],
+        open_positions: Sequence[int],
+        pending: Collection[int],
+        suggestions: dict[int, int],
+    ) -> None:
+        """Keep each missing entry's likeliest refused comic, live first."""
+        best: dict[int, tuple[int, bool, int]] = {}
+        for refusal in refused:
+            # The candidates are keyed by pk, so the paths are pks.
+            pk: int = refusal.path  # pyright: ignore[reportAssignmentType], # ty: ignore[invalid-assignment]
+            rank = (_REFUSED_ORDER.index(refusal.reason), pk in pending, pk)
+            position = open_positions[refusal.position]
+            if position not in best or rank < best[position]:
+                best[position] = rank
+        suggestions.update({position: rank[2] for position, rank in best.items()})
+
     def _match_comicbox(
-        self, references: Sequence[Mapping[str, Any]], results: list[EntryMatch | None]
+        self,
+        references: Sequence[Mapping[str, Any]],
+        results: list[EntryMatch | None],
+        suggestions: dict[int, int],
     ) -> None:
         open_positions = [i for i, result in enumerate(results) if result is None]
         if not open_positions:
@@ -416,6 +451,7 @@ class ListMatcher:
             results[open_positions[found.position]] = self._pick(
                 found, series_of, pending, candidates
             )
+        self._suggest(result.refused, open_positions, pending, suggestions)
 
     # 3. Series id and issue.
 
@@ -476,7 +512,16 @@ class ListMatcher:
     def match(self, references: Sequence[Mapping[str, Any]]) -> list[EntryMatch]:
         """Match a list's references, in list order, to comics."""
         results: list[EntryMatch | None] = [None] * len(references)
+        suggestions: dict[int, int] = {}
         self._match_mapped(references, results)
-        self._match_comicbox(references, results)
+        self._match_comicbox(references, results, suggestions)
         self._match_series_ids(references, results)
-        return [result or NO_MATCH for result in results]
+        return [
+            result
+            or (
+                EntryMatch(needs_review=True, suggested_pk=suggestions[position])
+                if position in suggestions
+                else NO_MATCH
+            )
+            for position, result in enumerate(results)
+        ]

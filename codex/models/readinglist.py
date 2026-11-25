@@ -234,6 +234,15 @@ class ReadingListEntry(BaseModel):
         default=None,
         related_name="reading_list_entries",
     )
+    # A missing entry's likeliest comic, for review: one the matcher
+    # refused as another volume or another cover year. Never a match.
+    suggested_comic = ForeignKey(
+        Comic,
+        on_delete=SET_NULL,
+        null=True,
+        default=None,
+        related_name="+",
+    )
     reference = JSONField(default=dict)
     series_name = CleaningCharField(max_length=MAX_NAME_LEN, blank=True, default="")
     issue = CharField(max_length=MAX_ISSUE_LEN, blank=True, default="")

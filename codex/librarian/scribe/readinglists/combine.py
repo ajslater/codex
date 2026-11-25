@@ -44,11 +44,11 @@ from codex.librarian.scribe.readinglists.live import (
     reconcile_includers,
     reconcile_list,
 )
-from codex.librarian.scribe.readinglists.matcher import ListMatcher
+from codex.librarian.scribe.readinglists.matcher import EntryMatch, ListMatcher
 from codex.librarian.scribe.readinglists.overlay import (
     Edit,
     Overlay,
-    reference_keys,
+    reference_identity,
 )
 from codex.librarian.scribe.readinglists.references import issue_name
 from codex.models import Comic
@@ -123,6 +123,8 @@ class _Row:
     comic_pk: int | None = None
     tier: str = ReadingListMatchTier.NONE
     needs_review: bool = False
+    # A missing row's likeliest comic, refused by the matcher.
+    suggested_pk: int | None = None
     ignored: bool = False
     entry_type: str = ""
     # A hand-added entry folded into this row.
@@ -208,7 +210,7 @@ def _apply_overlay(rows: Sequence[_Row], overlay: Overlay) -> list[int | None]:
     """Put the hand edits on the rows; return each row's edit index."""
     picked_pks = overlay.picked_pks()
     live = set(Comic.objects.filter(pk__in=picked_pks).values_list("pk", flat=True))
-    assigned = overlay.assign([reference_keys(row.reference) for row in rows])
+    assigned = overlay.assign([reference_identity(row.reference) for row in rows])
     for row, index in zip(rows, assigned, strict=True):
         if index is not None:
             edit = overlay.edits[index]
@@ -240,6 +242,7 @@ def _match_rows(rows: Sequence[_Row], matcher: ListMatcher) -> None:
     matches = matcher.match([row.reference for row in open_rows])
     for row, found in zip(open_rows, matches, strict=True):
         if found.comic_pk is None:
+            row.suggested_pk = found.suggested_pk
             continue
         row.comic_pk = found.comic_pk
         row.tier = found.tier
@@ -325,7 +328,11 @@ def _entry(reading_list: ReadingList, position: int, row: _Row) -> ReadingListEn
         ],
         year=year,
         match_tier=row.tier,
-        needs_review=row.needs_review and row.comic_pk is not None,
+        # A missing row is for review only when there is a comic to suggest.
+        needs_review=row.needs_review
+        if row.comic_pk is not None
+        else row.suggested_pk is not None,
+        suggested_comic_id=None if row.comic_pk is not None else row.suggested_pk,
         ignored=row.ignored,
         manual=row.manual,
         entry_type=row.entry_type[:32],
@@ -352,6 +359,7 @@ def _copy_manual(
         year=entry.year,
         match_tier=entry.match_tier,
         needs_review=entry.needs_review,
+        suggested_comic_id=entry.suggested_comic_id,  # pyright: ignore[reportAttributeAccessIssue]
         ignored=entry.ignored,
         manual=True,
         entry_type=entry.entry_type,
@@ -389,16 +397,35 @@ def _heal_manual(
     ]
     if not lost:
         return []
-    healed = []
-    for entry, found in zip(
-        lost, matcher.match([entry.reference for entry in lost]), strict=True
-    ):
-        if found.comic_pk is not None:
-            entry.comic_id = found.comic_pk  # pyright: ignore[reportAttributeAccessIssue]
-            entry.match_tier = found.tier
-            entry.needs_review = found.needs_review
-            healed.append(entry)
-    return healed
+    matches = matcher.match([entry.reference for entry in lost])
+    return [
+        entry
+        for entry, found in zip(lost, matches, strict=True)
+        if apply_match(entry, found)
+    ]
+
+
+_MATCH_FIELDS: Final = ("comic", "match_tier", "needs_review", "suggested_comic")
+
+
+def apply_match(entry: ReadingListEntry, match: EntryMatch) -> bool:
+    """
+    Put what the matcher found for a missing entry on it; return if it changed.
+
+    A comic found clears any suggestion. With none found, a refused comic
+    is suggested and flagged for review, or a stale suggestion goes.
+    """
+    if match.comic_pk is not None:
+        entry.comic_id = match.comic_pk  # pyright: ignore[reportAttributeAccessIssue]
+        entry.match_tier = match.tier
+        entry.needs_review = match.needs_review
+        entry.suggested_comic_id = None  # pyright: ignore[reportAttributeAccessIssue]
+        return True
+    if match.suggested_pk == entry.suggested_comic_id:  # pyright: ignore[reportAttributeAccessIssue]
+        return False
+    entry.suggested_comic_id = match.suggested_pk  # pyright: ignore[reportAttributeAccessIssue]
+    entry.needs_review = match.suggested_pk is not None
+    return True
 
 
 def _recombine_hand_made(
@@ -423,9 +450,7 @@ def _recombine_hand_made(
         dropped, _ = own.filter(manual=False).delete()
         own.filter(manual=True).exclude(source_ids=[]).update(source_ids=[])
         healed = _heal_manual(kept, matcher)
-        ReadingListEntry.objects.bulk_update(
-            healed, ("comic", "match_tier", "needs_review"), batch_size=_BATCH
-        )
+        ReadingListEntry.objects.bulk_update(healed, _MATCH_FIELDS, batch_size=_BATCH)
         if dropped or healed:
             reading_list.save(update_fields=("updated_at",))
         reconcile_list(reading_list)
@@ -555,19 +580,15 @@ def rematch(reading_list: ReadingList, matcher: ListMatcher | None = None) -> in
     if not missing:
         return 0
     matches = matcher.match([entry.reference for entry in missing])
-    found = []
-    for entry, match in zip(missing, matches, strict=True):
-        if match.comic_pk is None:
-            continue
-        entry.comic_id = match.comic_pk  # pyright: ignore[reportAttributeAccessIssue]
-        entry.match_tier = match.tier
-        entry.needs_review = match.needs_review
-        found.append(entry)
+    changed = [
+        entry
+        for entry, match in zip(missing, matches, strict=True)
+        if apply_match(entry, match)
+    ]
+    found = [entry for entry in changed if entry.comic_id is not None]  # pyright: ignore[reportAttributeAccessIssue]
     with transaction.atomic():
         ReadingListEntry.objects.bulk_update(
-            found,
-            ("comic", "match_tier", "needs_review", "updated_at"),
-            batch_size=_BATCH,
+            changed, (*_MATCH_FIELDS, "updated_at"), batch_size=_BATCH
         )
         if found:
             reading_list.save(update_fields=("updated_at",))
