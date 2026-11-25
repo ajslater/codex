@@ -24,7 +24,7 @@ from comicbox.readinglists import (
     dumps,
 )
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.http import HttpResponse
 from django.utils.http import (
     content_disposition_header,  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-module-member]
@@ -34,7 +34,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from codex.choices.limits import MAX_NAME_LEN
-from codex.librarian.scribe.readinglists.combine import document_of
+from codex.librarian.scribe.readinglists.combine import document_header
 from codex.librarian.scribe.readinglists.documents import COMICBOX_KINDS, from_json
 from codex.librarian.scribe.readinglists.references import comic_references
 from codex.librarian.scribe.readinglists.service import copy_list
@@ -148,7 +148,7 @@ def export_document(reading_list: ReadingList, shown_q: Q) -> dict[str, Any]:
 
     ``shown_q`` picks the entries the exporter sees.
     """
-    document = document_of(reading_list)
+    document = document_header(reading_list)
     document[ENTRIES_KEY] = _export_entries(reading_list, shown_q)
     document[SOURCES_KEY] = _export_sources(reading_list)
     return from_json(document)
@@ -238,9 +238,10 @@ class ReadingListsView(ReadingListAccessView):
     def get(self, *_args, **_kwargs) -> Response:
         """Return the user's own lists, and for an admin the curated global ones."""
         user = self.request.user
+        # Own lists first: SQLite sorts a NULL owner, a global list, first.
         lists = list(
             ReadingList.objects.filter(menu_lists_q(user)).order_by(
-                "user_id", "sort_name", "pk"
+                F("user_id").asc(nulls_last=True), "sort_name", "pk"
             )
         )
         list_pks = [rl.pk for rl in lists]

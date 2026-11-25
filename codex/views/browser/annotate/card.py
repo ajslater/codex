@@ -21,6 +21,7 @@ from codex.models.collections import (
     Volume,
 )
 from codex.models.comic import Comic
+from codex.models.readinglist import ReadingList
 from codex.views.browser.annotate.bookmark import BrowserAnnotateBookmarkView
 
 _COLLECTION_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] = (
@@ -30,8 +31,10 @@ _COLLECTION_BY: MappingProxyType[type[BrowserCollectionModel], tuple[str, ...]] 
             Imprint: ("sort_name",),
             Series: ("sort_name",),
             Volume: ("name", "number_to"),
-            # ReadingList is absent on purpose: two curated orders of one
-            # event share a name and must stay two cards.
+            # By its key alone: two curated orders of one event share a
+            # name and must stay two cards, and grouping by every column
+            # grouped by its text blobs too.
+            ReadingList: ("id",),
         }
     )
 )
@@ -91,8 +94,25 @@ class BrowserAnnotateCardView(BrowserAnnotateBookmarkView):
             )
         return qs
 
+    @staticmethod
+    def _one_row_per_list(qs):
+        """
+        Drop a list query's DISTINCT once its card aggregates group it.
+
+        ``add_group_by`` groups list rows by their key, so each list is one
+        row; DISTINCT over every column, text blobs included, only cost a
+        sort. It stays where nothing aggregates yet, such as the page count,
+        because there the entry joins repeat a list's row.
+        """
+        if qs.model is ReadingList and qs.query.group_by is not None:
+            qs.query.distinct = False
+        return qs
+
     def annotate_card_aggregates(self, qs):
         """Annotate aggregates that appear the browser card."""
+        return self._one_row_per_list(self._annotate_card_aggregates(qs))
+
+    def _annotate_card_aggregates(self, qs):
         if qs.model is Comic:
             # comic adds order_value for cards late
             qs = self.annotate_order_value(qs)

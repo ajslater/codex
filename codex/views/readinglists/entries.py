@@ -6,7 +6,7 @@ comic, a hidden entry, an entry added by hand and a hand reorder all live
 in the entry rows, and a recombine keeps them.
 """
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any, Final
 
 from comicbox.readinglists import parse_issue
@@ -202,10 +202,38 @@ def _items_repr(reading_list: ReadingList, acl_q: Q) -> list[dict[str, Any]]:
     return items
 
 
+# What ``entry_repr`` reads: not an entry's reference or a comic's text.
+_ENTRY_REPR_FIELDS: Final = (
+    "pk",
+    "position",
+    "live_source_id",
+    "series_name",
+    "issue",
+    "year",
+    "entry_type",
+    "source_ids",
+    "match_tier",
+    "needs_review",
+    "ignored",
+    "manual",
+    "comic__id",
+    "comic__series_id",
+    "comic__volume_id",
+    "comic__issue_number",
+    "comic__issue_suffix",
+    "comic__year",
+    "comic__name",
+    "comic__series__name",
+    "comic__volume__name",
+    "comic__volume__number_to",
+)
+
+
 def _entries(reading_list: ReadingList):
     return (
         ReadingListEntry.objects.filter(reading_list=reading_list)
         .select_related("comic", "comic__series", "comic__volume")
+        .only(*_ENTRY_REPR_FIELDS)
         .order_by("position", "pk")
     )
 
@@ -255,32 +283,16 @@ class ReadingListEntriesView(ReadingListAccessView):
         return Response({"added": added})
 
 
-def add_comics(
-    reading_list: ReadingList, pks: list[int], position: int | None = None
-) -> int:
-    """
-    Put comics into a list by hand, in order, at ``position`` or the end.
-
-    A comic the list already shows is skipped; one it holds hidden shows
-    again, where it was, as hand-added: a source's row then outlives its
-    source, as a folded entry does. One a collection item delivers becomes
-    a hand entry, and the item stops delivering it. An insert inside a
-    block goes in before the block.
-    """
-    if not pks:
-        return 0
-    own = ReadingListEntry.objects.filter(
-        reading_list=reading_list, live_source__isnull=True, comic_id__in=pks
-    )
-    shown = set(own.filter(ignored=False).values_list("comic_id", flat=True))
-    hidden = set(own.filter(ignored=True).values_list("comic_id", flat=True)) - shown
-    wanted = [pk for pk in dict.fromkeys(pks) if pk not in shown | hidden]
+def _hand_entries(
+    reading_list: ReadingList, wanted: Sequence[int]
+) -> list[ReadingListEntry]:
+    """Make the hand-added entries of the comics, in order, that exist."""
     references = comic_references(wanted)
     comics = {
         comic.pk: comic
         for comic in Comic.objects.filter(pk__in=wanted).select_related("series")
     }
-    new_entries = [
+    return [
         ReadingListEntry(
             reading_list=reading_list,
             comic=comic,
@@ -294,6 +306,34 @@ def add_comics(
         for pk in wanted
         if (comic := comics.get(pk)) is not None
     ]
+
+
+def add_comics(
+    reading_list: ReadingList,
+    pks: list[int],
+    position: int | None = None,
+    *,
+    settle: bool = True,
+) -> int:
+    """
+    Put comics into a list by hand, in order, at ``position`` or the end.
+
+    A comic the list already shows is skipped; one it holds hidden shows
+    again, where it was, as hand-added: a source's row then outlives its
+    source, as a folded entry does. One a collection item delivers becomes
+    a hand entry, and the item stops delivering it. An insert inside a
+    block goes in before the block. ``settle=False`` leaves syncing the
+    list and its holders to a caller that changes more of the list first.
+    """
+    if not pks:
+        return 0
+    own = ReadingListEntry.objects.filter(
+        reading_list=reading_list, live_source__isnull=True, comic_id__in=pks
+    )
+    shown = set(own.filter(ignored=False).values_list("comic_id", flat=True))
+    hidden = set(own.filter(ignored=True).values_list("comic_id", flat=True)) - shown
+    wanted = [pk for pk in dict.fromkeys(pks) if pk not in shown | hidden]
+    new_entries = _hand_entries(reading_list, wanted)
     if not new_entries and not hidden:
         return 0
     with transaction.atomic():
@@ -303,8 +343,10 @@ def add_comics(
         at = _boundary(ordered, position)
         ReadingListEntry.objects.bulk_create(new_entries)
         _renumber(reading_list, ordered[:at] + new_entries + ordered[at:])
-        reconcile_list(reading_list)
-    reconcile_includers(reading_list)
+        if settle:
+            reconcile_list(reading_list)
+    if settle:
+        reconcile_includers(reading_list)
     return len(new_entries) + len(hidden)
 
 
@@ -392,7 +434,9 @@ class ReadingListEntryView(ReadingListAccessView):
         return Response({"deleted": deleted})
 
 
-def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, Any]:
+def remove_comics(
+    reading_list: ReadingList, pks: Iterable[int], *, settle: bool = True
+) -> dict[str, Any]:
     """
     Take comics out of a list, in place; say how many of each kind.
 
@@ -424,7 +468,7 @@ def remove_comics(reading_list: ReadingList, pks: Iterable[int]) -> dict[str, An
             _renumber(reading_list, _order(reading_list))
         else:
             reading_list.save()
-    if removed or hidden:
+    if settle and (removed or hidden):
         _settle(reading_list)
     return {"removed": removed, "hidden": hidden, "refused": refused}
 

@@ -41,9 +41,17 @@ class ReadingListRecombineTask(ScribeTask):
 
 @dataclass
 class ReadingListRematchTask(ScribeTask):
-    """Match missing entries again. No pks means every list with any."""
+    """
+    Match missing entries again. No pks means every list with any.
+
+    ``seq`` is the scribe queue's sequence number, stamped as the task is
+    queued. It lets a full rematch that ran since stand in for this one:
+    imports outrank rematches, so a burst of them queues several. A task
+    run without the queue, as the nightly janitor runs one, has none.
+    """
 
     list_pks: tuple[int, ...] = field(default_factory=tuple)
+    seq: int | None = None
 
 
 @dataclass

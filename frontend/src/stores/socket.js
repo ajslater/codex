@@ -162,12 +162,17 @@ export const useSocketStore = defineStore("socket", () => {
 
 export async function readingListsNotified() {
   // Everyone hears it: a user's drawer and add-to-list menus reload, and an
-  // admin's table too. Only what was already loaded reloads.
+  // admin's table too while it is on screen: the tab loads it afresh when
+  // it opens. Only what was already loaded reloads.
   try {
     const m = await import("@/stores/reading-lists");
     const store = m.useReadingListsStore();
     const loads = [];
-    if (useAuthStore().isUserAdmin && store.listsLoaded) {
+    if (
+      useAuthStore().isUserAdmin &&
+      store.listsLoaded &&
+      currentRouteName() === "admin-reading-lists"
+    ) {
       loads.push(store.loadTable());
     }
     if (store.myListsLoaded) loads.push(store.loadMyLists());

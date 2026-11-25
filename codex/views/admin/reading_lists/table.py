@@ -1,6 +1,7 @@
 """The admin lists table, a list's detail, and actions on lists."""
 
 from collections import defaultdict
+from itertools import batched
 from types import MappingProxyType
 from typing import Any, Final
 
@@ -27,6 +28,7 @@ from codex.librarian.scribe.readinglists.errors import (
     get_reading_list_errors,
 )
 from codex.librarian.scribe.readinglists.live import owner_refusal
+from codex.librarian.scribe.readinglists.references import PK_BATCH
 from codex.librarian.scribe.readinglists.service import (
     REMOTE_KINDS,
     copy_list,
@@ -331,8 +333,10 @@ def _write(reading_lists: list[ReadingList]) -> dict[str, int]:
             continue
         arc = arc_write(reading_list)
         writable = frozenset(
-            Comic.objects.filter(
-                pk__in=arc.patches, library__read_only=False
+            pk
+            for batch in batched(arc.patches, PK_BATCH)
+            for pk in Comic.objects.filter(
+                pk__in=batch, library__read_only=False
             ).values_list("pk", flat=True)
         )
         skipped += len(arc.patches) - len(writable)

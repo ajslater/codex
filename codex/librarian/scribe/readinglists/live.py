@@ -366,13 +366,50 @@ def _rebind(
     return False
 
 
-def _bind(reading_list: ReadingList, items: Sequence[ReadingListSource]) -> bool:
+@dataclass(slots=True)
+class _Read:
+    """
+    The rows and comics a staleness check read, for the sync that follows.
+
+    Only the scribe changes which comics a series, folder or other
+    collection holds, and it runs the check and the sync back to back, so
+    what the check read is still true. A list's own entries change on any
+    request, so a list target is read again.
+    """
+
+    targets: dict[tuple[str, int], Model | None] = field(default_factory=dict)
+    members: dict[tuple[str, int], list[int]] = field(default_factory=dict)
+
+    def target(self, collection: str, target_id: int) -> Model | None:
+        key = (collection, target_id)
+        if key not in self.targets:
+            self.targets[key] = load_target(collection, target_id)
+        return self.targets[key]
+
+    def comics(self, collection: str, target_id: int | None) -> list[int]:
+        if target_id is None:
+            return []
+        key = (collection, target_id)
+        if key not in self.members:
+            self.members[key] = member_comics(collection, target_id)
+        return self.members[key]
+
+    def forget_lists(self) -> None:
+        """Drop what a list target read: its entries may change at any time."""
+        for cache in (self.targets, self.members):
+            for key in [key for key in cache if key[0] == _ARC]:
+                del cache[key]
+
+
+def _bind(
+    reading_list: ReadingList, items: Sequence[ReadingListSource], read: _Read
+) -> bool:
     """Dangle items whose row went, bind dangling ones, refresh the rest."""
     changed = False
     for item in items:
         if item.target_id is None:
             continue
-        target = load_target(item.collection, item.target_id)
+        target = read.target(item.collection, item.target_id)
         if target is None:
             item.target_id = None
             changed = True
@@ -426,7 +463,7 @@ def _blocks(
 
 
 def _fill(
-    blocks: Sequence[_Block], entries: Sequence[ReadingListEntry]
+    blocks: Sequence[_Block], entries: Sequence[ReadingListEntry], read: _Read
 ) -> dict[int, list[int]]:
     """Give each block its comics, once per list; return each item's members."""
     delivered = {
@@ -436,7 +473,7 @@ def _fill(
     }
     members = {}
     for block in blocks:
-        comics = member_comics(block.item.collection, block.item.target_id)
+        comics = read.comics(block.item.collection, block.item.target_id)
         members[block.item.pk] = comics
         block.comics = [pk for pk in comics if pk not in delivered]
         delivered.update(block.comics)
@@ -588,20 +625,29 @@ def _close_gaps(reading_list: ReadingList) -> bool:
     return True
 
 
-def reconcile_list(reading_list: ReadingList) -> bool:
+def reconcile_list(
+    reading_list: ReadingList,
+    read: _Read | None = None,
+    skip: Sequence[int] = (),
+) -> bool:
     """
     Bring a list's live entries in line with its items; return if it changed.
 
     A full diff of every item, in order, against the rows: everything that
     changes a list calls it, so the comics a list holds otherwise are
-    re-read each time.
+    re-read each time. ``read`` is what a staleness check just read.
+    ``skip`` names items, just added and too large to sync inline, that a
+    librarian job syncs instead: they bring no rows yet, and keep their
+    blank revision for that job.
     """
+    read = read or _Read()
+    read.forget_lists()
     with transaction.atomic():
         lock_list(reading_list)
         items = list(
-            ReadingListSource.objects.filter(
-                reading_list=reading_list, **items_q()
-            ).order_by("rank", "pk")
+            ReadingListSource.objects.filter(reading_list=reading_list, **items_q())
+            .exclude(pk__in=skip)
+            .order_by("rank", "pk")
         )
         live_rows = ReadingListEntry.objects.filter(
             reading_list=reading_list, live_source__isnull=False
@@ -609,7 +655,7 @@ def reconcile_list(reading_list: ReadingList) -> bool:
         if not items and not live_rows.exists():
             # Its last item may just have gone, with the rows it brought.
             return _close_gaps(reading_list)
-        rebound = _bind(reading_list, items)
+        rebound = _bind(reading_list, items, read)
         sourced = (
             ReadingListSource.objects.filter(reading_list=reading_list)
             .exclude(**items_q())
@@ -621,7 +667,7 @@ def reconcile_list(reading_list: ReadingList) -> bool:
             .only("pk", "position", "comic_id", "live_source_id")
         )
         blocks = _blocks(entries, items, sourced=sourced)
-        members = _fill(blocks, entries)
+        members = _fill(blocks, entries, read)
         changed = _write(_plan(reading_list, entries, blocks)) or rebound
         _save_items(blocks, members, sourced=sourced)
         if changed:
@@ -632,17 +678,17 @@ def reconcile_list(reading_list: ReadingList) -> bool:
 # ── Syncing many lists ───────────────────────────────────────────────
 
 
-def _is_stale(reading_list: ReadingList) -> bool:
-    """Whether any item's row or comics changed since it last synced."""
-    items = ReadingListSource.objects.filter(reading_list=reading_list, **items_q())
+def _is_stale(items: Iterable[ReadingListSource], read: _Read) -> bool:
+    """Whether any of a list's items' row or comics changed since it synced."""
+    read.forget_lists()
     for item in items:
         if item.target_id is None:
             if _candidates(item):
                 return True
             continue
-        if load_target(item.collection, item.target_id) is None:
+        if read.target(item.collection, item.target_id) is None:
             return True
-        if _digest(member_comics(item.collection, item.target_id)) != item.revision:
+        if _digest(read.comics(item.collection, item.target_id)) != item.revision:
             return True
     return False
 
@@ -706,13 +752,21 @@ def sync_live(*, force: bool = False, list_pks: Iterable[int] | None = None) -> 
         )
     dirty: set[int] = set()
     changed = 0
+    lists = ReadingList.objects.in_bulk(order)
+    items: defaultdict[int, list[ReadingListSource]] = defaultdict(list)
+    if not force:
+        for item in ReadingListSource.objects.filter(
+            reading_list_id__in=order, **items_q()
+        ):
+            items[item.reading_list_id].append(item)  # pyright: ignore[reportAttributeAccessIssue]
+    read = _Read()
     for pk in order:
-        reading_list = ReadingList.objects.filter(pk=pk).first()
+        reading_list = lists.get(pk)
         if reading_list is None:
             continue
-        if not (force or pk in dirty or _is_stale(reading_list)):
+        if not (force or pk in dirty or _is_stale(items[pk], read)):
             continue
-        if reconcile_list(reading_list):
+        if reconcile_list(reading_list, read):
             changed += 1
             dirty |= includers((pk,))
     return changed

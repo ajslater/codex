@@ -34,6 +34,7 @@ from comicbox.readinglists.match import FoundBy, match_comics
 from django.db.models import Count, Max
 
 from codex.librarian.scribe.readinglists.references import (
+    PK_BATCH,
     comic_candidates,
     typed_reference,
 )
@@ -141,9 +142,13 @@ def _series_and_pending(
     comic_pks: Collection[int],
 ) -> tuple[dict[int, int | None], set[int]]:
     """Return each comic's series, and the comics pending delete."""
-    rows = Comic.objects.filter(pk__in=comic_pks).values_list(
-        "pk", "series_id", "missing_since"
-    )
+    rows = [
+        row
+        for batch in batched(sorted(set(comic_pks)), PK_BATCH)
+        for row in Comic.objects.filter(pk__in=batch).values_list(
+            "pk", "series_id", "missing_since"
+        )
+    ]
     series_of = {pk: series_pk for pk, series_pk, _ in rows}
     pending = {pk for pk, _, missing_since in rows if missing_since is not None}
     return series_of, pending

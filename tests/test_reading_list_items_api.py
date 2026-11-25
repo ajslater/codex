@@ -144,10 +144,11 @@ class AddTests(ItemsFixture):
         assert mine["items"]["comics"] == [c1.pk, c2.pk]
 
     def test_a_large_collection_is_synced_by_the_librarian(self) -> None:
-        """Above the limit the item is saved and its sync queued."""
+        """Above the limit the item is saved and its sync queued on commit."""
         with (
             patch.object(live, "LIVE_INLINE_LIMIT", 2),
             patch("codex.views.readinglists.items.LIBRARIAN_QUEUE") as queue,
+            self.captureOnCommitCallbacks(execute=True),  # pyright: ignore[reportAttributeAccessIssue], # ty: ignore[missing-attribute]
         ):
             response = self.patch_items(
                 self.mine, {"add": {"series": [self.series.pk]}}

@@ -23,7 +23,8 @@ from codex.models import Comic
 from codex.models.identifier import IdentifierType
 
 # Below SQLite's bound-parameter limit with room for the rest of a query.
-_PK_BATCH: Final = 10000
+# Values bound per query: a stock SQLite allows 32,766 variables.
+PK_BATCH: Final = 10000
 _COMIC_FIELDS: Final = (
     "pk",
     "series__name",
@@ -113,7 +114,7 @@ def _issue_identifiers(pks: tuple[int, ...]) -> dict[int, dict[str, dict]]:
 def comic_references(comic_pks: Iterable[int]) -> dict[int, dict[str, Any]]:
     """Return a comicbox reading-list entry for each comic, by pk."""
     references: dict[int, dict[str, Any]] = {}
-    for batch in batched(sorted(set(comic_pks)), _PK_BATCH):
+    for batch in batched(sorted(set(comic_pks)), PK_BATCH):
         identifiers = _issue_identifiers(batch)
         rows = Comic.objects.filter(pk__in=batch).values_list(*_COMIC_FIELDS)
         for row in rows:

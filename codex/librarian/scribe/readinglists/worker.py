@@ -1,5 +1,7 @@
 """Run reading list scribe tasks."""
 
+from typing import ClassVar
+
 from django.contrib.auth.models import User
 from django.db.models import Q
 
@@ -7,6 +9,7 @@ from codex.librarian.notifier.tasks import (
     LIBRARY_CHANGED_TASK,
     READING_LISTS_CHANGED_TASK,
 )
+from codex.librarian.scribe.priority import next_sequence
 from codex.librarian.scribe.readinglists.combine import recombine, rematch
 from codex.librarian.scribe.readinglists.errors import add_reading_list_error
 from codex.librarian.scribe.readinglists.live import sync_live
@@ -93,8 +96,27 @@ class ReadingListWorker(WorkerStatusBase):
             self.status_controller.finish(status)
             self._notify(changed=True)
 
+    # The scribe sequence number taken as the last full rematch to finish
+    # began. It began after the imports that queued every full rematch
+    # numbered below it committed, so it covers them. A sequence number,
+    # not a time: it does not move with the clock, and it is recorded only
+    # once the rematch finishes, so one that raised covers nothing.
+    _full_rematch_covers: ClassVar[int] = -1
+
+    def _covered(self, task: ReadingListRematchTask) -> bool:
+        """Whether a full rematch since began after this one was queued."""
+        if task.list_pks or task.seq is None:
+            return False
+        if task.seq < ReadingListWorker._full_rematch_covers:
+            self.log.debug("A full reading list rematch since covers this one.")
+            return True
+        return False
+
     def rematch_lists(self, task: ReadingListRematchTask) -> None:
         """Match missing entries again across the given lists, or every list."""
+        if self._covered(task):
+            return
+        began = None if task.list_pks else next_sequence()
         lists = ReadingList.objects.filter(
             Q(
                 entries__comic__isnull=True,
@@ -116,7 +138,12 @@ class ReadingListWorker(WorkerStatusBase):
                 self.status_controller.update(status)
         finally:
             self.status_controller.finish(status)
-            self._notify(changed=bool(found))
+            if found:
+                self._notify(changed=True)
+        if began is not None:
+            ReadingListWorker._full_rematch_covers = max(
+                ReadingListWorker._full_rematch_covers, began
+            )
         if found:
             self.log.info(f"Matched {found} reading list issues.")
 
@@ -129,7 +156,8 @@ class ReadingListWorker(WorkerStatusBase):
             changed = sync_live(force=task.force, list_pks=task.list_pks or None)
         finally:
             self.status_controller.finish(status)
-            self._notify(changed=bool(changed))
+            if changed:
+                self._notify(changed=True)
         if changed:
             self.log.info(f"Synced the collections of {changed} reading lists.")
 

@@ -578,17 +578,24 @@ def rematch(reading_list: ReadingList, matcher: ListMatcher | None = None) -> in
     return len(found)
 
 
-def document_of(reading_list: ReadingList) -> dict[str, Any]:
-    """Return a list as one JSON-safe comicbox document: header and entries."""
-    entries = ReadingListEntry.objects.filter(
-        reading_list=reading_list, ignored=False
-    ).order_by("position", "pk")
-    references = [entry.reference for entry in entries if entry.reference]
+def document_header(reading_list: ReadingList) -> dict[str, Any]:
+    """Return a list's header as a JSON-safe comicbox document, no entries."""
     document: dict[str, Any] = {"name": reading_list.name}
     for attr, key in _HEADER_FIELDS:
         if value := getattr(reading_list, attr):
             document[key] = value
     extra = reading_list.extra or {}
     document.update({key: value for key in _EXTRA_KEYS if (value := extra.get(key))})
-    document[ENTRIES_KEY] = references
+    return document
+
+
+def document_of(reading_list: ReadingList) -> dict[str, Any]:
+    """Return a list as one JSON-safe comicbox document: header and entries."""
+    references = (
+        ReadingListEntry.objects.filter(reading_list=reading_list, ignored=False)
+        .order_by("position", "pk")
+        .values_list("reference", flat=True)
+    )
+    document = document_header(reading_list)
+    document[ENTRIES_KEY] = [reference for reference in references if reference]
     return document
