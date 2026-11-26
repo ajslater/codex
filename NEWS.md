@@ -6,6 +6,13 @@ width: 128px;
 border-radius: 128px;
 " />
 
+## v2.8.2
+
+### 🐛 Fixed
+
+- Previewing many reading lists at once no longer stops early, and shows its
+  progress.
+
 ## v2.8.1
 
 ### 🐛 Fixed
