@@ -284,7 +284,7 @@
 
     "commander": ["commander@11.1.0", "", {}, "sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ=="],
 
-    "comment-parser": ["comment-parser@1.4.9", "", {}, "sha512-+2AvZKjJaNq9GQljm3tr0utwrig5BL+jgJGvz5rDpGKNIp+ojcRXWUwBbh/sGIi1QCprR6PsKFakub+w1v+4hQ=="],
+    "comment-parser": ["comment-parser@1.4.11", "", {}, "sha512-bZMt5Mw4GgsMmnOZ5mHsHzyexC5JgzDbyMk5P0/RMqVPbK9sL+qOQyTGO95xCWQ8VhUzCbTdKkgcgGuofaVjuw=="],
 
     "core-js-compat": ["core-js-compat@3.51.0", "", { "dependencies": { "browserslist": "^4.29.3" } }, "sha512-52r6fkXgxv4GLMjmFcMWRx7X9bw071xTTdrDcdyPGRqU2oE+9pCG0bAOMifSBdLw0JRBZKEF0q3B55qPlLuE8g=="],
 
@@ -608,7 +608,7 @@
 
     "natural-orderby": ["natural-orderby@5.0.0", "", {}, "sha512-kKHJhxwpR/Okycz4HhQKKlhWe4ASEfPgkSWNmKFHd7+ezuQlxkA5cM3+XkBPvm1gmHen3w53qsYAv+8GwRrBlg=="],
 
-    "node-releases": ["node-releases@2.0.65", "", {}, "sha512-PfvofsGQ+MiOQIPkX9fU8ELUWmy5zL74CdQaph/ismKszfFkfwXaw0cGiwbwym2hT9k5+mdyl8O5WQ1MD8EHmA=="],
+    "node-releases": ["node-releases@2.0.66", "", {}, "sha512-uSMWN9/XtWzxaE0d9ZNHe00Hda6028AXH3WRjTsK71neiPCSeL5nGSD9MXTQX/6Qx0k7Op1AyyinmIUw9fBzrg=="],
 
     "nth-check": ["nth-check@2.1.1", "", { "dependencies": { "boolbase": "^1.0.0" } }, "sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w=="],
 
