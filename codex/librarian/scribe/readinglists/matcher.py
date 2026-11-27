@@ -295,6 +295,15 @@ def library_series_index() -> SeriesNameIndex:
     return _series_index(tuple(state.values()))
 
 
+def _strongest_finds(found, pending: Collection[int]) -> tuple[list, Any, list[int]]:
+    """Return the sure finds, the strongest find and the pks tied with it."""
+    sure = [comic for comic in found.comics if not comic.ambiguous]
+    pool = sure or list(found.comics)
+    strongest = min(pool, key=lambda comic: list(FoundBy).index(comic.by))
+    tied = [comic for comic in pool if comic.by == strongest.by]
+    return sure, strongest, [comic.path for comic in _live_first(tied, pending)]
+
+
 class ListMatcher:
     """Match the entries of lists; reusable across the lists of one run."""
 
@@ -397,11 +406,7 @@ class ListMatcher:
         that differ, are a guess. One run tagged both "v2" and "(2011)"
         sits in two volumes that do not differ.
         """
-        sure = [comic for comic in found.comics if not comic.ambiguous]
-        pool = sure or list(found.comics)
-        strongest = min(pool, key=lambda comic: list(FoundBy).index(comic.by))
-        tied = [comic for comic in pool if comic.by == strongest.by]
-        best = [comic.path for comic in _live_first(tied, pending)]
+        sure, strongest, best = _strongest_finds(found, pending)
         comic_pk = min(best)
         series = {series_of.get(pk) for pk in best}
         volumes = (discriminators(candidates[pk]) for pk in best)

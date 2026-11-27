@@ -447,6 +447,108 @@ describe("add lists dialog", () => {
   });
 });
 
+const urls = (count) =>
+  Array.from(
+    { length: count },
+    (_, index) => `https://example.invalid/${index}.cbl`,
+  );
+
+// A preview answer: a card per URL the request asked for.
+const answer = (_files, sources) =>
+  Promise.resolve({
+    data: {
+      cards: sources.map((source) => ({
+        token: source.ref,
+        kind: "url",
+        ref: source.ref,
+        name: source.ref,
+        suggestions: [],
+      })),
+    },
+  });
+
+describe("add lists dialog — previewing many lists", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("asks a few lists at a time and shows every card at the end", async () => {
+    API.previewLists.mockImplementation(answer);
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    wrapper.vm.urls = urls(12).join("\n");
+    await wrapper.vm.preview();
+    const sizes = API.previewLists.mock.calls.map(([, sources]) => sources);
+    expect(sizes.map((sources) => sources.length)).toEqual([5, 5, 2]);
+    expect(wrapper.vm.cards.map((card) => card.ref)).toEqual(urls(12));
+    expect(Object.keys(wrapper.vm.choices)).toHaveLength(12);
+    expect(wrapper.vm.previewing).toBe(false);
+  });
+
+  test("files go in their own requests, ahead of the sources", async () => {
+    API.previewLists.mockResolvedValue({ data: { cards: [] } });
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    const files = [new File(["a"], "a.cbl"), new File(["b"], "b.cbl")];
+    wrapper.vm.files = files;
+    wrapper.vm.urls = urls(1).join("\n");
+    await wrapper.vm.preview();
+    expect(API.previewLists.mock.calls).toEqual([
+      [files, []],
+      [[], [{ kind: "url", ref: urls(1)[0] }]],
+    ]);
+  });
+
+  test("says how far it has got while it works", async () => {
+    let release;
+    API.previewLists.mockImplementationOnce(answer).mockImplementationOnce(
+      (...args) =>
+        new Promise((resolve) => {
+          release = () => resolve(answer(...args));
+        }),
+    );
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    wrapper.vm.urls = urls(7).join("\n");
+    const previewing = wrapper.vm.preview();
+    await flushPromises();
+    expect(wrapper.vm.previewing).toBe(true);
+    expect(wrapper.text()).toContain("Previewed 5 of 7 lists…");
+    expect(wrapper.vm.cards).toEqual([]);
+    release();
+    await previewing;
+    expect(wrapper.vm.cards).toHaveLength(7);
+  });
+
+  test("closing the dialog stops asking for more", async () => {
+    let release;
+    API.previewLists.mockImplementationOnce(
+      (...args) =>
+        new Promise((resolve) => {
+          release = () => resolve(answer(...args));
+        }),
+    );
+    const wrapper = mount(AddListsDialog, {
+      props: { modelValue: true },
+      global: { plugins: [pinia(), vuetify], stubs: STUBS },
+    });
+    wrapper.vm.urls = urls(12).join("\n");
+    const previewing = wrapper.vm.preview();
+    await wrapper.setProps({ modelValue: false });
+    expect(wrapper.vm.previewing).toBe(false);
+    release();
+    await previewing;
+    expect(API.previewLists).toHaveBeenCalledTimes(1);
+    expect(wrapper.vm.cards).toEqual([]);
+  });
+});
+
 function mountDialog(taggingDefaults) {
   const testingPinia = pinia();
   setActivePinia(testingPinia);

@@ -194,7 +194,10 @@
         <v-btn v-if="cards.length" variant="text" @click="cards = []">
           Back
         </v-btn>
-        <span v-if="!cards.length && pickedCount" class="pickSummary">
+        <span v-if="previewing" class="pickSummary">
+          {{ previewProgress }}
+        </span>
+        <span v-else-if="!cards.length && pickedCount" class="pickSummary">
           {{ pickSummary }}
         </span>
         <!-- Why Preview or Import is off, in words: a title never shows. -->
@@ -268,6 +271,19 @@ const KEY_NEEDED = Object.freeze({
 
 const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`;
 
+/*
+ * Lists previewed per request. The server fetches and matches every list
+ * before it answers, so one request for dozens of lists outlasts the idle
+ * timeout of a proxy or browser in front of Codex (often 60s): the browser
+ * gives up while the server keeps fetching. A few per request stay short.
+ */
+const PREVIEW_BATCH = 5;
+
+const batches = (items, size) =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
+    items.slice(index * size, (index + 1) * size),
+  );
+
 const CATALOG_HEADERS = Object.freeze([
   { title: "Name", key: "name" },
   { title: "Publisher", key: "publisher" },
@@ -304,6 +320,10 @@ export default {
       comicvineArcs: "",
       searching: false,
       previewing: false,
+      // Bumped to drop a preview under way when the dialog closes.
+      previewRun: 0,
+      previewed: 0,
+      previewTotal: 0,
       importing: false,
       cards: [],
       pickNoneHint: "Pick at least one list on any tab.",
@@ -336,6 +356,10 @@ export default {
         .filter(([count]) => count)
         .map(([count, one, many]) => plural(count, one, many));
       return `Picked: ${parts.join(", ")}`;
+    },
+    previewProgress() {
+      const total = plural(this.previewTotal, "list", "lists");
+      return `Previewed ${this.previewed} of ${total}…`;
     },
     show: {
       get() {
@@ -387,6 +411,7 @@ export default {
       immediate: true,
       handler(value) {
         if (value) this.open();
+        else this.stopPreview();
       },
     },
   },
@@ -399,6 +424,7 @@ export default {
       if (!this.catalogResults.length) this.search("catalog");
     },
     reset() {
+      this.stopPreview();
       this.cards = [];
       this.choices = {};
       this.pickedMetron = [];
@@ -459,14 +485,32 @@ export default {
       ];
       return [...metron, ...catalog, ...urls, ...arcs];
     },
+    stopPreview() {
+      this.previewRun += 1;
+      this.previewing = false;
+    },
     async preview() {
+      const run = this.previewRun;
+      const files = this.files || [];
+      const sources = this.sources();
+      // Files, then sources, a batch to a request, one request at a time.
+      const requests = [
+        ...batches(files, PREVIEW_BATCH).map((batch) => [batch, []]),
+        ...batches(sources, PREVIEW_BATCH).map((batch) => [[], batch]),
+      ];
+      this.previewed = 0;
+      this.previewTotal = files.length + sources.length;
       this.previewing = true;
+      const cards = [];
       try {
-        const response = await API.previewLists(
-          this.files || [],
-          this.sources(),
-        );
-        this.cards = response.data.cards || [];
+        for (const [batchFiles, batchSources] of requests) {
+          const response = await API.previewLists(batchFiles, batchSources);
+          // Closed meanwhile: ask for no more and show nothing.
+          if (run !== this.previewRun) return;
+          cards.push(...(response.data.cards || []));
+          this.previewed += batchFiles.length + batchSources.length;
+        }
+        this.cards = cards;
         const choices = {};
         for (const card of this.cards) {
           const suggestion = (card.suggestions || []).find((s) => s.combine);
@@ -479,9 +523,10 @@ export default {
         }
         this.choices = choices;
       } catch (error) {
-        useCommonStore().setErrorNotice(error);
+        if (run === this.previewRun) useCommonStore().setErrorNotice(error);
       } finally {
-        this.previewing = false;
+        // A stale run leaves alone the spinner of one begun since.
+        if (run === this.previewRun) this.previewing = false;
       }
     },
     async doImport() {

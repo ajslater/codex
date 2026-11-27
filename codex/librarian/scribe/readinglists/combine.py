@@ -310,13 +310,27 @@ def _with_manual(
     return ordered
 
 
+def _reference_year(reference: Mapping[str, Any]) -> int | None:
+    """Return the reference's year, falling back to its cover date's."""
+    date = reference.get("date") or {}
+    year = date.get("year")
+    if year is None and (cover := date.get("cover_date")):
+        year = int(str(cover)[:4])
+    return year
+
+
+def _needs_review(row: _Row) -> bool:
+    """Return whether a row needs review; a missing row only with a suggestion."""
+    if row.comic_pk is not None:
+        return row.needs_review
+    return row.suggested_pk is not None
+
+
 def _entry(reading_list: ReadingList, position: int, row: _Row) -> ReadingListEntry:
     reference = row.reference
     series = reference.get("series") or {}
     issue = reference.get("issue") or {}
-    year = (reference.get("date") or {}).get("year")
-    if year is None and (cover := (reference.get("date") or {}).get("cover_date")):
-        year = int(str(cover)[:4])
+    year = _reference_year(reference)
     return ReadingListEntry(
         reading_list=reading_list,
         position=position,
@@ -328,10 +342,7 @@ def _entry(reading_list: ReadingList, position: int, row: _Row) -> ReadingListEn
         ],
         year=year,
         match_tier=row.tier,
-        # A missing row is for review only when there is a comic to suggest.
-        needs_review=row.needs_review
-        if row.comic_pk is not None
-        else row.suggested_pk is not None,
+        needs_review=_needs_review(row),
         suggested_comic_id=None if row.comic_pk is not None else row.suggested_pk,
         ignored=row.ignored,
         manual=row.manual,

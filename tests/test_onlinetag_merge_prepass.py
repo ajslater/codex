@@ -571,6 +571,10 @@ class MixedLookupMergeTests(OnlineTagSessionTestCase):
         assert tags is None
         assert sources["metron"].get_calls == [METRON_ID]
         assert sources["metron"].search_calls == 0
+        self._assert_held_for_resume()
+
+    def _assert_held_for_resume(self) -> None:
+        """Assert the comic is queued for Resume and the snapshot shows it held."""
         resume = get_resume_state()
         assert resume is not None
         assert resume["remaining_pks"] == [self.comic.pk]

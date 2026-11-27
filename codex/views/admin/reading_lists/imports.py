@@ -234,7 +234,9 @@ class AdminReadingListPreviewView(AdminAPIView):
     POST lists to preview: uploaded ``files`` and ``sources`` to fetch.
 
     ``sources`` is a list of ``{kind, ref, sha?, name?, curator?}``; in a
-    multipart upload it arrives as a JSON string.
+    multipart upload it arrives as a JSON string. Every list is fetched and
+    matched before the response, so the dialog sends a few per request: one
+    request for dozens outlasts a proxy's idle timeout.
     """
 
     parser_classes = (CamelCaseJSONParser, MultiPartParser, FormParser)
