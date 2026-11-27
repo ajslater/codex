@@ -1074,6 +1074,7 @@ URL then returns 404.
     - [KYBook 3](http://kybook-reader.com/)
     - [Chunky Comic Reader](https://apps.apple.com/us/app/chunky-comic-reader/id663567628)
     - [Gutter](https://apps.apple.com/us/app/gutter-comic-reader/id6831270255)
+    - [Yomu](https://apps.apple.com/app/yomu/id6760745234)
 - Android
     - [Moon+](https://play.google.com/store/apps/details?id=com.flyersoft.moonreader)
     - [Librera](https://play.google.com/store/apps/details?id=com.foobnix.pdf.reader)
